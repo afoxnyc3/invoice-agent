@@ -1,0 +1,26 @@
+vendor_name,email_domain,expense_dept,allocation_schedule,gl_code,billing_party,notes
+Adobe Inc,adobe.com,IT,MONTHLY,6100,Company HQ,Creative Cloud subscriptions
+Microsoft Corporation,microsoft.com,IT,ANNUAL,6100,Company HQ,Office 365 and Azure services
+Amazon Web Services,aws.amazon.com,IT,MONTHLY,6110,Company HQ,Cloud infrastructure
+Salesforce,salesforce.com,SALES,ANNUAL,6200,Company HQ,CRM platform
+Zoom Video Communications,zoom.us,IT,MONTHLY,6120,Company HQ,Video conferencing
+Slack Technologies,slack.com,IT,MONTHLY,6120,Company HQ,Team collaboration
+Google Workspace,google.com,IT,MONTHLY,6100,Company Branch,Email and productivity suite
+Dropbox,dropbox.com,IT,ANNUAL,6130,Company HQ,File storage and sharing
+HubSpot,hubspot.com,MARKETING,MONTHLY,6300,Company HQ,Marketing automation
+QuickBooks,intuit.com,FINANCE,ANNUAL,6400,Company HQ,Accounting software
+DocuSign,docusign.com,LEGAL,ANNUAL,6500,Company HQ,Electronic signatures
+Verizon,verizon.com,IT,MONTHLY,6140,Company HQ,Telecom services
+AT&T,att.com,IT,MONTHLY,6140,Company Branch,Telecom services
+Oracle,oracle.com,IT,ANNUAL,6110,Company HQ,Database licenses
+ServiceNow,servicenow.com,IT,ANNUAL,6150,Company HQ,IT service management
+Workday,workday.com,HR,ANNUAL,6600,Company HQ,HR management system
+ADP,adp.com,HR,MONTHLY,6610,Company HQ,Payroll processing
+LinkedIn,linkedin.com,HR,ANNUAL,6620,Company HQ,Recruiting platform
+Indeed,indeed.com,HR,MONTHLY,6620,Company HQ,Job postings
+FedEx,fedex.com,OPERATIONS,MONTHLY,6700,Company HQ,Shipping services
+UPS,ups.com,OPERATIONS,MONTHLY,6700,Company HQ,Shipping services
+Staples,staples.com,OPERATIONS,MONTHLY,6710,Company HQ,Office supplies
+Amazon Business,amazon.com,OPERATIONS,MONTHLY,6710,Company HQ,Business supplies
+Grainger,grainger.com,FACILITIES,MONTHLY,6800,Company HQ,Industrial supplies
+Home Depot,homedepot.com,FACILITIES,MONTHLY,6810,Company HQ,Maintenance supplies

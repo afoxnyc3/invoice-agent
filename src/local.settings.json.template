@@ -1,0 +1,27 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "FUNCTIONS_WORKER_RUNTIME_VERSION": "3.11",
+
+    "GRAPH_TENANT_ID": "your-tenant-id",
+    "GRAPH_CLIENT_ID": "your-client-id",
+    "GRAPH_CLIENT_SECRET": "your-client-secret",
+
+    "AP_EMAIL_ADDRESS": "accountspayable@chelseapiers.com",
+    "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
+
+    "STORAGE_ACCOUNT_NAME": "stinvoiceagentdev",
+    "STORAGE_ACCOUNT_KEY": "your-storage-key",
+
+    "KEY_VAULT_URL": "https://kv-invoice-agent-dev.vault.azure.net/",
+
+    "ENVIRONMENT": "local",
+    "LOG_LEVEL": "DEBUG"
+  },
+  "Host": {
+    "LocalHttpPort": 7071,
+    "CORS": "*"
+  }
+}

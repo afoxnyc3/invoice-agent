@@ -1,0 +1,215 @@
+{
+  "emails": [
+    {
+      "id": "msg001",
+      "sender": {
+        "emailAddress": {
+          "address": "billing@adobe.com"
+        }
+      },
+      "subject": "Invoice #12345 - November 2024",
+      "body": {
+        "contentType": "HTML",
+        "content": "<html>Please find attached invoice for your Creative Cloud subscription.</html>"
+      },
+      "hasAttachments": true,
+      "attachments": [
+        {
+          "id": "att001",
+          "name": "Adobe_Invoice_12345.pdf",
+          "contentType": "application/pdf",
+          "size": 245632
+        }
+      ],
+      "receivedDateTime": "2024-11-09T10:00:00Z"
+    },
+    {
+      "id": "msg002",
+      "sender": {
+        "emailAddress": {
+          "address": "accounts@newvendor.com"
+        }
+      },
+      "subject": "Payment Due - Invoice #98765",
+      "hasAttachments": true,
+      "attachments": [
+        {
+          "id": "att002",
+          "name": "invoice.pdf",
+          "contentType": "application/pdf",
+          "size": 189456
+        }
+      ],
+      "receivedDateTime": "2024-11-09T11:00:00Z"
+    },
+    {
+      "id": "msg003",
+      "sender": {
+        "emailAddress": {
+          "address": "no-reply@microsoft.com"
+        }
+      },
+      "subject": "Newsletter - November Updates",
+      "hasAttachments": false,
+      "receivedDateTime": "2024-11-09T12:00:00Z"
+    }
+  ],
+  "vendors": [
+    {
+      "PartitionKey": "Vendor",
+      "RowKey": "adobe_com",
+      "VendorName": "Adobe Inc",
+      "ExpenseDept": "IT",
+      "AllocationScheduleNumber": "MONTHLY",
+      "GLCode": "6100",
+      "BillingParty": "Chelsea Piers NY",
+      "Active": true
+    },
+    {
+      "PartitionKey": "Vendor",
+      "RowKey": "microsoft_com",
+      "VendorName": "Microsoft Corporation",
+      "ExpenseDept": "IT",
+      "AllocationScheduleNumber": "ANNUAL",
+      "GLCode": "6100",
+      "BillingParty": "Chelsea Piers NY",
+      "Active": true
+    },
+    {
+      "PartitionKey": "Vendor",
+      "RowKey": "aws_amazon_com",
+      "VendorName": "Amazon Web Services",
+      "ExpenseDept": "IT",
+      "AllocationScheduleNumber": "MONTHLY",
+      "GLCode": "6110",
+      "BillingParty": "Chelsea Piers NY",
+      "Active": true
+    }
+  ],
+  "queue_messages": {
+    "raw_mail": [
+      {
+        "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+        "sender": "billing@adobe.com",
+        "subject": "Invoice #12345",
+        "blob_url": "https://storage.blob.core.windows.net/invoices/raw/adobe_12345.pdf",
+        "received_at": "2024-11-09T10:00:00Z"
+      }
+    ],
+    "to_post": [
+      {
+        "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+        "vendor_name": "Adobe Inc",
+        "expense_dept": "IT",
+        "allocation_schedule_number": "MONTHLY",
+        "gl_code": "6100",
+        "billing_party": "Chelsea Piers NY",
+        "blob_url": "https://storage.blob.core.windows.net/invoices/raw/adobe_12345.pdf",
+        "status": "enriched"
+      }
+    ],
+    "notify": [
+      {
+        "type": "success",
+        "message": "Processed: Adobe Inc - GL 6100",
+        "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+        "details": {
+          "vendor": "Adobe Inc",
+          "gl_code": "6100",
+          "department": "IT",
+          "timestamp": "2024-11-09T10:05:00Z"
+        }
+      },
+      {
+        "type": "unknown",
+        "message": "Unknown vendor: accounts@newvendor.com",
+        "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEAA",
+        "details": {
+          "sender": "accounts@newvendor.com",
+          "subject": "Payment Due - Invoice #98765",
+          "action": "Manual review required"
+        }
+      },
+      {
+        "type": "error",
+        "message": "Failed to process invoice",
+        "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEBB",
+        "details": {
+          "error": "Graph API timeout",
+          "retry_count": 3
+        }
+      }
+    ]
+  },
+  "transactions": [
+    {
+      "PartitionKey": "202411",
+      "RowKey": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+      "TransactionId": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+      "VendorName": "Adobe Inc",
+      "SenderEmail": "billing@adobe.com",
+      "ExpenseDept": "IT",
+      "GLCode": "6100",
+      "Status": "processed",
+      "BlobUrl": "https://storage.blob.core.windows.net/invoices/raw/adobe_12345.pdf",
+      "ProcessedAt": "2024-11-09T10:05:00Z",
+      "CreatedAt": "2024-11-09T10:00:00Z"
+    },
+    {
+      "PartitionKey": "202411",
+      "RowKey": "01JCK3Q7H8ZVXN3BARC9GWAEAA",
+      "TransactionId": "01JCK3Q7H8ZVXN3BARC9GWAEAA",
+      "VendorName": "UNKNOWN",
+      "SenderEmail": "accounts@newvendor.com",
+      "Status": "unknown",
+      "BlobUrl": "https://storage.blob.core.windows.net/invoices/raw/unknown_98765.pdf",
+      "ProcessedAt": "2024-11-09T11:02:00Z",
+      "CreatedAt": "2024-11-09T11:00:00Z"
+    }
+  ],
+  "teams_messages": {
+    "success": {
+      "@type": "MessageCard",
+      "themeColor": "00FF00",
+      "text": "✅ Invoice Processed",
+      "sections": [
+        {
+          "facts": [
+            {"name": "Vendor", "value": "Adobe Inc"},
+            {"name": "GL Code", "value": "6100"},
+            {"name": "Department", "value": "IT"},
+            {"name": "Status", "value": "Sent to AP"}
+          ]
+        }
+      ]
+    },
+    "unknown": {
+      "@type": "MessageCard",
+      "themeColor": "FFA500",
+      "text": "⚠️ Unknown Vendor Detected",
+      "sections": [
+        {
+          "facts": [
+            {"name": "Sender", "value": "accounts@newvendor.com"},
+            {"name": "Subject", "value": "Payment Due - Invoice #98765"},
+            {"name": "Action Required", "value": "Add vendor to master list"}
+          ]
+        }
+      ]
+    },
+    "error": {
+      "@type": "MessageCard",
+      "themeColor": "FF0000",
+      "text": "❌ Processing Error",
+      "sections": [
+        {
+          "facts": [
+            {"name": "Error", "value": "Graph API timeout"},
+            {"name": "Transaction", "value": "01JCK3Q7H8ZVXN3BARC9GWAEBB"},
+            {"name": "Action", "value": "Manual intervention required"}
+          ]
+        }
+      ]
+    }
+  }
+}

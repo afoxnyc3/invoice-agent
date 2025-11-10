@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Azure Functions
+local.settings.json
+.python_packages/
+.func/
+func.exe
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Deployment
+.deployment
+.azure/
+*.zip
+deployment/
+
+# Secrets
+secrets/
+*.pfx
+*.cer
+*.key
+*.pem
+
+# Test data
+test-output/
+test-results/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.mypy_cache/
+.ruff_cache/
+
+# Package files
+*.tar.gz
+*.zip
+
+# Temporary files
+tmp/
+temp/
+*.tmp

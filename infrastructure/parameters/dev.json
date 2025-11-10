@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "dev"
+    },
+    "projectPrefix": {
+      "value": "invoice-agent"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "tags": {
+      "value": {
+        "Project": "InvoiceAgent",
+        "Environment": "dev",
+        "Owner": "DevTeam",
+        "CostCenter": "IT",
+        "ManagedBy": "Bicep",
+        "CreatedDate": "2024-11-09"
+      }
+    }
+  }
+}
