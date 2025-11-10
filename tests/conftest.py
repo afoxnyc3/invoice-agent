@@ -58,7 +58,7 @@ def mock_table_client():
         "ExpenseDept": "IT",
         "AllocationScheduleNumber": "MONTHLY",
         "GLCode": "6100",
-        "BillingParty": "Chelsea Piers NY",
+        "BillingParty": "Company HQ",
         "Active": True
     }
 
@@ -126,7 +126,7 @@ def sample_vendor() -> Dict[str, Any]:
         "ExpenseDept": "IT",
         "AllocationScheduleNumber": "MONTHLY",
         "GLCode": "6100",
-        "BillingParty": "Chelsea Piers NY",
+        "BillingParty": "Company HQ",
         "Active": True,
         "UpdatedAt": "2024-11-09T12:00:00Z"
     }
@@ -151,9 +151,9 @@ def enriched_message() -> str:
         "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
         "vendor_name": "Adobe Inc",
         "expense_dept": "IT",
-        "allocation_schedule_number": "MONTHLY",
+        "allocation_schedule": "MONTHLY",
         "gl_code": "6100",
-        "billing_party": "Chelsea Piers NY",
+        "billing_party": "Company HQ",
         "blob_url": "https://storage.blob.core.windows.net/invoices/raw/invoice_12345.pdf",
         "status": "enriched"
     })
@@ -165,11 +165,11 @@ def notify_message() -> str:
     return json.dumps({
         "type": "success",
         "message": "Processed: Adobe Inc - GL 6100",
-        "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
         "details": {
             "vendor": "Adobe Inc",
             "gl_code": "6100",
-            "department": "IT"
+            "department": "IT",
+            "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
         }
     })
 
