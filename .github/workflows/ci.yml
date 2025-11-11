@@ -18,29 +18,21 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-dev build-essential
-
     - name: Install Python dependencies
       run: |
-        cd src
         pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov mypy bandit
+        pip install -r src/requirements.txt
 
     - name: Run tests with coverage
+      env:
+        PYTHONPATH: ./src
       run: |
-        cd src
-        pytest ../tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
+        pytest tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
 
     - name: Type checking with mypy
       run: |
-        cd src
-        mypy functions/ shared/ --strict || true
+        mypy src/functions src/shared --strict || true
 
     - name: Security scan with bandit
       run: |
-        cd src
-        bandit -r functions/ shared/ || true
+        bandit -r src/functions src/shared || true

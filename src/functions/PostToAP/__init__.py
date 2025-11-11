@@ -11,8 +11,8 @@ from datetime import datetime
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
-from src.shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
-from src.shared.graph_client import GraphAPIClient
+from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
+from shared.graph_client import GraphAPIClient
 
 logger = logging.getLogger(__name__)
 

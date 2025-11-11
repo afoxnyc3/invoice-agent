@@ -8,7 +8,7 @@ import os
 import logging
 import requests
 import azure.functions as func
-from src.shared.models import NotificationMessage, TeamsMessageCard, MessageCardSection, MessageCardFact
+from shared.models import NotificationMessage, TeamsMessageCard, MessageCardSection, MessageCardFact
 
 logger = logging.getLogger(__name__)
 

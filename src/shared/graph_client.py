@@ -15,8 +15,8 @@ import base64
 from typing import List, Dict, Any, Optional
 import requests
 from msal import ConfidentialClientApplication
-from src.shared.retry import retry_with_backoff
-from src.shared.logger import get_logger
+from shared.retry import retry_with_backoff
+from shared.logger import get_logger
 
 
 class GraphAPIClient:

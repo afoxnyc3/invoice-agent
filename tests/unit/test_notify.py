@@ -3,14 +3,14 @@ Unit tests for Notify queue function.
 """
 from unittest.mock import Mock, patch
 import azure.functions as func
-from src.functions.Notify import main
+from functions.Notify import main
 
 
 class TestNotify:
     """Test suite for Notify function."""
 
     @patch.dict('os.environ', {'TEAMS_WEBHOOK_URL': 'https://outlook.office.com/webhook/test'})
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_success_message(self, mock_requests):
         """Test posting success notification to Teams."""
         # Mock requests.post
@@ -50,7 +50,7 @@ class TestNotify:
         assert len(card_data['sections'][0]['facts']) == 3
 
     @patch.dict('os.environ', {'TEAMS_WEBHOOK_URL': 'https://outlook.office.com/webhook/test'})
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_unknown_vendor_message(self, mock_requests):
         """Test posting unknown vendor notification to Teams."""
         # Mock requests.post
@@ -79,7 +79,7 @@ class TestNotify:
         assert card_data['themeColor'] == 'FFA500'  # Orange
 
     @patch.dict('os.environ', {'TEAMS_WEBHOOK_URL': 'https://outlook.office.com/webhook/test'})
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_error_message(self, mock_requests):
         """Test posting error notification to Teams."""
         # Mock requests.post
@@ -108,7 +108,7 @@ class TestNotify:
         assert card_data['themeColor'] == 'FF0000'  # Red
 
     @patch.dict('os.environ', {})  # No webhook URL configured
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_no_webhook_configured(self, mock_requests):
         """Test handling when webhook URL is not configured."""
         notification_json = '''
@@ -128,7 +128,7 @@ class TestNotify:
         mock_requests.post.assert_not_called()
 
     @patch.dict('os.environ', {'TEAMS_WEBHOOK_URL': 'https://outlook.office.com/webhook/test'})
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_webhook_failure(self, mock_requests):
         """Test handling of webhook POST failures (non-critical)."""
         # Mock requests.post to raise exception
@@ -151,7 +151,7 @@ class TestNotify:
         mock_requests.post.assert_called_once()
 
     @patch.dict('os.environ', {'TEAMS_WEBHOOK_URL': 'https://outlook.office.com/webhook/test'})
-    @patch('src.functions.Notify.requests')
+    @patch('functions.Notify.requests')
     def test_notify_card_facts_formatting(self, mock_requests):
         """Test that notification details are correctly formatted as facts."""
         # Mock requests.post

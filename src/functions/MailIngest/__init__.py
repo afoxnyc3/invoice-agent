@@ -11,9 +11,9 @@ import base64
 from datetime import datetime
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
-from src.shared.graph_client import GraphAPIClient
-from src.shared.ulid_generator import generate_ulid
-from src.shared.models import RawMail
+from shared.graph_client import GraphAPIClient
+from shared.ulid_generator import generate_ulid
+from shared.models import RawMail
 
 logger = logging.getLogger(__name__)
 
