@@ -18,8 +18,12 @@ from shared.graph_client import GraphAPIClient
 class TestGraphAPIClientInit:
     """Test Graph API client initialization."""
 
-    def test_init_with_env_vars(self, mock_environment):
+    @patch('shared.graph_client.ConfidentialClientApplication')
+    def test_init_with_env_vars(self, mock_msal, mock_environment):
         """Test initialization with environment variables."""
+        mock_app = MagicMock()
+        mock_msal.return_value = mock_app
+
         client = GraphAPIClient()
 
         assert client.tenant_id == "test-tenant-id"
@@ -27,8 +31,12 @@ class TestGraphAPIClientInit:
         assert client.client_secret == "test-client-secret"
         assert client.graph_url == "https://graph.microsoft.com/v1.0"
 
-    def test_init_with_explicit_params(self):
+    @patch('shared.graph_client.ConfidentialClientApplication')
+    def test_init_with_explicit_params(self, mock_msal):
         """Test initialization with explicit parameters."""
+        mock_app = MagicMock()
+        mock_msal.return_value = mock_app
+
         client = GraphAPIClient(
             tenant_id="custom-tenant",
             client_id="custom-client",

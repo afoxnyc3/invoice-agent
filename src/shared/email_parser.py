@@ -66,16 +66,16 @@ def normalize_vendor_name(vendor: str) -> str:
     # Convert to lowercase
     normalized = vendor.lower()
 
-    # Remove common suffixes
+    # Remove special characters first, keep alphanumeric and spaces
+    normalized = re.sub(r'[^a-z0-9\s]', '', normalized)
+
+    # Remove common suffixes (after special char removal)
     suffixes = [' inc', ' llc', ' ltd', ' corp', ' co']
     for suffix in suffixes:
         if normalized.endswith(suffix):
             normalized = normalized[:-len(suffix)]
 
-    # Remove special characters, keep alphanumeric and spaces
-    normalized = re.sub(r'[^a-z0-9\s]', '', normalized)
-
-    # Replace spaces with underscores
+    # Replace spaces with underscores and strip
     normalized = normalized.strip().replace(' ', '_')
 
     return normalized
