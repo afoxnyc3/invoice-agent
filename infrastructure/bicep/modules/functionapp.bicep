@@ -14,9 +14,9 @@ param tags object
 @description('Storage account name')
 param storageAccountName string
 
-@description('Storage account connection string')
+@description('Storage account connection string (deprecated - kept for backward compatibility)')
 @secure()
-param storageAccountConnectionString string
+param storageAccountConnectionString string = ''
 
 @description('Application Insights instrumentation key')
 @secure()
@@ -55,10 +55,28 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       pythonVersion: '3.11'
       linuxFxVersion: 'PYTHON|3.11'
       appSettings: [
+        // Identity-based storage connection (recommended - uses Managed Identity)
         {
-          name: 'AzureWebJobsStorage'
-          value: storageAccountConnectionString
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
+        {
+          name: 'AzureWebJobsStorage__blobServiceUri'
+          value: 'https://${storageAccountName}.blob.core.windows.net'
+        }
+        {
+          name: 'AzureWebJobsStorage__queueServiceUri'
+          value: 'https://${storageAccountName}.queue.core.windows.net'
+        }
+        {
+          name: 'AzureWebJobsStorage__tableServiceUri'
+          value: 'https://${storageAccountName}.table.core.windows.net'
+        }
+        {
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
+        // File share still requires connection string for content management
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: storageAccountConnectionString
@@ -87,6 +105,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'KEY_VAULT_URL'
           value: 'https://${keyVaultName}.vault.azure.net/'
         }
+        // Key Vault references (Function App will use Managed Identity to access these)
         {
           name: 'GRAPH_TENANT_ID'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/graph-tenant-id/)'
@@ -106,6 +125,10 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         {
           name: 'TEAMS_WEBHOOK_URL'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/teams-webhook-url/)'
+        }
+        {
+          name: 'INVOICE_MAILBOX'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/ap-email-address/)'
         }
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'

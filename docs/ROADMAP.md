@@ -15,13 +15,13 @@ Achieve 95% straight-through processing of invoices with zero manual interventio
 - [x] Key Vault secrets
 
 ### Week 2: Core Features
-- [ ] MailIngest - Email polling via Graph API
-- [ ] ExtractEnrich - Vendor lookup and enrichment
-- [ ] PostToAP - Email routing with metadata
-- [ ] Notify - Teams webhook notifications
-- [ ] VendorMaster seeding (10 common vendors)
-- [ ] End-to-end testing
-- [ ] Production deployment
+- [x] MailIngest - Email polling via Graph API
+- [x] ExtractEnrich - Vendor lookup and enrichment
+- [x] PostToAP - Email routing with metadata
+- [x] Notify - Teams webhook notifications
+- [x] End-to-end testing (98 tests, 96% coverage)
+- [ ] VendorMaster seeding (script ready, execution pending)
+- [ ] Production deployment (awaiting Issue #9 RBAC fix)
 
 ### Success Metrics
 - ✅ Process invoice in <60 seconds
