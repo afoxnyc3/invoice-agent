@@ -1,0 +1,255 @@
+"""
+Unit tests for MailIngest timer function.
+"""
+import base64
+from unittest.mock import Mock, patch, MagicMock
+import azure.functions as func
+from src.functions.MailIngest import main
+
+
+class TestMailIngest:
+    """Test suite for MailIngest function."""
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.BlobServiceClient')
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_with_attachment(self, mock_graph_class, mock_blob_service):
+        """Test successful email processing with attachment."""
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.return_value = [{
+            'id': 'email-123',
+            'hasAttachments': True,
+            'sender': {'emailAddress': {'address': 'vendor@adobe.com'}},
+            'subject': 'Invoice #12345',
+            'receivedDateTime': '2024-11-10T10:00:00Z'
+        }]
+        mock_graph.get_attachments.return_value = [{
+            'id': 'att-1',
+            'name': 'invoice.pdf',
+            'contentBytes': base64.b64encode(b'PDF content').decode(),
+            'contentType': 'application/pdf',
+            'size': 1024
+        }]
+
+        # Mock Blob Storage
+        mock_blob_container = MagicMock()
+        mock_blob_client = MagicMock()
+        mock_blob_client.url = 'https://storage.blob.core.windows.net/invoices/123/invoice.pdf'
+        mock_blob_container.get_blob_client.return_value = mock_blob_client
+        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+        queued_messages = []
+        mock_queue.set = lambda msg: queued_messages.append(msg)
+
+        # Execute function
+        timer = Mock(spec=func.TimerRequest)
+        main(timer, mock_queue)
+
+        # Assertions
+        assert len(queued_messages) == 1
+        assert 'vendor@adobe.com' in queued_messages[0]
+        assert 'Invoice #12345' in queued_messages[0]
+        mock_blob_client.upload_blob.assert_called_once()
+        mock_graph.mark_as_read.assert_called_once_with('invoices@example.com', 'email-123')
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.BlobServiceClient')
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_without_attachment(self, mock_graph_class, mock_blob_service):
+        """Test email without attachment is skipped."""
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.return_value = [{
+            'id': 'email-456',
+            'hasAttachments': False,
+            'sender': {'emailAddress': {'address': 'vendor@test.com'}},
+            'subject': 'No attachment',
+            'receivedDateTime': '2024-11-10T10:00:00Z'
+        }]
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+        queued_messages = []
+        mock_queue.set = lambda msg: queued_messages.append(msg)
+
+        # Execute function
+        timer = Mock(spec=func.TimerRequest)
+        main(timer, mock_queue)
+
+        # Assertions
+        assert len(queued_messages) == 0  # Nothing queued
+        mock_graph.mark_as_read.assert_called_once_with('invoices@example.com', 'email-456')
+        mock_graph.get_attachments.assert_not_called()
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.BlobServiceClient')
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_multiple_emails(self, mock_graph_class, mock_blob_service):
+        """Test processing multiple emails."""
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.return_value = [
+            {
+                'id': 'email-1',
+                'hasAttachments': True,
+                'sender': {'emailAddress': {'address': 'vendor1@test.com'}},
+                'subject': 'Invoice 1',
+                'receivedDateTime': '2024-11-10T10:00:00Z'
+            },
+            {
+                'id': 'email-2',
+                'hasAttachments': True,
+                'sender': {'emailAddress': {'address': 'vendor2@test.com'}},
+                'subject': 'Invoice 2',
+                'receivedDateTime': '2024-11-10T11:00:00Z'
+            }
+        ]
+        mock_graph.get_attachments.return_value = [{
+            'id': 'att-1',
+            'name': 'invoice.pdf',
+            'contentBytes': base64.b64encode(b'PDF').decode(),
+            'contentType': 'application/pdf',
+            'size': 100
+        }]
+
+        # Mock Blob Storage
+        mock_blob_container = MagicMock()
+        mock_blob_client = MagicMock()
+        mock_blob_client.url = 'https://storage.blob.core.windows.net/invoices/test.pdf'
+        mock_blob_container.get_blob_client.return_value = mock_blob_client
+        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+        queued_messages = []
+        mock_queue.set = lambda msg: queued_messages.append(msg)
+
+        # Execute function
+        timer = Mock(spec=func.TimerRequest)
+        main(timer, mock_queue)
+
+        # Assertions
+        assert len(queued_messages) == 2
+        assert 'vendor1@test.com' in queued_messages[0]
+        assert 'vendor2@test.com' in queued_messages[1]
+        assert mock_graph.mark_as_read.call_count == 2
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_graph_api_error(self, mock_graph_class):
+        """Test handling of Graph API errors."""
+        # Mock Graph API client to raise exception
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.side_effect = Exception("Graph API connection failed")
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+
+        # Execute function - should raise exception
+        timer = Mock(spec=func.TimerRequest)
+        try:
+            main(timer, mock_queue)
+            assert False, "Expected exception to be raised"
+        except Exception as e:
+            assert "Graph API connection failed" in str(e)
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.BlobServiceClient')
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_no_emails(self, mock_graph_class, mock_blob_service):
+        """Test when mailbox has no unread emails."""
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.return_value = []
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+        queued_messages = []
+        mock_queue.set = lambda msg: queued_messages.append(msg)
+
+        # Execute function
+        timer = Mock(spec=func.TimerRequest)
+        main(timer, mock_queue)
+
+        # Assertions
+        assert len(queued_messages) == 0
+        mock_graph.mark_as_read.assert_not_called()
+
+    @patch.dict('os.environ', {
+        'INVOICE_MAILBOX': 'invoices@example.com',
+        'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test'
+    })
+    @patch('src.functions.MailIngest.BlobServiceClient')
+    @patch('src.functions.MailIngest.GraphAPIClient')
+    def test_mail_ingest_multiple_attachments(self, mock_graph_class, mock_blob_service):
+        """Test email with multiple attachments."""
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+        mock_graph.get_unread_emails.return_value = [{
+            'id': 'email-multi',
+            'hasAttachments': True,
+            'sender': {'emailAddress': {'address': 'vendor@test.com'}},
+            'subject': 'Multiple attachments',
+            'receivedDateTime': '2024-11-10T10:00:00Z'
+        }]
+        mock_graph.get_attachments.return_value = [
+            {
+                'id': 'att-1',
+                'name': 'invoice.pdf',
+                'contentBytes': base64.b64encode(b'PDF1').decode(),
+                'contentType': 'application/pdf',
+                'size': 100
+            },
+            {
+                'id': 'att-2',
+                'name': 'receipt.pdf',
+                'contentBytes': base64.b64encode(b'PDF2').decode(),
+                'contentType': 'application/pdf',
+                'size': 200
+            }
+        ]
+
+        # Mock Blob Storage
+        mock_blob_container = MagicMock()
+        mock_blob_client = MagicMock()
+        mock_blob_client.url = 'https://storage.blob.core.windows.net/invoices/test.pdf'
+        mock_blob_container.get_blob_client.return_value = mock_blob_client
+        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
+
+        # Mock queue output
+        mock_queue = Mock(spec=func.Out)
+        queued_messages = []
+        mock_queue.set = lambda msg: queued_messages.append(msg)
+
+        # Execute function
+        timer = Mock(spec=func.TimerRequest)
+        main(timer, mock_queue)
+
+        # Assertions
+        assert len(queued_messages) == 2  # One message per attachment
+        assert mock_blob_client.upload_blob.call_count == 2
+        mock_graph.mark_as_read.assert_called_once()
