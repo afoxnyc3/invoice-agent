@@ -20,22 +20,18 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        cd src
         pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r src/requirements.txt
         pip install pytest pytest-cov mypy bandit
 
     - name: Run tests with coverage
       run: |
-        cd src
-        pytest ../tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
+        pytest tests/unit --cov=src/functions --cov=src/shared --cov-fail-under=60 -v
 
     - name: Type checking with mypy
       run: |
-        cd src
-        mypy functions/ shared/ --strict || true
+        mypy src/functions src/shared --strict || true
 
     - name: Security scan with bandit
       run: |
-        cd src
-        bandit -r functions/ shared/ || true
+        bandit -r src/functions src/shared || true
