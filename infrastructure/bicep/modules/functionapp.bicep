@@ -72,6 +72,10 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'AzureWebJobsStorage__tableServiceUri'
           value: 'https://${storageAccountName}.table.core.windows.net'
         }
+        {
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
+        }
         // File share still requires connection string for content management
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
