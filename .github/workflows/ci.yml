@@ -24,6 +24,8 @@ jobs:
         sudo apt-get install -y python3-dev build-essential
 
     - name: Install Python dependencies
+      env:
+        PIP_ONLY_BINARY: grpcio,grpcio-tools
       run: |
         cd src
         pip install --upgrade pip

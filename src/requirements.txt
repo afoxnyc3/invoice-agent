@@ -7,6 +7,10 @@ azure-identity==1.15.0
 azure-data-tables==12.4.4
 azure-storage-blob==12.19.0
 
+# gRPC dependencies (pinned to versions with Python 3.11 wheels)
+grpcio>=1.60.0,<2.0.0
+grpcio-tools>=1.60.0,<2.0.0
+
 # Not needed for MVP (uncomment when implementing)
 # azure-keyvault-secrets==4.7.0
 # azure-storage-queue==12.8.0
