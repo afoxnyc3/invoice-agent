@@ -51,6 +51,6 @@ def ulid_to_timestamp(ulid_str: str) -> float:
     """
     try:
         ulid_obj = ULID.from_str(ulid_str)
-        return ulid_obj.timestamp().timestamp
+        return ulid_obj.timestamp()
     except Exception as e:
         raise ValueError(f"Invalid ULID format: {ulid_str}") from e
