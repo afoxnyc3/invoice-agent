@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd src
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov mypy bandit
+
+    - name: Run tests with coverage
+      run: |
+        cd src
+        pytest ../tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
+
+    - name: Type checking with mypy
+      run: |
+        cd src
+        mypy functions/ shared/ --strict || true
+
+    - name: Security scan with bandit
+      run: |
+        cd src
+        bandit -r functions/ shared/ || true
