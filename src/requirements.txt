@@ -1,6 +1,7 @@
 # Azure Functions and Core
 azure-functions==1.17.0
-azure-functions-worker>=1.18.0  # Modern version with Python 3.11 support and grpcio wheels
+# azure-functions-worker - NOT NEEDED for dev/CI (Azure runtime provides it)
+# Latest PyPI version is 1.1.9 which requires old grpcio~=1.33.1 (incompatible with Python 3.11)
 
 # Azure SDK
 azure-identity==1.15.0
