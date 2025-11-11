@@ -24,6 +24,7 @@ requests==2.31.0
 
 # Data Validation and Processing
 pydantic==2.10.3
+email-validator==2.1.0  # Required by Pydantic EmailStr
 python-ulid==2.2.0
 
 # Development and Testing
