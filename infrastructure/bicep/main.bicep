@@ -51,17 +51,7 @@ module monitoring './modules/monitoring.bicep' = {
   }
 }
 
-// Key Vault
-module keyVault './modules/keyvault.bicep' = {
-  name: 'keyvault-deployment'
-  params: {
-    keyVaultName: keyVaultName
-    location: location
-    tags: tags
-  }
-}
-
-// Function App
+// Function App (deployed before Key Vault to get Managed Identity)
 module functionApp './modules/functionapp.bicep' = {
   name: 'functionapp-deployment'
   params: {
@@ -72,14 +62,39 @@ module functionApp './modules/functionapp.bicep' = {
     storageAccountName: storage.outputs.storageAccountName
     storageAccountConnectionString: storage.outputs.connectionString
     appInsightsInstrumentationKey: monitoring.outputs.instrumentationKey
-    keyVaultName: keyVault.outputs.keyVaultName
+    keyVaultName: keyVaultName
+  }
+}
+
+// Key Vault (depends on Function App for Managed Identity)
+module keyVault './modules/keyvault.bicep' = {
+  name: 'keyvault-deployment'
+  params: {
+    keyVaultName: keyVaultName
+    location: location
+    tags: tags
+    functionAppPrincipalId: functionApp.outputs.functionAppPrincipalId
+    stagingSlotPrincipalId: functionApp.outputs.stagingSlotPrincipalId
+  }
+}
+
+// RBAC Role Assignments (dependencies inferred from output references)
+module rbac './modules/rbac.bicep' = {
+  name: 'rbac-deployment'
+  params: {
+    functionAppPrincipalId: functionApp.outputs.functionAppPrincipalId
+    stagingSlotPrincipalId: functionApp.outputs.stagingSlotPrincipalId
+    storageAccountId: storage.outputs.storageAccountId
+    keyVaultId: keyVault.outputs.keyVaultId
   }
 }
 
 // Outputs
 output functionAppName string = functionApp.outputs.functionAppName
 output functionAppUrl string = functionApp.outputs.functionAppUrl
+output functionAppPrincipalId string = functionApp.outputs.functionAppPrincipalId
 output storageAccountName string = storage.outputs.storageAccountName
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output appInsightsInstrumentationKey string = monitoring.outputs.instrumentationKey
+output rbacRoleAssignments object = rbac.outputs.roleAssignmentsCreated

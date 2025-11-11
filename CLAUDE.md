@@ -170,7 +170,7 @@ The project includes AI automation slash commands in `.claude/commands/`:
 - ✅ Integration with Graph API (full MSAL auth, retry, throttling)
 - ✅ Shared utilities (ULID, logger, retry logic, email parser)
 - ✅ CI/CD Pipeline (98 tests passing, 96% coverage)
-- ⏳ Vendor seeding script (needs implementation)
+- ✅ Vendor seeding script (implemented at infrastructure/scripts/seed_vendors.py, execution pending)
 
 **Phase 2 (Planned):**
 - PDF extraction (OCR/text extraction)

@@ -8,6 +8,12 @@ param location string
 @description('Resource tags')
 param tags object
 
+@description('Function App principal ID (Managed Identity)')
+param functionAppPrincipalId string = ''
+
+@description('Staging slot principal ID (Managed Identity)')
+param stagingSlotPrincipalId string = ''
+
 // Key Vault
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -30,7 +36,30 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       defaultAction: 'Allow'
       bypass: 'AzureServices'
     }
-    accessPolicies: []
+    accessPolicies: [
+      // Production slot access policy
+      {
+        tenantId: subscription().tenantId
+        objectId: functionAppPrincipalId
+        permissions: {
+          secrets: [
+            'get'
+            'list'
+          ]
+        }
+      }
+      // Staging slot access policy
+      {
+        tenantId: subscription().tenantId
+        objectId: stagingSlotPrincipalId
+        permissions: {
+          secrets: [
+            'get'
+            'list'
+          ]
+        }
+      }
+    ]
   }
 }
 
