@@ -4,11 +4,13 @@ azure-functions-worker==1.1.9
 
 # Azure SDK
 azure-identity==1.15.0
-azure-keyvault-secrets==4.7.0
 azure-data-tables==12.4.4
 azure-storage-blob==12.19.0
-azure-storage-queue==12.8.0
-azure-monitor-query==1.2.0
+
+# Not needed for MVP (uncomment when implementing)
+# azure-keyvault-secrets==4.7.0
+# azure-storage-queue==12.8.0
+# azure-monitor-query==1.2.0  # Pulls in grpcio - use when implementing Application Insights
 
 # Microsoft Graph
 msal==1.25.0
