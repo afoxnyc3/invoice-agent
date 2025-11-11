@@ -7,14 +7,14 @@ Tests ULID generation, email parsing, logging, and retry logic.
 import pytest
 import time
 from unittest.mock import Mock, patch, MagicMock
-from src.shared.ulid_generator import generate_ulid, ulid_to_timestamp
-from src.shared.email_parser import (
+from shared.ulid_generator import generate_ulid, ulid_to_timestamp
+from shared.email_parser import (
     extract_domain,
     normalize_vendor_name,
     parse_invoice_subject
 )
-from src.shared.logger import get_logger, CorrelatedLogger
-from src.shared.retry import (
+from shared.logger import get_logger, CorrelatedLogger
+from shared.retry import (
     retry_with_backoff,
     retry_with_timeout,
     CircuitBreaker

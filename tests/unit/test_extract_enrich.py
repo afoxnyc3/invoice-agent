@@ -3,7 +3,7 @@ Unit tests for ExtractEnrich queue function.
 """
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from src.functions.ExtractEnrich import main
+from functions.ExtractEnrich import main
 
 
 class TestExtractEnrich:
@@ -14,7 +14,7 @@ class TestExtractEnrich:
         'INVOICE_MAILBOX': 'invoices@example.com',
         'FUNCTION_APP_URL': 'https://test-func.azurewebsites.net'
     })
-    @patch('src.functions.ExtractEnrich.TableServiceClient')
+    @patch('functions.ExtractEnrich.TableServiceClient')
     def test_extract_enrich_known_vendor(self, mock_table_service):
         """Test successful enrichment with known vendor."""
         # Mock table client
@@ -68,8 +68,8 @@ class TestExtractEnrich:
         'INVOICE_MAILBOX': 'invoices@example.com',
         'FUNCTION_APP_URL': 'https://test-func.azurewebsites.net'
     })
-    @patch('src.functions.ExtractEnrich.GraphAPIClient')
-    @patch('src.functions.ExtractEnrich.TableServiceClient')
+    @patch('functions.ExtractEnrich.GraphAPIClient')
+    @patch('functions.ExtractEnrich.TableServiceClient')
     def test_extract_enrich_unknown_vendor(self, mock_table_service, mock_graph_class):
         """Test unknown vendor triggers registration email."""
         # Mock table client to raise exception (vendor not found)
@@ -115,7 +115,7 @@ class TestExtractEnrich:
         'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test',
         'INVOICE_MAILBOX': 'invoices@example.com'
     })
-    @patch('src.functions.ExtractEnrich.TableServiceClient')
+    @patch('functions.ExtractEnrich.TableServiceClient')
     def test_extract_enrich_table_lookup(self, mock_table_service):
         """Test vendor table lookup with correct partition and row keys."""
         # Mock table client
@@ -176,7 +176,7 @@ class TestExtractEnrich:
         'AzureWebJobsStorage': 'DefaultEndpointsProtocol=https;AccountName=test',
         'INVOICE_MAILBOX': 'invoices@example.com'
     })
-    @patch('src.functions.ExtractEnrich.TableServiceClient')
+    @patch('functions.ExtractEnrich.TableServiceClient')
     def test_extract_enrich_domain_normalization(self, mock_table_service):
         """Test email domain extraction and normalization."""
         # Mock table client

@@ -24,12 +24,11 @@ jobs:
         pip install -r src/requirements.txt
         pip install pytest pytest-cov mypy bandit
 
-    - name: Set PYTHONPATH
-      run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
-
     - name: Run tests with coverage
+      env:
+        PYTHONPATH: ./src
       run: |
-        pytest tests/unit --cov=src/functions --cov=src/shared --cov-fail-under=60 -v
+        pytest tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
 
     - name: Type checking with mypy
       run: |

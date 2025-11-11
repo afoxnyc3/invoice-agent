@@ -9,7 +9,7 @@ import pytest
 import json
 from datetime import datetime
 from pydantic import ValidationError
-from src.shared.models import (
+from shared.models import (
     RawMail,
     EnrichedInvoice,
     NotificationMessage,

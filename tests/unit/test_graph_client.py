@@ -8,7 +8,7 @@ and retry logic with mocked Graph API responses.
 import pytest
 import time
 from unittest.mock import Mock, MagicMock, patch
-from src.shared.graph_client import GraphAPIClient
+from shared.graph_client import GraphAPIClient
 
 
 # =============================================================================
@@ -59,7 +59,7 @@ class TestGraphAPIClientInit:
 class TestGraphAPIAuthentication:
     """Test Graph API authentication."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_access_token_success(self, mock_msal, mock_environment):
         """Test successful token acquisition."""
         # Mock MSAL token acquisition
@@ -77,7 +77,7 @@ class TestGraphAPIAuthentication:
         assert client._access_token == 'test-token-123'
         mock_app.acquire_token_for_client.assert_called_once()
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_access_token_caching(self, mock_msal, mock_environment):
         """Test token caching prevents unnecessary requests."""
         mock_app = MagicMock()
@@ -99,7 +99,7 @@ class TestGraphAPIAuthentication:
         # Should only call MSAL once due to caching
         assert mock_app.acquire_token_for_client.call_count == 1
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_access_token_failure(self, mock_msal, mock_environment):
         """Test token acquisition failure."""
         mock_app = MagicMock()
@@ -124,7 +124,7 @@ class TestGraphAPIAuthentication:
 class TestGetUnreadEmails:
     """Test getting unread emails."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_unread_emails_success(self, mock_msal, mock_environment):
         """Test successfully getting unread emails."""
         # Mock MSAL
@@ -161,7 +161,7 @@ class TestGetUnreadEmails:
             assert emails[0]['id'] == 'msg1'
             assert emails[0]['subject'] == 'Invoice #12345'
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_unread_emails_empty(self, mock_msal, mock_environment):
         """Test getting unread emails when none exist."""
         mock_app = MagicMock()
@@ -192,7 +192,7 @@ class TestGetUnreadEmails:
 class TestGetAttachments:
     """Test getting email attachments."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_get_attachments_success(self, mock_msal, mock_environment):
         """Test successfully getting attachments."""
         mock_app = MagicMock()
@@ -238,7 +238,7 @@ class TestGetAttachments:
 class TestMarkAsRead:
     """Test marking emails as read."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_mark_as_read_success(self, mock_msal, mock_environment):
         """Test successfully marking email as read."""
         mock_app = MagicMock()
@@ -271,7 +271,7 @@ class TestMarkAsRead:
 class TestSendEmail:
     """Test sending emails."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_send_email_without_attachments(self, mock_msal, mock_environment):
         """Test sending email without attachments."""
         mock_app = MagicMock()
@@ -300,7 +300,7 @@ class TestSendEmail:
             mock_request.assert_called_once()
             assert mock_request.call_args[1]['method'] == 'POST'
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_send_email_with_attachments(self, mock_msal, mock_environment):
         """Test sending email with attachments."""
         mock_app = MagicMock()
@@ -346,7 +346,7 @@ class TestSendEmail:
 class TestThrottlingAndErrors:
     """Test throttling and error handling."""
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_handles_throttling_429(self, mock_msal, mock_environment):
         """Test handling of 429 throttling response."""
         mock_app = MagicMock()
@@ -370,7 +370,7 @@ class TestThrottlingAndErrors:
             assert "Throttled" in str(exc_info.value)
             assert "retry after 60s" in str(exc_info.value)
 
-    @patch('src.shared.graph_client.ConfidentialClientApplication')
+    @patch('shared.graph_client.ConfidentialClientApplication')
     def test_handles_http_errors(self, mock_msal, mock_environment):
         """Test handling of HTTP error responses."""
         mock_app = MagicMock()

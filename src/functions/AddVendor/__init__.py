@@ -8,7 +8,7 @@ from datetime import datetime
 import azure.functions as func
 from azure.data.tables import TableServiceClient
 from pydantic import ValidationError
-from src.shared.models import VendorMaster
+from shared.models import VendorMaster
 
 logger = logging.getLogger(__name__)
 

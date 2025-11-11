@@ -9,10 +9,10 @@ import logging
 import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient
-from src.shared.models import RawMail, EnrichedInvoice
-from src.shared.email_parser import extract_domain
-from src.shared.graph_client import GraphAPIClient
-from src.shared.email_composer import compose_unknown_vendor_email
+from shared.models import RawMail, EnrichedInvoice
+from shared.email_parser import extract_domain
+from shared.graph_client import GraphAPIClient
+from shared.email_composer import compose_unknown_vendor_email
 
 logger = logging.getLogger(__name__)
 
