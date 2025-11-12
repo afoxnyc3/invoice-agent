@@ -2,6 +2,469 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Workflow Overview
+
+### The Golden Rule
+**Always use feature branches, parallel agents, and pull requests before merging to main.** This ensures code quality, traceability, and the ability to review changes before they ship.
+
+### Development Pattern
+```
+Issue Created → Feature Branch → Parallel Agents → Code Review (PR) → Merge to Main
+```
+
+---
+
+## Sub-Agent Strategy
+
+### When to Use Sub-Agents (Parallel Work)
+
+**Use sub-agents when:**
+- You have 2+ independent tasks that don't depend on each other
+- Each task is substantial (>1 hour of work)
+- Tasks can be completed in parallel without blocking
+- Clear acceptance criteria can be defined upfront
+
+**Example:** Issues #10 (CI/CD Pipeline) and #11 (Local Dev Setup) are independent → Launch 2 agents in parallel
+
+**Don't use sub-agents when:**
+- Tasks are sequential or interdependent
+- Tasks are quick (<30 minutes)
+- Requires tight coordination or real-time discussion
+
+### Sub-Agent Execution Pattern
+
+#### Step 1: Plan & Create Feature Branches
+```bash
+# Create isolated feature branches FIRST
+git checkout -b feature/issue-XX-descriptive-name
+git checkout main
+git checkout -b feature/issue-YY-descriptive-name
+git checkout main
+```
+
+#### Step 2: Launch Agents in Parallel
+Use the Task tool with `subagent_type=general-purpose` for each independent task:
+
+```
+Task 1:
+  - Description: "Issue #XX: Clear one-line summary"
+  - Prompt: Detailed specification with acceptance criteria, constraints, file locations, git branch name
+  - Model: Choose Haiku/Sonnet/Opus based on complexity
+
+Task 2:
+  - Description: "Issue #YY: Clear one-line summary"
+  - Prompt: Detailed specification with acceptance criteria, constraints, file locations, git branch name
+  - Model: Choose Haiku/Sonnet/Opus based on complexity
+```
+
+**Both agents execute in parallel** - they don't block each other.
+
+#### Step 3: Verify & Create PRs
+After agents complete:
+1. Verify each feature branch independently
+2. Check syntax, logic, and quality
+3. Push branches to remote
+4. Create PRs for code review
+5. **Do NOT merge yet** - wait for review
+
+#### Step 4: Code Review & Merge
+1. Review PRs on GitHub
+2. Request changes if needed
+3. Agents can update branches
+4. Merge when satisfied
+
+---
+
+## Model Selection Guide
+
+Choose the right model based on task complexity:
+
+### 🟢 HAIKU (Simple Tasks - 30 min - 2 hours)
+**Best for:** Configuration, scripts, simple automation, documentation
+
+**Examples:**
+- Adding a configuration file
+- Creating shell scripts
+- Writing documentation
+- Setting up tooling (Makefile, docker-compose.yml)
+- Vendor data operations
+- Simple utility functions
+
+**Cost:** Cheapest, fastest
+
+### 🟡 SONNET (Medium-Complex - 2 to 6 hours)
+**Best for:** CI/CD pipelines, architectural decisions, complex workflows, API integration
+
+**Examples:**
+- GitHub Actions CI/CD workflows (with conditional logic)
+- Deployment pipelines
+- Complex query logic
+- API client implementations
+- System design decisions
+- Integration testing frameworks
+
+**Cost:** Moderate, balanced speed/quality
+
+### 🔴 OPUS (Very Complex - 6+ hours)
+**Best for:** System architecture, complex optimization, edge case handling, novel problems
+
+**Examples:**
+- Complete system redesign
+- Complex performance optimization
+- Handling intricate error scenarios
+- Novel algorithmic problems
+- Full project rewrites
+
+**Cost:** Most expensive, highest quality
+
+**Recommendation for this project:**
+- Infrastructure/tooling → HAIKU
+- Pipelines/workflows → SONNET
+- Complex features → SONNET
+- Novel systems → OPUS
+
+---
+
+## Feature Branch Convention
+
+### Naming Pattern
+```
+feature/issue-XX-descriptive-name
+bugfix/issue-XX-descriptive-name
+refactor/issue-XX-descriptive-name
+docs/issue-XX-descriptive-name
+```
+
+### Examples
+```
+feature/issue-10-deployment-pipeline
+feature/issue-11-local-dev-setup
+bugfix/issue-5-vendor-lookup-edge-case
+refactor/issue-8-extract-enrich-helper
+docs/issue-15-complete-documentation
+```
+
+### Rules
+- Always create from `main` (not other branches)
+- One issue per branch
+- Use lowercase, hyphens
+- Include issue number for traceability
+
+---
+
+## Commit Message Standards
+
+### Format
+```
+type(scope): brief description
+
+Detailed explanation of what changed and why.
+
+Closes #XX (if applicable)
+```
+
+### Types
+- `feat:` New feature
+- `fix:` Bug fix
+- `refactor:` Code reorganization without feature change
+- `docs:` Documentation only
+- `test:` Tests only
+- `chore:` Dependency updates, tooling
+
+### Examples
+```
+feat: add email domain normalization to ExtractEnrich
+
+- Implement case-insensitive domain matching
+- Replace dots with underscores in row keys
+- Add validation for email format
+
+Closes #8
+
+---
+
+fix: handle unknown vendor gracefully in ExtractEnrich
+
+When vendor not found in VendorMaster, send registration
+email to requestor instead of failing silently.
+
+---
+
+docs: complete vendor management guide
+
+Added comprehensive guide with:
+- Initial setup procedures
+- Adding/updating vendors
+- Query examples
+- Troubleshooting
+- Disaster recovery
+
+Closes #14
+```
+
+---
+
+## Pull Request Checklist
+
+### Before Creating PR
+- [ ] Feature branch created from `main`
+- [ ] All acceptance criteria met
+- [ ] Code follows project constraints (25-line functions, import structure, etc.)
+- [ ] Tests pass locally
+- [ ] Type checking passes (mypy)
+- [ ] Security scan passes (bandit)
+- [ ] Documentation updated
+- [ ] No hardcoded secrets or credentials
+- [ ] Commits have meaningful messages
+
+### PR Description Template
+```markdown
+## Summary
+One-line description of changes.
+
+## What Changed
+- Bullet point 1
+- Bullet point 2
+- Bullet point 3
+
+## Acceptance Criteria
+- [x] Criteria 1
+- [x] Criteria 2
+- [x] Criteria 3
+
+## Testing
+- Unit tests: 96% coverage maintained
+- Integration tests: All passing
+- Manual testing: Verified X, Y, Z
+
+## Documentation
+- Updated docs/FILE.md
+- Added inline code comments
+- Updated README
+
+## Related Issues
+Closes #XX
+```
+
+---
+
+## Quality Gates (Must Pass Before Merge)
+
+### Code Quality
+- ✅ Black formatting check passes
+- ✅ Flake8 linting passes
+- ✅ mypy type checking passes
+- ✅ 60% test coverage minimum
+
+### Testing
+- ✅ Unit tests: 100% passing
+- ✅ Integration tests: 100% passing (if applicable)
+- ✅ All tests use pytest with PYTHONPATH=./src
+
+### Security
+- ✅ bandit security scan passes
+- ✅ No hardcoded credentials
+- ✅ No secrets in code or docs
+
+### Documentation
+- ✅ CLAUDE.md updated if constraints changed
+- ✅ Function docstrings complete
+- ✅ README updated for new features
+- ✅ CHANGELOG.md updated with user-facing changes
+
+### Project Constraints
+- ✅ Functions ≤25 lines (extract helpers)
+- ✅ Import structure: `from shared.*`, `from functions.*`
+- ✅ ULID used for transaction IDs
+- ✅ Pydantic validation on all data models
+- ✅ Error handling on all external calls
+
+---
+
+## Structuring Agent Prompts for Parallel Execution
+
+### Essential Information to Include
+
+Every agent prompt should include:
+
+```
+## Context
+- Project name and purpose
+- Current working directory
+- Git branch the agent should work on
+- Status of related components
+
+## Acceptance Criteria
+Explicit list of MUST-HAVE requirements (checkboxes)
+- [ ] Criterion 1
+- [ ] Criterion 2
+- [ ] Criterion 3
+
+## Deliverables
+Exact files to create/modify:
+- New file: path/to/file (line count, purpose)
+- Modified file: path/to/file (what changes)
+
+## Constraints & Patterns
+- Import structure required
+- Naming conventions
+- Existing patterns to follow
+- Performance targets
+- Error handling requirements
+
+## Out of Scope (Explicit)
+- ❌ Don't change X
+- ❌ Don't merge to main
+- ❌ Don't modify Y without approval
+
+## After Completion
+- Make commits on branch (don't push)
+- Provide summary of what was implemented
+- Indicate any blockers or decisions made
+```
+
+### Example Agent Prompt (Good)
+```
+You are working on Issue #10: Create Deployment Pipeline.
+
+## Task Overview
+Create a complete CI/CD pipeline using GitHub Actions that automates
+testing and deployment to Azure with staging slot pattern.
+
+## Current State
+- Project: /Users/alex/dev/invoice-agent
+- Git branch: feature/issue-10-deployment-pipeline (already created)
+- Tech Stack: Python 3.11, Azure Functions, GitHub Actions
+
+## Acceptance Criteria
+- [ ] Create .github/workflows/ci-cd.yml
+- [ ] Test job: Black, Flake8, Pytest (60% threshold)
+- [ ] Build job: Azure Functions packaging
+- [ ] Deploy staging: Bicep + smoke tests
+- [ ] Deploy production: Manual approval + slot swap
+- [ ] Document GitHub secrets required
+- [ ] Create rollback procedure
+
+## Deliverables
+1. .github/workflows/ci-cd.yml (400 lines) - Main pipeline
+2. docs/DEPLOYMENT_GUIDE.md (400+ lines) - Secret setup
+3. docs/ROLLBACK_PROCEDURE.md (400+ lines) - Recovery steps
+
+## Constraints
+- Use existing Bicep templates (no modifications)
+- Leverage GitHub environment protection rules
+- No hardcoded secrets (use ${{ secrets.NAME }})
+- Follow Azure Functions best practices
+- Include detailed comments in YAML
+
+## After Implementation
+1. Make commits on feature/issue-10-deployment-pipeline
+2. Do NOT push or create PR (main agent will do that)
+3. Provide summary of what was implemented
+4. Flag any blockers or questions
+
+Start working now.
+```
+
+---
+
+## Parallel Execution Workflow (Complete Example)
+
+### Scenario: Two independent issues ready to implement
+
+```bash
+# Step 1: Create feature branches
+git checkout -b feature/issue-10-deployment-pipeline
+git checkout main
+git checkout -b feature/issue-11-local-dev-setup
+git checkout main
+
+# Step 2: Launch agents in parallel (in ONE message, using Task tool twice)
+# Agent 1 works on Issue #10 (complexity: SONNET, 4 hours)
+# Agent 2 works on Issue #11 (complexity: HAIKU, 2 hours)
+# Both execute simultaneously
+```
+
+Agents complete independently → Back to main agent:
+
+```bash
+# Step 3: Verify and push
+git checkout feature/issue-10-deployment-pipeline
+# Verify syntax, logic, quality
+git push -u origin feature/issue-10-deployment-pipeline
+
+git checkout feature/issue-11-local-dev-setup
+# Verify syntax, logic, quality
+git push -u origin feature/issue-11-local-dev-setup
+
+# Step 4: Create PRs for both (ready for review)
+gh pr create --base main --head feature/issue-10-deployment-pipeline ...
+gh pr create --base main --head feature/issue-11-local-dev-setup ...
+```
+
+User reviews PRs on GitHub → User merges when ready:
+
+```bash
+# Step 5: After user approves and merges
+git checkout main
+git pull origin main
+# Both features now in main
+```
+
+---
+
+## Quality Metrics to Track
+
+Track these across all work:
+
+| Metric | Target | Check |
+|--------|--------|-------|
+| Test Coverage | ≥60% | `pytest --cov` |
+| Code Duplication | <5% | Code review |
+| Function Size | ≤25 lines | `wc -l` |
+| Comment Ratio | >10% | Code review |
+| Type Coverage | 100% | `mypy --strict` |
+| Security Scan Pass | 100% | `bandit` |
+| Documentation | Complete | README checks |
+
+---
+
+## Common Pitfalls to Avoid
+
+❌ **Don't:**
+- Merge directly to main without PR
+- Create sub-agents without clear acceptance criteria
+- Skip testing before pushing
+- Commit with unclear messages
+- Hardcode secrets or credentials
+- Ignore type checking or linting errors
+- Create functions >25 lines
+- Use wrong import structure (`from src.shared.*`)
+
+✅ **Do:**
+- Use feature branches for every issue
+- Define acceptance criteria upfront
+- Run tests and linting locally first
+- Write descriptive commit messages
+- Use GitHub secrets for credentials
+- Fix all linting and type errors
+- Extract helper functions for clarity
+- Use correct imports (`from shared.*`)
+
+---
+
+## Integration with Slash Commands
+
+Once development workflow is established, these slash commands streamline work:
+
+- `/init` - Initialize new feature branch with issue context
+- `/build` - Generate code stubs from specification
+- `/test` - Run full test suite before PR
+- `/deploy` - Merge feature branch and trigger CI/CD
+- `/status` - Show current branch status and blockers
+
+---
+
 ## Project Overview
 
 Azure serverless invoice processing system that automates email-to-AP workflow using queue-based Azure Functions, Table Storage for vendor lookups, and Teams webhooks for notifications. NetSuite handles all approval workflows downstream.
