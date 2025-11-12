@@ -26,7 +26,8 @@ local.settings.json
 func.exe
 
 # IDE
-.vscode/
+.vscode/settings.json
+.vscode/.ropeproject/
 .idea/
 *.iml
 *.swp

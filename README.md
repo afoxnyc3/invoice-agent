@@ -12,31 +12,33 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Azure subscription
 - Python 3.11+
-- Azure Functions Core Tools v4
-- Azure CLI
+- Docker Desktop
+- Azure Functions Core Tools v4 (optional, for running functions)
 
 ### Local Development Setup
 
+**One-command setup:**
 ```bash
-# Clone the repository
+# Clone and setup
 git clone https://github.com/your-org/invoice-agent.git
 cd invoice-agent
+./scripts/setup-local.sh
 
-# Set up Python environment
-cd src
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Configure local settings
-cp local.settings.json.template local.settings.json
-# Edit local.settings.json with your Azure credentials
-
-# Run locally
-func start
+# Start developing
+source src/venv/bin/activate
+make run
 ```
+
+**Or use Make commands:**
+```bash
+make setup          # Initial environment setup
+make run            # Start functions locally
+make test           # Run tests with coverage
+make lint           # Check code quality
+```
+
+See [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) for detailed instructions.
 
 ### Deploy to Azure
 
