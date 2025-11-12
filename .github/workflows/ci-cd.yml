@@ -1,0 +1,395 @@
+name: CI/CD Pipeline
+
+# Trigger on push to main branch and on pull requests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+# Environment variables shared across jobs
+env:
+  PYTHON_VERSION: '3.11'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './src'
+  RESOURCE_GROUP_DEV: 'rg-invoice-agent-dev'
+  RESOURCE_GROUP_PROD: 'rg-invoice-agent-prod'
+
+jobs:
+  # Job 1: Run tests, linting, and code quality checks
+  test:
+    name: Test and Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'src/requirements.txt'
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black flake8
+
+      - name: Check code formatting with Black
+        working-directory: ./src
+        run: |
+          echo "Running Black formatter check..."
+          black --check --diff functions/ shared/
+
+      - name: Lint with Flake8
+        working-directory: ./src
+        run: |
+          echo "Running Flake8 linter..."
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 functions/ shared/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings (line length=127 to match Black default)
+          flake8 functions/ shared/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run unit tests with coverage
+        working-directory: .
+        run: |
+          echo "Running pytest with coverage..."
+          # pytest.ini already configures PYTHONPATH, coverage targets, and 60% threshold
+          pytest
+
+      - name: Generate coverage report
+        if: always()
+        working-directory: .
+        run: |
+          echo "Generating coverage report..."
+          coverage report
+          coverage html
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 30
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: pytest.xml
+          retention-days: 30
+
+  # Job 2: Build and package Azure Functions
+  build:
+    name: Build Azure Functions Package
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'src/requirements.txt'
+
+      - name: Install Azure Functions Core Tools
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+          sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list'
+          sudo apt-get update
+          sudo apt-get install azure-functions-core-tools-4
+
+      - name: Install Python dependencies
+        working-directory: ./src
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+
+      - name: Create deployment package
+        working-directory: ./src
+        run: |
+          # Remove test and development dependencies from package
+          rm -rf .python_packages/lib/site-packages/pytest*
+          rm -rf .python_packages/lib/site-packages/_pytest*
+          rm -rf .python_packages/lib/site-packages/coverage*
+          rm -rf .python_packages/lib/site-packages/mypy*
+          rm -rf .python_packages/lib/site-packages/bandit*
+
+          # Create archive for deployment
+          zip -r ../function-app.zip .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-app-package
+          path: function-app.zip
+          retention-days: 30
+
+  # Job 3: Deploy to staging slot
+  deploy-staging:
+    name: Deploy to Staging Slot
+    needs: build
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes, not PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://func-invoice-agent-prod-staging.azurewebsites.net
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: function-app-package
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy infrastructure (if needed)
+        run: |
+          echo "Checking infrastructure deployment..."
+          az deployment group create \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --template-file infrastructure/bicep/main.bicep \
+            --parameters infrastructure/parameters/prod.json \
+            --mode Incremental \
+            --verbose
+
+      - name: Get Function App name
+        id: func-name
+        run: |
+          FUNC_NAME=$(az functionapp list \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
+          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
+          echo "Function App: ${FUNC_NAME}"
+
+      - name: Deploy to staging slot
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.func-name.outputs.function_app_name }}
+          package: function-app.zip
+          slot-name: staging
+
+      - name: Wait for staging slot to be ready
+        run: |
+          echo "Waiting 30 seconds for staging slot to initialize..."
+          sleep 30
+
+      - name: Run smoke tests against staging
+        run: |
+          echo "Running smoke tests against staging slot..."
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+          STAGING_URL="https://${FUNC_NAME}-staging.azurewebsites.net"
+
+          # Test 1: Health check endpoint
+          echo "Test 1: Checking health endpoint..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/api/health" || echo "000")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "WARNING: Health endpoint returned status $HTTP_STATUS (may not be implemented yet)"
+          else
+            echo "PASS: Health endpoint is responding"
+          fi
+
+          # Test 2: Verify Functions runtime is responsive
+          echo "Test 2: Checking Functions runtime..."
+          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/admin/host/status" -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
+          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
+            echo "PASS: Functions runtime is responsive"
+          else
+            echo "ERROR: Functions runtime returned unexpected status $ADMIN_STATUS"
+            exit 1
+          fi
+
+          # Test 3: Verify Storage connectivity via app settings
+          echo "Test 3: Verifying Storage Account connectivity..."
+          STORAGE_NAME=$(az functionapp config appsettings list \
+            --name "${FUNC_NAME}" \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --slot staging \
+            --query "[?name=='AzureWebJobsStorage'].value" -o tsv | cut -d';' -f4 | cut -d'=' -f2)
+
+          if [ -n "$STORAGE_NAME" ]; then
+            STORAGE_EXISTS=$(az storage account show --name "$STORAGE_NAME" --query "name" -o tsv 2>/dev/null || echo "")
+            if [ -n "$STORAGE_EXISTS" ]; then
+              echo "PASS: Storage account ${STORAGE_NAME} is accessible"
+            else
+              echo "ERROR: Storage account not found"
+              exit 1
+            fi
+          else
+            echo "WARNING: Could not extract storage account name"
+          fi
+
+          # Test 4: Verify Key Vault configuration
+          echo "Test 4: Verifying Key Vault configuration..."
+          KV_REF=$(az functionapp config appsettings list \
+            --name "${FUNC_NAME}" \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --slot staging \
+            --query "[?contains(value, 'keyvault.azure.net')].name" -o tsv | head -1)
+
+          if [ -n "$KV_REF" ]; then
+            echo "PASS: Key Vault references configured"
+          else
+            echo "WARNING: No Key Vault references found (may be expected)"
+          fi
+
+          echo "Smoke tests completed successfully"
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
+
+  # Job 4: Deploy to production (with manual approval)
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Uses GitHub environment protection rules for manual approval
+    environment:
+      name: production
+      url: https://func-invoice-agent-prod.azurewebsites.net
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get Function App name
+        id: func-name
+        run: |
+          FUNC_NAME=$(az functionapp list \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
+          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
+          echo "Function App: ${FUNC_NAME}"
+
+      - name: Swap staging to production
+        run: |
+          echo "Swapping staging slot to production..."
+          az functionapp deployment slot swap \
+            --name "${{ steps.func-name.outputs.function_app_name }}" \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --slot staging \
+            --target-slot production
+
+          echo "Slot swap completed successfully"
+
+      - name: Wait for production to be ready
+        run: |
+          echo "Waiting 30 seconds for production to stabilize..."
+          sleep 30
+
+      - name: Verify production health
+        run: |
+          echo "Verifying production deployment..."
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+          PROD_URL="https://${FUNC_NAME}.azurewebsites.net"
+
+          # Verify Functions runtime
+          echo "Checking production Functions runtime..."
+          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/admin/host/status" -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
+          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
+            echo "PASS: Production Functions runtime is responsive"
+          else
+            echo "ERROR: Production verification failed with status $ADMIN_STATUS"
+            echo "ROLLBACK REQUIRED - See docs/ROLLBACK_PROCEDURE.md"
+            exit 1
+          fi
+
+          echo "Production deployment verified successfully"
+
+      - name: Tag release
+        run: |
+          # Create a git tag for this production release
+          TAG_NAME="prod-$(date +%Y%m%d-%H%M%S)"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "$TAG_NAME" -m "Production release $(date)"
+          git push origin "$TAG_NAME" || echo "Tag push failed (may need repo permissions)"
+          echo "Created release tag: $TAG_NAME"
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
+
+  # Job 5: Deploy to dev environment (for testing infrastructure changes)
+  deploy-dev:
+    name: Deploy to Dev Environment
+    needs: test
+    runs-on: ubuntu-latest
+    # Only run on workflow_dispatch or when infrastructure files change
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-dev]')
+    environment:
+      name: development
+      url: https://func-invoice-agent-dev.azurewebsites.net
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: function-app-package
+        continue-on-error: true
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+
+      - name: Deploy dev infrastructure
+        run: |
+          echo "Deploying dev infrastructure..."
+          az deployment group create \
+            --resource-group ${{ env.RESOURCE_GROUP_DEV }} \
+            --template-file infrastructure/bicep/main.bicep \
+            --parameters infrastructure/parameters/dev.json \
+            --mode Incremental \
+            --verbose
+
+      - name: Get Function App name
+        id: func-name
+        run: |
+          FUNC_NAME=$(az functionapp list \
+            --resource-group ${{ env.RESOURCE_GROUP_DEV }} \
+            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
+          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
+          echo "Function App: ${FUNC_NAME}"
+
+      - name: Deploy functions to dev
+        if: hashFiles('function-app.zip') != ''
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.func-name.outputs.function_app_name }}
+          package: function-app.zip
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
