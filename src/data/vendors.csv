@@ -1,0 +1,11 @@
+vendor_name,email_domain,expense_dept,allocation_schedule,gl_code,billing_party,notes
+Adobe Inc,adobe.com,IT,MONTHLY,6100,Chelsea Piers NY,Creative Cloud subscriptions
+Microsoft Corporation,microsoft.com,IT,ANNUAL,6100,Chelsea Piers NY,"Office 365, Azure services"
+Amazon Web Services,aws.amazon.com,IT,MONTHLY,6110,Chelsea Piers NY,Cloud infrastructure
+Salesforce,salesforce.com,SALES,ANNUAL,6200,Chelsea Piers NY,CRM platform
+Zoom Video Communications,zoom.us,IT,MONTHLY,6120,Chelsea Piers NY,Video conferencing
+Slack Technologies,slack.com,IT,MONTHLY,6120,Chelsea Piers NY,Team collaboration
+Google Workspace,google.com,IT,MONTHLY,6100,Chelsea Piers CT,Email and productivity suite
+Dropbox,dropbox.com,IT,ANNUAL,6130,Chelsea Piers NY,File storage and sharing
+HubSpot,hubspot.com,MARKETING,MONTHLY,6300,Chelsea Piers NY,Marketing automation
+QuickBooks,intuit.com,FINANCE,ANNUAL,6400,Chelsea Piers NY,Accounting software
