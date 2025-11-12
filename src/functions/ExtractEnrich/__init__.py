@@ -18,13 +18,9 @@ from shared.email_composer import compose_unknown_vendor_email
 logger = logging.getLogger(__name__)
 
 
-def _send_vendor_registration_email(
-    vendor_domain: str, transaction_id: str, sender: str
-):
+def _send_vendor_registration_email(vendor_domain: str, transaction_id: str, sender: str):
     """Send vendor registration instructions to requestor."""
-    api_url = os.environ.get(
-        "FUNCTION_APP_URL", "https://func-invoice-agent.azurewebsites.net"
-    )
+    api_url = os.environ.get("FUNCTION_APP_URL", "https://func-invoice-agent.azurewebsites.net")
     subject, body = compose_unknown_vendor_email(vendor_domain, transaction_id, api_url)
     graph = GraphAPIClient()
     graph.send_email(
@@ -34,9 +30,7 @@ def _send_vendor_registration_email(
         body=body,
         is_html=True,
     )
-    logger.warning(
-        f"Unknown vendor: {vendor_domain} - sent registration email to {sender}"
-    )
+    logger.warning(f"Unknown vendor: {vendor_domain} - sent registration email to {sender}")
 
 
 def main(msg: func.QueueMessage, toPost: func.Out[str]):
@@ -44,14 +38,12 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
     try:
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())
         vendor_domain = extract_domain(raw_mail.sender)
-        table_client = TableServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        ).get_table_client("VendorMaster")
+        table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+            "VendorMaster"
+        )
 
         try:
-            vendor = table_client.get_entity(
-                partition_key="Vendor", row_key=vendor_domain
-            )
+            vendor = table_client.get_entity(partition_key="Vendor", row_key=vendor_domain)
             enriched = EnrichedInvoice(
                 id=raw_mail.id,
                 vendor_name=vendor["VendorName"],

@@ -22,10 +22,7 @@ logger = logging.getLogger(__name__)
 def _build_teams_card(notification: NotificationMessage) -> TeamsMessageCard:
     """Build Teams message card from notification."""
     color_map = {"success": "00FF00", "unknown": "FFA500", "error": "FF0000"}
-    facts = [
-        MessageCardFact(name=k.title(), value=v)
-        for k, v in notification.details.items()
-    ]
+    facts = [MessageCardFact(name=k.title(), value=v) for k, v in notification.details.items()]
 
     return TeamsMessageCard(
         themeColor=color_map.get(notification.type, "808080"),
@@ -45,9 +42,7 @@ def main(msg: func.QueueMessage):
             logger.warning("Teams webhook URL not configured, skipping notification")
             return
 
-        response = requests.post(
-            webhook_url, json=card.model_dump(by_alias=True), timeout=10
-        )
+        response = requests.post(webhook_url, json=card.model_dump(by_alias=True), timeout=10)
         response.raise_for_status()
         logger.info(f"Posted {notification.type} notification to Teams")
     except Exception as e:

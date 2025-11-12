@@ -15,7 +15,7 @@ grpcio-tools>=1.60.0,<2.0.0
 
 # Not needed for MVP (uncomment when implementing)
 # azure-keyvault-secrets==4.7.0
-# azure-storage-queue==12.8.0
+azure-storage-queue==12.8.0  # Required by setup-local.sh for queue creation
 # azure-monitor-query==1.2.0  # Pulls in grpcio - use when implementing Application Insights
 
 # Microsoft Graph

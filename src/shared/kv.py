@@ -6,9 +6,7 @@ import os
 
 class KV:
     def __init__(self):
-        self.client = SecretClient(
-            vault_url=os.environ["KEY_VAULT_URI"], credential=DefaultAzureCredential()
-        )
+        self.client = SecretClient(vault_url=os.environ["KEY_VAULT_URI"], credential=DefaultAzureCredential())
 
     def get(self, name):
         return self.client.get_secret(name).value

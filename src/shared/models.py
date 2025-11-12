@@ -58,9 +58,7 @@ class EnrichedInvoice(BaseModel):
     vendor_name: str = Field(..., description="Vendor display name")
     expense_dept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
     gl_code: str = Field(..., description="General ledger code (4 digits)")
-    allocation_schedule: str = Field(
-        ..., description="Billing frequency (MONTHLY, ANNUAL, etc)"
-    )
+    allocation_schedule: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
     billing_party: str = Field(..., description="Entity responsible for payment")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     status: Literal["enriched", "unknown"] = Field(..., description="Processing status")
@@ -88,13 +86,9 @@ class NotificationMessage(BaseModel):
     with type-specific formatting for success, warning, or error messages.
     """
 
-    type: Literal["success", "unknown", "error"] = Field(
-        ..., description="Notification type"
-    )
+    type: Literal["success", "unknown", "error"] = Field(..., description="Notification type")
     message: str = Field(..., description="Human-readable summary message")
-    details: Dict[str, str] = Field(
-        ..., description="Additional context for notification"
-    )
+    details: Dict[str, str] = Field(..., description="Additional context for notification")
 
     @validator("details")
     def validate_details(cls, v, values):
@@ -136,15 +130,11 @@ class VendorMaster(BaseModel):
     - RowKey: vendor_domain (e.g., "adobe_com")
     """
 
-    PartitionKey: str = Field(
-        default="Vendor", description="Always 'Vendor' for all records"
-    )
+    PartitionKey: str = Field(default="Vendor", description="Always 'Vendor' for all records")
     RowKey: str = Field(..., description="Vendor domain normalized (e.g., 'adobe_com')")
     VendorName: str = Field(..., description="Vendor display name")
     ExpenseDept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
-    AllocationScheduleNumber: str = Field(
-        ..., description="Billing frequency (MONTHLY, ANNUAL, etc)"
-    )
+    AllocationScheduleNumber: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
     GLCode: str = Field(..., description="General ledger code (4 digits)")
     BillingParty: str = Field(..., description="Entity responsible for payment")
     Active: bool = Field(default=True, description="Soft delete flag")
@@ -183,16 +173,10 @@ class InvoiceTransaction(BaseModel):
     SenderEmail: EmailStr = Field(..., description="Original sender email address")
     ExpenseDept: str = Field(..., description="Department code")
     GLCode: str = Field(..., description="General ledger code")
-    Status: Literal["processed", "unknown", "error"] = Field(
-        ..., description="Processing status"
-    )
+    Status: Literal["processed", "unknown", "error"] = Field(..., description="Processing status")
     BlobUrl: str = Field(..., description="Full URL to invoice PDF in blob storage")
-    ProcessedAt: str = Field(
-        ..., description="ISO 8601 timestamp of processing completion"
-    )
-    ErrorMessage: Optional[str] = Field(
-        default=None, description="Error details if status is 'error'"
-    )
+    ProcessedAt: str = Field(..., description="ISO 8601 timestamp of processing completion")
+    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is 'error'")
 
     @validator("PartitionKey")
     def validate_partition_key(cls, v):
@@ -255,9 +239,7 @@ class TeamsMessageCard(BaseModel):
     type: str = Field(default="MessageCard", alias="@type")
     themeColor: str = Field(..., description="Hex color code (e.g., '00FF00')")
     text: str = Field(..., description="Card title/summary text")
-    sections: list[MessageCardSection] = Field(
-        ..., description="Sections containing facts"
-    )
+    sections: list[MessageCardSection] = Field(..., description="Sections containing facts")
 
     @validator("themeColor")
     def validate_theme_color(cls, v):

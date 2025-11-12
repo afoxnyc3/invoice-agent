@@ -1,7 +1,6 @@
 {
     "name": "Invoice Agent Development",
     "dockerComposeFile": "../docker-compose.yml",
-    "service": "azurite",
     "workspaceFolder": "/workspace",
 
     // Use Python 3.11 image with development tools

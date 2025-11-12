@@ -42,9 +42,9 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 
 def _log_transaction(enriched: EnrichedInvoice):
     """Log transaction to InvoiceTransactions table."""
-    table_client = TableServiceClient.from_connection_string(
-        os.environ["AzureWebJobsStorage"]
-    ).get_table_client("InvoiceTransactions")
+    table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+        "InvoiceTransactions"
+    )
     transaction = InvoiceTransaction(
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
         RowKey=enriched.id,
@@ -63,12 +63,8 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
     """Send enriched invoice to AP and log transaction."""
     try:
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())
-        blob_service = BlobServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        )
-        blob_client = blob_service.get_blob_client(
-            container="invoices", blob=enriched.blob_url.split("/invoices/")[-1]
-        )
+        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
+        blob_client = blob_service.get_blob_client(container="invoices", blob=enriched.blob_url.split("/invoices/")[-1])
         pdf_content = blob_client.download_blob().readall()
         subject, body = _compose_ap_email(enriched)
 

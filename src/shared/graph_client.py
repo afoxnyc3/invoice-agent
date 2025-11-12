@@ -64,9 +64,7 @@ class GraphAPIClient:
 
         # Session for connection pooling
         self.session = requests.Session()
-        self.session.headers.update(
-            {"Content-Type": "application/json", "Accept": "application/json"}
-        )
+        self.session.headers.update({"Content-Type": "application/json", "Accept": "application/json"})
 
         self._access_token: Optional[str] = None
         self._token_expiry: float = 0
@@ -120,9 +118,7 @@ class GraphAPIClient:
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {token}"
 
-        response = self.session.request(
-            method=method, url=url, headers=headers, **kwargs
-        )
+        response = self.session.request(method=method, url=url, headers=headers, **kwargs)
 
         # Handle throttling with retry-after
         if response.status_code == 429:
@@ -133,9 +129,7 @@ class GraphAPIClient:
         return response.json() if response.content else {}
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def get_unread_emails(
-        self, mailbox: str, max_results: int = 50
-    ) -> List[Dict[str, Any]]:
+    def get_unread_emails(self, mailbox: str, max_results: int = 50) -> List[Dict[str, Any]]:
         """
         Get unread emails from a mailbox.
 

@@ -32,10 +32,10 @@ def mock_graph_client():
                     "name": "invoice.pdf",
                     "contentType": "application/pdf",
                     "contentBytes": "base64encodeddata",
-                    "size": 102400
+                    "size": 102400,
                 }
             ],
-            "receivedDateTime": "2024-11-09T10:00:00Z"
+            "receivedDateTime": "2024-11-09T10:00:00Z",
         }
     ]
 
@@ -59,7 +59,7 @@ def mock_table_client():
         "AllocationScheduleNumber": "MONTHLY",
         "GLCode": "6100",
         "BillingParty": "Company HQ",
-        "Active": True
+        "Active": True,
     }
 
     client.create_entity.return_value = None
@@ -87,9 +87,7 @@ def mock_blob_client():
     client = MagicMock()
 
     client.upload_blob.return_value = None
-    client.download_blob.return_value = MagicMock(
-        readall=lambda: b"invoice content"
-    )
+    client.download_blob.return_value = MagicMock(readall=lambda: b"invoice content")
 
     return client
 
@@ -109,10 +107,10 @@ def sample_email() -> Dict[str, Any]:
                 "name": "invoice_12345.pdf",
                 "contentType": "application/pdf",
                 "contentBytes": "JVBERi0xLjQKJeLjz9M=",  # Sample base64 PDF header
-                "size": 245632
+                "size": 245632,
             }
         ],
-        "receivedDateTime": "2024-11-09T14:30:00Z"
+        "receivedDateTime": "2024-11-09T14:30:00Z",
     }
 
 
@@ -128,50 +126,56 @@ def sample_vendor() -> Dict[str, Any]:
         "GLCode": "6100",
         "BillingParty": "Company HQ",
         "Active": True,
-        "UpdatedAt": "2024-11-09T12:00:00Z"
+        "UpdatedAt": "2024-11-09T12:00:00Z",
     }
 
 
 @pytest.fixture
 def raw_mail_message() -> str:
     """Sample raw-mail queue message."""
-    return json.dumps({
-        "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
-        "sender": "billing@adobe.com",
-        "subject": "Invoice #12345",
-        "blob_url": "https://storage.blob.core.windows.net/invoices/raw/invoice_12345.pdf",
-        "received_at": "2024-11-09T14:30:00Z"
-    })
+    return json.dumps(
+        {
+            "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            "sender": "billing@adobe.com",
+            "subject": "Invoice #12345",
+            "blob_url": "https://storage.blob.core.windows.net/invoices/raw/invoice_12345.pdf",
+            "received_at": "2024-11-09T14:30:00Z",
+        }
+    )
 
 
 @pytest.fixture
 def enriched_message() -> str:
     """Sample enriched queue message."""
-    return json.dumps({
-        "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
-        "vendor_name": "Adobe Inc",
-        "expense_dept": "IT",
-        "allocation_schedule": "MONTHLY",
-        "gl_code": "6100",
-        "billing_party": "Company HQ",
-        "blob_url": "https://storage.blob.core.windows.net/invoices/raw/invoice_12345.pdf",
-        "status": "enriched"
-    })
+    return json.dumps(
+        {
+            "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            "vendor_name": "Adobe Inc",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6100",
+            "billing_party": "Company HQ",
+            "blob_url": "https://storage.blob.core.windows.net/invoices/raw/invoice_12345.pdf",
+            "status": "enriched",
+        }
+    )
 
 
 @pytest.fixture
 def notify_message() -> str:
     """Sample notify queue message."""
-    return json.dumps({
-        "type": "success",
-        "message": "Processed: Adobe Inc - GL 6100",
-        "details": {
-            "vendor": "Adobe Inc",
-            "gl_code": "6100",
-            "department": "IT",
-            "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
+    return json.dumps(
+        {
+            "type": "success",
+            "message": "Processed: Adobe Inc - GL 6100",
+            "details": {
+                "vendor": "Adobe Inc",
+                "gl_code": "6100",
+                "department": "IT",
+                "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            },
         }
-    })
+    )
 
 
 @pytest.fixture
@@ -184,7 +188,7 @@ def mock_environment(monkeypatch):
         "GRAPH_CLIENT_SECRET": "test-client-secret",
         "AP_EMAIL_ADDRESS": "accountspayable@test.com",
         "TEAMS_WEBHOOK_URL": "https://test.webhook.url",
-        "KEY_VAULT_URL": "https://test-keyvault.vault.azure.net/"
+        "KEY_VAULT_URL": "https://test-keyvault.vault.azure.net/",
     }
 
     for key, value in env_vars.items():
@@ -215,15 +219,7 @@ def mock_requests(monkeypatch):
 # Markers for test categorization
 def pytest_configure(config):
     """Register custom markers."""
-    config.addinivalue_line(
-        "markers", "unit: Unit tests that don't require external resources"
-    )
-    config.addinivalue_line(
-        "markers", "integration: Integration tests that may require external resources"
-    )
-    config.addinivalue_line(
-        "markers", "slow: Tests that take more than 1 second"
-    )
-    config.addinivalue_line(
-        "markers", "requires_azure: Tests that require Azure connection"
-    )
+    config.addinivalue_line("markers", "unit: Unit tests that don't require external resources")
+    config.addinivalue_line("markers", "integration: Integration tests that may require external resources")
+    config.addinivalue_line("markers", "slow: Tests that take more than 1 second")
+    config.addinivalue_line("markers", "requires_azure: Tests that require Azure connection")
