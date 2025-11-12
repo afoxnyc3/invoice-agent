@@ -30,19 +30,19 @@ def extract_domain(email: str) -> str:
         >>> extract_domain('invoices@accounts.microsoft.com')
         'microsoft_com'
     """
-    if not email or '@' not in email:
+    if not email or "@" not in email:
         raise ValueError(f"Invalid email format: {email}")
 
     # Split email and get domain part
-    domain_part = email.split('@')[1].lower()
+    domain_part = email.split("@")[1].lower()
 
     # Remove subdomain (keep only last two parts)
     # e.g., accounts.microsoft.com -> microsoft.com
-    parts = domain_part.split('.')
+    parts = domain_part.split(".")
     if len(parts) >= 2:
         domain = f"{parts[-2]}_{parts[-1].replace('.', '_')}"
     else:
-        domain = domain_part.replace('.', '_')
+        domain = domain_part.replace(".", "_")
 
     return domain
 
@@ -67,16 +67,16 @@ def normalize_vendor_name(vendor: str) -> str:
     normalized = vendor.lower()
 
     # Remove special characters first, keep alphanumeric and spaces
-    normalized = re.sub(r'[^a-z0-9\s]', '', normalized)
+    normalized = re.sub(r"[^a-z0-9\s]", "", normalized)
 
     # Remove common suffixes (after special char removal)
-    suffixes = [' inc', ' llc', ' ltd', ' corp', ' co']
+    suffixes = [" inc", " llc", " ltd", " corp", " co"]
     for suffix in suffixes:
         if normalized.endswith(suffix):
-            normalized = normalized[:-len(suffix)]
+            normalized = normalized[: -len(suffix)]
 
     # Replace spaces with underscores and strip
-    normalized = normalized.strip().replace(' ', '_')
+    normalized = normalized.strip().replace(" ", "_")
 
     return normalized
 
@@ -101,30 +101,26 @@ def parse_invoice_subject(subject: str) -> Dict[str, Optional[str]]:
         {'invoice_number': '12345', 'amount': '1250.00', 'vendor_hint': None}
     """
     result: Dict[str, Optional[str]] = {
-        'invoice_number': None,
-        'amount': None,
-        'vendor_hint': None
+        "invoice_number": None,
+        "amount": None,
+        "vendor_hint": None,
     }
 
     # Extract invoice number
     # Patterns: Invoice #12345, INV-12345, Invoice 12345
-    inv_patterns = [
-        r'invoice\s*#?(\d+)',
-        r'inv[oice]*[\s-]*(\d+)',
-        r'bill\s*#?(\d+)'
-    ]
+    inv_patterns = [r"invoice\s*#?(\d+)", r"inv[oice]*[\s-]*(\d+)", r"bill\s*#?(\d+)"]
     for pattern in inv_patterns:
         match = re.search(pattern, subject, re.IGNORECASE)
         if match:
-            result['invoice_number'] = match.group(1)
+            result["invoice_number"] = match.group(1)
             break
 
     # Extract amount
     # Patterns: $1,250.00, USD 1250.00, 1250.00
-    amount_pattern = r'[\$]?\s*([\d,]+\.?\d*)'
+    amount_pattern = r"[\$]?\s*([\d,]+\.?\d*)"
     match = re.search(amount_pattern, subject)
     if match:
         # Remove commas from amount
-        result['amount'] = match.group(1).replace(',', '')
+        result["amount"] = match.group(1).replace(",", "")
 
     return result

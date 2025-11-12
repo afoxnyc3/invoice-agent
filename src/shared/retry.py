@@ -18,7 +18,7 @@ def retry_with_backoff(
     max_attempts: int = 3,
     initial_delay: float = 1.0,
     backoff_factor: float = 2.0,
-    exceptions: Tuple[Type[Exception], ...] = (Exception,)
+    exceptions: Tuple[Type[Exception], ...] = (Exception,),
 ):
     """
     Decorator to retry function with exponential backoff.
@@ -44,6 +44,7 @@ def retry_with_backoff(
         ...     # May fail with transient error
         ...     return api.get_data()
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -65,21 +66,19 @@ def retry_with_backoff(
                         delay *= backoff_factor
                     else:
                         logger.error(
-                            f"All {max_attempts} attempts failed. "
-                            f"Last error: {e}"
+                            f"All {max_attempts} attempts failed. " f"Last error: {e}"
                         )
 
             # All attempts exhausted, raise last exception
             raise last_exception
 
         return wrapper
+
     return decorator
 
 
 def retry_with_timeout(
-    func: Callable,
-    max_attempts: int = 3,
-    timeout_seconds: Optional[float] = None
+    func: Callable, max_attempts: int = 3, timeout_seconds: Optional[float] = None
 ) -> any:
     """
     Execute function with retry and optional timeout.
@@ -112,9 +111,7 @@ def retry_with_timeout(
         if timeout_seconds:
             elapsed = time.time() - start_time
             if elapsed >= timeout_seconds:
-                raise TimeoutError(
-                    f"Operation timed out after {elapsed:.1f}s"
-                )
+                raise TimeoutError(f"Operation timed out after {elapsed:.1f}s")
 
         try:
             return func()
@@ -137,11 +134,7 @@ class CircuitBreaker:
     overwhelming a failing service.
     """
 
-    def __init__(
-        self,
-        failure_threshold: int = 5,
-        timeout_seconds: float = 60.0
-    ):
+    def __init__(self, failure_threshold: int = 5, timeout_seconds: float = 60.0):
         """
         Initialize circuit breaker.
 
@@ -189,8 +182,7 @@ class CircuitBreaker:
             if self.failure_count >= self.failure_threshold:
                 self.is_open = True
                 logger.error(
-                    f"Circuit breaker OPENED after "
-                    f"{self.failure_count} failures"
+                    f"Circuit breaker OPENED after " f"{self.failure_count} failures"
                 )
 
             raise e

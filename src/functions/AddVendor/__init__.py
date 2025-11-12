@@ -1,6 +1,7 @@
 """
 AddVendor HTTP function - Register new vendors in VendorMaster table.
 """
+
 import json
 import os
 import logging
@@ -19,26 +20,35 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         data = req.get_json()
         # Map snake_case API fields to PascalCase model fields
         vendor_data = {
-            'RowKey': data.get('vendor_domain', '').lower().replace('.', '_'),
-            'VendorName': data.get('vendor_name'),
-            'ExpenseDept': data.get('expense_dept'),
-            'AllocationScheduleNumber': data.get('allocation_schedule'),
-            'GLCode': data.get('gl_code'),
-            'BillingParty': data.get('billing_party'),
-            'UpdatedAt': datetime.utcnow().isoformat() + 'Z'
+            "RowKey": data.get("vendor_domain", "").lower().replace(".", "_"),
+            "VendorName": data.get("vendor_name"),
+            "ExpenseDept": data.get("expense_dept"),
+            "AllocationScheduleNumber": data.get("allocation_schedule"),
+            "GLCode": data.get("gl_code"),
+            "BillingParty": data.get("billing_party"),
+            "UpdatedAt": datetime.utcnow().isoformat() + "Z",
         }
         vendor = VendorMaster(**vendor_data)
 
         table_client = TableServiceClient.from_connection_string(
-            os.environ['AzureWebJobsStorage']
-        ).get_table_client('VendorMaster')
+            os.environ["AzureWebJobsStorage"]
+        ).get_table_client("VendorMaster")
 
         table_client.upsert_entity(vendor.model_dump())
         logger.info(f"Added vendor: {vendor.VendorName} ({vendor.RowKey})")
-        return func.HttpResponse(json.dumps({"status": "success", "vendor": vendor.VendorName}), status_code=201)
+        return func.HttpResponse(
+            json.dumps({"status": "success", "vendor": vendor.VendorName}),
+            status_code=201,
+        )
     except ValidationError as e:
-        errors = [{"field": err['loc'][0] if err['loc'] else 'unknown', "message": err['msg']} for err in e.errors()]
-        return func.HttpResponse(json.dumps({"error": "Validation failed", "details": errors}), status_code=400)
+        errors = [
+            {"field": err["loc"][0] if err["loc"] else "unknown", "message": err["msg"]}
+            for err in e.errors()
+        ]
+        return func.HttpResponse(
+            json.dumps({"error": "Validation failed", "details": errors}),
+            status_code=400,
+        )
     except Exception as e:
         logger.error(f"Failed to add vendor: {str(e)}")
         return func.HttpResponse(json.dumps({"error": str(e)}), status_code=500)

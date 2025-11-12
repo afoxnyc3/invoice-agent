@@ -7,9 +7,7 @@ particularly for unknown vendor handling.
 
 
 def compose_unknown_vendor_email(
-    sender_domain: str,
-    transaction_id: str,
-    api_url: str
+    sender_domain: str, transaction_id: str, api_url: str
 ) -> tuple[str, str]:
     """
     Compose email for unknown vendor notification.

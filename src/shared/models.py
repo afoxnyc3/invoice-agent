@@ -16,6 +16,7 @@ from datetime import datetime
 # QUEUE MESSAGE MODELS
 # =============================================================================
 
+
 class RawMail(BaseModel):
     """
     Message sent from MailIngest to ExtractEnrich via raw-mail queue.
@@ -23,24 +24,25 @@ class RawMail(BaseModel):
     This model represents an email that has been received and had its
     attachment uploaded to blob storage, ready for vendor extraction.
     """
+
     id: str = Field(..., description="ULID transaction identifier")
     sender: EmailStr = Field(..., description="Email address of sender")
     subject: str = Field(..., description="Email subject line")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     received_at: str = Field(..., description="ISO 8601 timestamp when email received")
 
-    @validator('blob_url')
+    @validator("blob_url")
     def validate_url(cls, v):
         """Ensure blob URL uses HTTPS protocol"""
-        if not v.startswith('https://'):
-            raise ValueError('blob_url must be HTTPS')
+        if not v.startswith("https://"):
+            raise ValueError("blob_url must be HTTPS")
         return v
 
-    @validator('id')
+    @validator("id")
     def validate_id(cls, v):
         """Ensure ID is not empty"""
         if not v or not v.strip():
-            raise ValueError('id cannot be empty')
+            raise ValueError("id cannot be empty")
         return v
 
 
@@ -51,27 +53,30 @@ class EnrichedInvoice(BaseModel):
     This model represents an invoice that has been enriched with vendor
     information from the VendorMaster table, ready to send to AP.
     """
+
     id: str = Field(..., description="ULID transaction identifier")
     vendor_name: str = Field(..., description="Vendor display name")
     expense_dept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
     gl_code: str = Field(..., description="General ledger code (4 digits)")
-    allocation_schedule: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
+    allocation_schedule: str = Field(
+        ..., description="Billing frequency (MONTHLY, ANNUAL, etc)"
+    )
     billing_party: str = Field(..., description="Entity responsible for payment")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     status: Literal["enriched", "unknown"] = Field(..., description="Processing status")
 
-    @validator('gl_code')
+    @validator("gl_code")
     def validate_gl_code(cls, v):
         """Ensure GL code is 4 digits"""
         if not v.isdigit() or len(v) != 4:
-            raise ValueError('gl_code must be exactly 4 digits')
+            raise ValueError("gl_code must be exactly 4 digits")
         return v
 
-    @validator('vendor_name', 'expense_dept', 'billing_party')
+    @validator("vendor_name", "expense_dept", "billing_party")
     def validate_not_empty(cls, v):
         """Ensure critical fields are not empty"""
         if not v or not v.strip():
-            raise ValueError('Field cannot be empty')
+            raise ValueError("Field cannot be empty")
         return v
 
 
@@ -82,17 +87,22 @@ class NotificationMessage(BaseModel):
     This model represents a notification to be sent to Teams webhook,
     with type-specific formatting for success, warning, or error messages.
     """
-    type: Literal["success", "unknown", "error"] = Field(..., description="Notification type")
-    message: str = Field(..., description="Human-readable summary message")
-    details: Dict[str, str] = Field(..., description="Additional context for notification")
 
-    @validator('details')
+    type: Literal["success", "unknown", "error"] = Field(
+        ..., description="Notification type"
+    )
+    message: str = Field(..., description="Human-readable summary message")
+    details: Dict[str, str] = Field(
+        ..., description="Additional context for notification"
+    )
+
+    @validator("details")
     def validate_details(cls, v, values):
         """Ensure required detail fields are present based on type"""
-        if 'type' in values:
-            msg_type = values['type']
-            if msg_type in ['success', 'unknown'] and 'transaction_id' not in v:
-                raise ValueError('transaction_id required in details')
+        if "type" in values:
+            msg_type = values["type"]
+            if msg_type in ["success", "unknown"] and "transaction_id" not in v:
+                raise ValueError("transaction_id required in details")
         return v
 
     class Config:
@@ -103,8 +113,8 @@ class NotificationMessage(BaseModel):
                 "details": {
                     "vendor": "Adobe Inc",
                     "gl_code": "6100",
-                    "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
-                }
+                    "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+                },
             }
         }
 
@@ -112,6 +122,7 @@ class NotificationMessage(BaseModel):
 # =============================================================================
 # AZURE TABLE STORAGE ENTITY MODELS
 # =============================================================================
+
 
 class VendorMaster(BaseModel):
     """
@@ -124,28 +135,33 @@ class VendorMaster(BaseModel):
     - PartitionKey: Always "Vendor"
     - RowKey: vendor_domain (e.g., "adobe_com")
     """
-    PartitionKey: str = Field(default="Vendor", description="Always 'Vendor' for all records")
+
+    PartitionKey: str = Field(
+        default="Vendor", description="Always 'Vendor' for all records"
+    )
     RowKey: str = Field(..., description="Vendor domain normalized (e.g., 'adobe_com')")
     VendorName: str = Field(..., description="Vendor display name")
     ExpenseDept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
-    AllocationScheduleNumber: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
+    AllocationScheduleNumber: str = Field(
+        ..., description="Billing frequency (MONTHLY, ANNUAL, etc)"
+    )
     GLCode: str = Field(..., description="General ledger code (4 digits)")
     BillingParty: str = Field(..., description="Entity responsible for payment")
     Active: bool = Field(default=True, description="Soft delete flag")
     UpdatedAt: str = Field(..., description="ISO 8601 timestamp of last update")
 
-    @validator('GLCode')
+    @validator("GLCode")
     def validate_gl_code(cls, v):
         """Ensure GL code is exactly 4 digits"""
         if not v.isdigit() or len(v) != 4:
-            raise ValueError('GLCode must be exactly 4 digits')
+            raise ValueError("GLCode must be exactly 4 digits")
         return v
 
-    @validator('RowKey')
+    @validator("RowKey")
     def validate_row_key(cls, v):
         """Ensure RowKey is normalized (lowercase, no special chars)"""
-        if not v.islower() or ' ' in v:
-            raise ValueError('RowKey must be lowercase with no spaces')
+        if not v.islower() or " " in v:
+            raise ValueError("RowKey must be lowercase with no spaces")
         return v
 
 
@@ -160,33 +176,40 @@ class InvoiceTransaction(BaseModel):
     - PartitionKey: YYYYMM format (e.g., "202411") for efficient time-based queries
     - RowKey: ULID for unique, sortable transaction IDs
     """
+
     PartitionKey: str = Field(..., description="YYYYMM format (e.g., '202411')")
     RowKey: str = Field(..., description="ULID transaction identifier")
     VendorName: str = Field(..., description="Vendor name from enrichment")
     SenderEmail: EmailStr = Field(..., description="Original sender email address")
     ExpenseDept: str = Field(..., description="Department code")
     GLCode: str = Field(..., description="General ledger code")
-    Status: Literal["processed", "unknown", "error"] = Field(..., description="Processing status")
+    Status: Literal["processed", "unknown", "error"] = Field(
+        ..., description="Processing status"
+    )
     BlobUrl: str = Field(..., description="Full URL to invoice PDF in blob storage")
-    ProcessedAt: str = Field(..., description="ISO 8601 timestamp of processing completion")
-    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is 'error'")
+    ProcessedAt: str = Field(
+        ..., description="ISO 8601 timestamp of processing completion"
+    )
+    ErrorMessage: Optional[str] = Field(
+        default=None, description="Error details if status is 'error'"
+    )
 
-    @validator('PartitionKey')
+    @validator("PartitionKey")
     def validate_partition_key(cls, v):
         """Ensure PartitionKey is in YYYYMM format"""
         if not v.isdigit() or len(v) != 6:
-            raise ValueError('PartitionKey must be YYYYMM format (6 digits)')
+            raise ValueError("PartitionKey must be YYYYMM format (6 digits)")
         year = int(v[:4])
         month = int(v[4:])
         if year < 2020 or year > 2100 or month < 1 or month > 12:
-            raise ValueError('Invalid year or month in PartitionKey')
+            raise ValueError("Invalid year or month in PartitionKey")
         return v
 
-    @validator('ErrorMessage', always=True)
+    @validator("ErrorMessage", always=True)
     def validate_error_message(cls, v, values):
         """Ensure ErrorMessage is present when Status is 'error'"""
-        if 'Status' in values and values['Status'] == 'error' and not v:
-            raise ValueError('ErrorMessage required when Status is error')
+        if "Status" in values and values["Status"] == "error" and not v:
+            raise ValueError("ErrorMessage required when Status is error")
         return v
 
 
@@ -194,12 +217,14 @@ class InvoiceTransaction(BaseModel):
 # TEAMS WEBHOOK MESSAGE CARD MODELS
 # =============================================================================
 
+
 class MessageCardFact(BaseModel):
     """
     Individual name-value pair in a Teams message card.
 
     Used to display structured information in Teams notifications.
     """
+
     name: str = Field(..., description="Fact label")
     value: str = Field(..., description="Fact value")
 
@@ -210,6 +235,7 @@ class MessageCardSection(BaseModel):
 
     Groups related facts together in the notification display.
     """
+
     facts: list[MessageCardFact] = Field(..., description="List of facts to display")
 
 
@@ -225,16 +251,19 @@ class TeamsMessageCard(BaseModel):
     - Orange (FFA500): Warning messages (unknown vendors)
     - Red (FF0000): Error messages
     """
+
     type: str = Field(default="MessageCard", alias="@type")
     themeColor: str = Field(..., description="Hex color code (e.g., '00FF00')")
     text: str = Field(..., description="Card title/summary text")
-    sections: list[MessageCardSection] = Field(..., description="Sections containing facts")
+    sections: list[MessageCardSection] = Field(
+        ..., description="Sections containing facts"
+    )
 
-    @validator('themeColor')
+    @validator("themeColor")
     def validate_theme_color(cls, v):
         """Ensure theme color is valid hex code"""
-        if not v or len(v) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in v):
-            raise ValueError('themeColor must be 6-digit hex code')
+        if not v or len(v) != 6 or not all(c in "0123456789ABCDEFabcdef" for c in v):
+            raise ValueError("themeColor must be 6-digit hex code")
         return v.upper()
 
     class Config:
@@ -244,12 +273,14 @@ class TeamsMessageCard(BaseModel):
                 "@type": "MessageCard",
                 "themeColor": "00FF00",
                 "text": "✅ Invoice Processed",
-                "sections": [{
-                    "facts": [
-                        {"name": "Vendor", "value": "Adobe Inc"},
-                        {"name": "GL Code", "value": "6100"},
-                        {"name": "Department", "value": "IT"}
-                    ]
-                }]
+                "sections": [
+                    {
+                        "facts": [
+                            {"name": "Vendor", "value": "Adobe Inc"},
+                            {"name": "GL Code", "value": "6100"},
+                            {"name": "Department", "value": "IT"},
+                        ]
+                    }
+                ],
             }
         }

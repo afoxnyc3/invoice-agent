@@ -4,6 +4,7 @@ PostToAP queue function - Send enriched invoices to AP mailbox.
 Composes email with all enriched metadata, attaches invoice PDF,
 sends to AP, logs transaction, and queues notification.
 """
+
 import os
 import logging
 import base64
@@ -42,14 +43,18 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 def _log_transaction(enriched: EnrichedInvoice):
     """Log transaction to InvoiceTransactions table."""
     table_client = TableServiceClient.from_connection_string(
-        os.environ['AzureWebJobsStorage']
-    ).get_table_client('InvoiceTransactions')
+        os.environ["AzureWebJobsStorage"]
+    ).get_table_client("InvoiceTransactions")
     transaction = InvoiceTransaction(
-        PartitionKey=datetime.utcnow().strftime('%Y%m'), RowKey=enriched.id,
-        VendorName=enriched.vendor_name, SenderEmail='system@invoice-agent.com',
-        ExpenseDept=enriched.expense_dept, GLCode=enriched.gl_code,
-        Status='processed', BlobUrl=enriched.blob_url,
-        ProcessedAt=datetime.utcnow().isoformat() + 'Z'
+        PartitionKey=datetime.utcnow().strftime("%Y%m"),
+        RowKey=enriched.id,
+        VendorName=enriched.vendor_name,
+        SenderEmail="system@invoice-agent.com",
+        ExpenseDept=enriched.expense_dept,
+        GLCode=enriched.gl_code,
+        Status="processed",
+        BlobUrl=enriched.blob_url,
+        ProcessedAt=datetime.utcnow().isoformat() + "Z",
     )
     table_client.upsert_entity(transaction.model_dump())
 
@@ -58,27 +63,40 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
     """Send enriched invoice to AP and log transaction."""
     try:
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())
-        blob_service = BlobServiceClient.from_connection_string(os.environ['AzureWebJobsStorage'])
-        blob_client = blob_service.get_blob_client(container='invoices', blob=enriched.blob_url.split('/invoices/')[-1])
+        blob_service = BlobServiceClient.from_connection_string(
+            os.environ["AzureWebJobsStorage"]
+        )
+        blob_client = blob_service.get_blob_client(
+            container="invoices", blob=enriched.blob_url.split("/invoices/")[-1]
+        )
         pdf_content = blob_client.download_blob().readall()
         subject, body = _compose_ap_email(enriched)
 
         graph = GraphAPIClient()
         graph.send_email(
-            from_address=os.environ['INVOICE_MAILBOX'], to_address=os.environ['AP_EMAIL_ADDRESS'],
-            subject=subject, body=body, is_html=True,
-            attachments=[{
-                'name': f"invoice_{enriched.id}.pdf",
-                'contentBytes': base64.b64encode(pdf_content).decode(),
-                'contentType': 'application/pdf'
-            }]
+            from_address=os.environ["INVOICE_MAILBOX"],
+            to_address=os.environ["AP_EMAIL_ADDRESS"],
+            subject=subject,
+            body=body,
+            is_html=True,
+            attachments=[
+                {
+                    "name": f"invoice_{enriched.id}.pdf",
+                    "contentBytes": base64.b64encode(pdf_content).decode(),
+                    "contentType": "application/pdf",
+                }
+            ],
         )
         _log_transaction(enriched)
 
         notification = NotificationMessage(
-            type='success',
+            type="success",
             message=f"Processed: {enriched.vendor_name} - GL {enriched.gl_code}",
-            details={'vendor': enriched.vendor_name, 'gl_code': enriched.gl_code, 'transaction_id': enriched.id}
+            details={
+                "vendor": enriched.vendor_name,
+                "gl_code": enriched.gl_code,
+                "transaction_id": enriched.id,
+            },
         )
         notify.set(notification.model_dump_json())
         logger.info(f"Posted to AP: {enriched.id} - {enriched.vendor_name}")
