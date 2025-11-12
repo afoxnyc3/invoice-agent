@@ -1,0 +1,51 @@
+services:
+  # Azure Storage Emulator (Blob, Queue, Table)
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: invoice-agent-azurite
+    hostname: azurite
+    restart: unless-stopped
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --loose --skipApiVersionCheck
+    ports:
+      - "10000:10000"  # Blob service
+      - "10001:10001"  # Queue service
+      - "10002:10002"  # Table service
+    volumes:
+      - azurite-data:/data
+    networks:
+      - invoice-agent-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "10000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # MailHog - Email testing UI (optional, for testing email sending)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: invoice-agent-mailhog
+    hostname: mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - invoice-agent-network
+    profiles:
+      - mail-testing
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  azurite-data:
+    name: invoice-agent-azurite-data
+    driver: local
+
+networks:
+  invoice-agent-network:
+    name: invoice-agent-network
+    driver: bridge
