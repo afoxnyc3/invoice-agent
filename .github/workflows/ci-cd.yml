@@ -186,7 +186,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.func-name.outputs.function_app_name }}
-          package: function-app.zip
+          package: function-app-package/function-app.zip
           slot-name: staging
 
       - name: Wait for staging slot to be ready
