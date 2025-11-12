@@ -30,9 +30,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         }
         vendor = VendorMaster(**vendor_data)
 
-        table_client = TableServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        ).get_table_client("VendorMaster")
+        table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+            "VendorMaster"
+        )
 
         table_client.upsert_entity(vendor.model_dump())
         logger.info(f"Added vendor: {vendor.VendorName} ({vendor.RowKey})")
@@ -41,10 +41,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=201,
         )
     except ValidationError as e:
-        errors = [
-            {"field": err["loc"][0] if err["loc"] else "unknown", "message": err["msg"]}
-            for err in e.errors()
-        ]
+        errors = [{"field": err["loc"][0] if err["loc"] else "unknown", "message": err["msg"]} for err in e.errors()]
         return func.HttpResponse(
             json.dumps({"error": "Validation failed", "details": errors}),
             status_code=400,

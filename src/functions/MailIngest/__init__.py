@@ -19,9 +19,7 @@ from shared.models import RawMail
 logger = logging.getLogger(__name__)
 
 
-def _process_email(
-    email: dict, graph: GraphAPIClient, mailbox: str, blob_container, queue_output
-):
+def _process_email(email: dict, graph: GraphAPIClient, mailbox: str, blob_container, queue_output):
     """Process single email: download attachments and queue."""
     transaction_id = generate_ulid()
     attachments = graph.get_attachments(mailbox, email["id"])
@@ -48,9 +46,7 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
     try:
         mailbox = os.environ["INVOICE_MAILBOX"]
         graph = GraphAPIClient()
-        blob_service = BlobServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        )
+        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
         blob_container = blob_service.get_container_client("invoices")
         emails = graph.get_unread_emails(mailbox, max_results=50)
         logger.info(f"Found {len(emails)} unread emails")

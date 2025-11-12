@@ -8,22 +8,15 @@ import pytest
 import time
 from unittest.mock import Mock, patch, MagicMock
 from shared.ulid_generator import generate_ulid, ulid_to_timestamp
-from shared.email_parser import (
-    extract_domain,
-    normalize_vendor_name,
-    parse_invoice_subject
-)
+from shared.email_parser import extract_domain, normalize_vendor_name, parse_invoice_subject
 from shared.logger import get_logger, CorrelatedLogger
-from shared.retry import (
-    retry_with_backoff,
-    retry_with_timeout,
-    CircuitBreaker
-)
+from shared.retry import retry_with_backoff, retry_with_timeout, CircuitBreaker
 
 
 # =============================================================================
 # ULID GENERATOR TESTS
 # =============================================================================
+
 
 class TestULIDGenerator:
     """Test ULID generation utilities."""
@@ -75,6 +68,7 @@ class TestULIDGenerator:
 # EMAIL PARSER TESTS
 # =============================================================================
 
+
 class TestEmailParser:
     """Test email parsing utilities."""
 
@@ -125,25 +119,26 @@ class TestEmailParser:
         """Test parsing invoice number from subject."""
         result = parse_invoice_subject("Invoice #12345 - November")
 
-        assert result['invoice_number'] == "12345"
+        assert result["invoice_number"] == "12345"
 
     def test_parse_invoice_subject_with_amount(self):
         """Test parsing amount from subject."""
         result = parse_invoice_subject("Invoice $1,250.00")
 
-        assert result['amount'] == "1250.00"
+        assert result["amount"] == "1250.00"
 
     def test_parse_invoice_subject_no_metadata(self):
         """Test parsing subject with no invoice metadata."""
         result = parse_invoice_subject("Please review attached")
 
-        assert result['invoice_number'] is None
-        assert result['amount'] is None
+        assert result["invoice_number"] is None
+        assert result["amount"] is None
 
 
 # =============================================================================
 # LOGGER TESTS
 # =============================================================================
+
 
 class TestLogger:
     """Test structured logging utilities."""
@@ -164,7 +159,7 @@ class TestLogger:
         assert "[01JCKTEST123]" in formatted
         assert "Test message" in formatted
 
-    @patch('logging.Logger.info')
+    @patch("logging.Logger.info")
     def test_logger_info_includes_correlation_id(self, mock_log):
         """Test info logging includes correlation ID."""
         logger = get_logger(__name__, "01JCKTEST123")
@@ -175,7 +170,7 @@ class TestLogger:
         assert "[01JCKTEST123]" in call_args
         assert "Processing invoice" in call_args
 
-    @patch('logging.Logger.error')
+    @patch("logging.Logger.error")
     def test_logger_error_includes_correlation_id(self, mock_log):
         """Test error logging includes correlation ID."""
         logger = get_logger(__name__, "01JCKTEST123")
@@ -189,6 +184,7 @@ class TestLogger:
 # =============================================================================
 # RETRY LOGIC TESTS
 # =============================================================================
+
 
 class TestRetryLogic:
     """Test retry and backoff utilities."""
@@ -252,32 +248,26 @@ class TestRetryLogic:
                 raise Exception("Not yet")
             return "success"
 
-        result = retry_with_timeout(
-            eventually_succeeds,
-            max_attempts=3,
-            timeout_seconds=5.0
-        )
+        result = retry_with_timeout(eventually_succeeds, max_attempts=3, timeout_seconds=5.0)
 
         assert result == "success"
         assert call_count == 2
 
     def test_retry_with_timeout_exceeds_limit(self):
         """Test retry_with_timeout raises TimeoutError."""
+
         def slow_function():
             time.sleep(0.1)
             raise Exception("Still failing")
 
         with pytest.raises((TimeoutError, Exception)):
-            retry_with_timeout(
-                slow_function,
-                max_attempts=10,
-                timeout_seconds=0.2
-            )
+            retry_with_timeout(slow_function, max_attempts=10, timeout_seconds=0.2)
 
 
 # =============================================================================
 # CIRCUIT BREAKER TESTS
 # =============================================================================
+
 
 class TestCircuitBreaker:
     """Test circuit breaker pattern."""

@@ -17,13 +17,14 @@ from shared.models import (
     InvoiceTransaction,
     MessageCardFact,
     MessageCardSection,
-    TeamsMessageCard
+    TeamsMessageCard,
 )
 
 
 # =============================================================================
 # QUEUE MESSAGE MODEL TESTS
 # =============================================================================
+
 
 class TestRawMailModel:
     """Test RawMail data model."""
@@ -35,7 +36,7 @@ class TestRawMailModel:
             sender="billing@adobe.com",
             subject="Invoice #12345 - November 2024",
             blob_url="https://storage.blob.core.windows.net/invoices/raw/invoice123.pdf",
-            received_at="2024-11-09T14:00:00Z"
+            received_at="2024-11-09T14:00:00Z",
         )
 
         assert raw_mail.id == "01JCK3Q7H8ZVXN3BARC9GWAEZM"
@@ -51,7 +52,7 @@ class TestRawMailModel:
             sender="billing@adobe.com",
             subject="Invoice #12345",
             blob_url="https://storage/invoices/raw/invoice.pdf",
-            received_at="2024-11-09T14:00:00Z"
+            received_at="2024-11-09T14:00:00Z",
         )
 
         json_str = raw_mail.model_dump_json()
@@ -71,7 +72,7 @@ class TestRawMailModel:
                 sender="invalid-email-format",
                 subject="Test",
                 blob_url="https://storage/test.pdf",
-                received_at="2024-11-09T14:00:00Z"
+                received_at="2024-11-09T14:00:00Z",
             )
         assert "sender" in str(exc_info.value)
 
@@ -83,7 +84,7 @@ class TestRawMailModel:
                 sender="billing@adobe.com",
                 subject="Test",
                 blob_url="http://storage/test.pdf",  # HTTP not HTTPS
-                received_at="2024-11-09T14:00:00Z"
+                received_at="2024-11-09T14:00:00Z",
             )
         assert "blob_url must be HTTPS" in str(exc_info.value)
 
@@ -95,7 +96,7 @@ class TestRawMailModel:
                 sender="billing@adobe.com",
                 subject="Test",
                 blob_url="https://storage/test.pdf",
-                received_at="2024-11-09T14:00:00Z"
+                received_at="2024-11-09T14:00:00Z",
             )
         assert "id cannot be empty" in str(exc_info.value)
 
@@ -113,7 +114,7 @@ class TestEnrichedInvoiceModel:
             allocation_schedule="MONTHLY",
             billing_party="Company HQ",
             blob_url="https://storage/invoices/raw/invoice.pdf",
-            status="enriched"
+            status="enriched",
         )
 
         assert invoice.id == "01JCK3Q7H8ZVXN3BARC9GWAEZM"
@@ -134,7 +135,7 @@ class TestEnrichedInvoiceModel:
             allocation_schedule="UNKNOWN",
             billing_party="UNKNOWN",
             blob_url="https://storage/invoices/raw/invoice.pdf",
-            status="unknown"
+            status="unknown",
         )
 
         assert invoice.status == "unknown"
@@ -151,7 +152,7 @@ class TestEnrichedInvoiceModel:
                 allocation_schedule="MONTHLY",
                 billing_party="Company HQ",
                 blob_url="https://storage/test.pdf",
-                status="enriched"
+                status="enriched",
             )
         assert "gl_code must be exactly 4 digits" in str(exc_info.value)
 
@@ -166,7 +167,7 @@ class TestEnrichedInvoiceModel:
                 allocation_schedule="MONTHLY",
                 billing_party="Company HQ",
                 blob_url="https://storage/test.pdf",
-                status="enriched"
+                status="enriched",
             )
         assert "Field cannot be empty" in str(exc_info.value)
 
@@ -179,11 +180,7 @@ class TestNotificationMessageModel:
         notification = NotificationMessage(
             type="success",
             message="Processed: Adobe Inc - GL 6100",
-            details={
-                "vendor": "Adobe Inc",
-                "gl_code": "6100",
-                "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
-            }
+            details={"vendor": "Adobe Inc", "gl_code": "6100", "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"},
         )
 
         assert notification.type == "success"
@@ -198,8 +195,8 @@ class TestNotificationMessageModel:
             details={
                 "sender": "newvendor@example.com",
                 "subject": "Invoice #12345",
-                "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
-            }
+                "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            },
         )
 
         assert notification.type == "unknown"
@@ -210,10 +207,7 @@ class TestNotificationMessageModel:
         notification = NotificationMessage(
             type="error",
             message="Failed to process invoice",
-            details={
-                "error": "Graph API connection failed",
-                "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"
-            }
+            details={"error": "Graph API connection failed", "transaction_id": "01JCK3Q7H8ZVXN3BARC9GWAEZM"},
         )
 
         assert notification.type == "error"
@@ -228,7 +222,7 @@ class TestNotificationMessageModel:
                 details={
                     "vendor": "Adobe Inc"
                     # Missing transaction_id
-                }
+                },
             )
         assert "transaction_id required" in str(exc_info.value)
 
@@ -236,6 +230,7 @@ class TestNotificationMessageModel:
 # =============================================================================
 # AZURE TABLE STORAGE ENTITY MODEL TESTS
 # =============================================================================
+
 
 class TestVendorMasterModel:
     """Test VendorMaster data model."""
@@ -249,7 +244,7 @@ class TestVendorMasterModel:
             AllocationScheduleNumber="MONTHLY",
             GLCode="6100",
             BillingParty="Company HQ",
-            UpdatedAt="2024-11-09T12:00:00Z"
+            UpdatedAt="2024-11-09T12:00:00Z",
         )
 
         assert vendor.PartitionKey == "Vendor"  # Default value
@@ -268,7 +263,7 @@ class TestVendorMasterModel:
                 AllocationScheduleNumber="MONTHLY",
                 GLCode="ABC1",  # Not all digits
                 BillingParty="Company HQ",
-                UpdatedAt="2024-11-09T12:00:00Z"
+                UpdatedAt="2024-11-09T12:00:00Z",
             )
         assert "GLCode must be exactly 4 digits" in str(exc_info.value)
 
@@ -282,7 +277,7 @@ class TestVendorMasterModel:
                 AllocationScheduleNumber="MONTHLY",
                 GLCode="6100",
                 BillingParty="Company HQ",
-                UpdatedAt="2024-11-09T12:00:00Z"
+                UpdatedAt="2024-11-09T12:00:00Z",
             )
         assert "RowKey must be lowercase" in str(exc_info.value)
 
@@ -301,7 +296,7 @@ class TestInvoiceTransactionModel:
             GLCode="6100",
             Status="processed",
             BlobUrl="https://storage/invoices/raw/invoice.pdf",
-            ProcessedAt="2024-11-09T14:30:00Z"
+            ProcessedAt="2024-11-09T14:30:00Z",
         )
 
         assert transaction.PartitionKey == "202411"
@@ -321,7 +316,7 @@ class TestInvoiceTransactionModel:
             Status="error",
             BlobUrl="https://storage/invoices/raw/invoice.pdf",
             ProcessedAt="2024-11-09T14:30:00Z",
-            ErrorMessage="Graph API connection failed"
+            ErrorMessage="Graph API connection failed",
         )
 
         assert transaction.Status == "error"
@@ -339,7 +334,7 @@ class TestInvoiceTransactionModel:
                 GLCode="6100",
                 Status="processed",
                 BlobUrl="https://storage/test.pdf",
-                ProcessedAt="2024-11-09T14:30:00Z"
+                ProcessedAt="2024-11-09T14:30:00Z",
             )
         assert "PartitionKey must be YYYYMM format" in str(exc_info.value)
 
@@ -355,7 +350,7 @@ class TestInvoiceTransactionModel:
                 GLCode="6100",
                 Status="error",
                 BlobUrl="https://storage/test.pdf",
-                ProcessedAt="2024-11-09T14:30:00Z"
+                ProcessedAt="2024-11-09T14:30:00Z",
                 # Missing ErrorMessage
             )
         assert "ErrorMessage required when Status is error" in str(exc_info.value)
@@ -364,6 +359,7 @@ class TestInvoiceTransactionModel:
 # =============================================================================
 # TEAMS WEBHOOK MESSAGE CARD MODEL TESTS
 # =============================================================================
+
 
 class TestTeamsMessageCardModels:
     """Test Teams webhook message card models."""
@@ -378,10 +374,7 @@ class TestTeamsMessageCardModels:
     def test_create_message_card_section(self):
         """Test creating a MessageCardSection."""
         section = MessageCardSection(
-            facts=[
-                MessageCardFact(name="Vendor", value="Adobe Inc"),
-                MessageCardFact(name="GL Code", value="6100")
-            ]
+            facts=[MessageCardFact(name="Vendor", value="Adobe Inc"), MessageCardFact(name="GL Code", value="6100")]
         )
 
         assert len(section.facts) == 2
@@ -397,10 +390,10 @@ class TestTeamsMessageCardModels:
                     facts=[
                         MessageCardFact(name="Vendor", value="Adobe Inc"),
                         MessageCardFact(name="GL Code", value="6100"),
-                        MessageCardFact(name="Department", value="IT")
+                        MessageCardFact(name="Department", value="IT"),
                     ]
                 )
-            ]
+            ],
         )
 
         assert card.type == "MessageCard"
@@ -412,20 +405,12 @@ class TestTeamsMessageCardModels:
     def test_teams_card_invalid_color(self):
         """Test TeamsMessageCard validation rejects invalid color."""
         with pytest.raises(ValidationError) as exc_info:
-            TeamsMessageCard(
-                themeColor="green",  # Not hex code
-                text="Test",
-                sections=[]
-            )
+            TeamsMessageCard(themeColor="green", text="Test", sections=[])  # Not hex code
         assert "themeColor must be 6-digit hex code" in str(exc_info.value)
 
     def test_teams_card_json_serialization(self):
         """Test TeamsMessageCard JSON serialization with @type alias."""
-        card = TeamsMessageCard(
-            themeColor="00FF00",
-            text="Test Message",
-            sections=[MessageCardSection(facts=[])]
-        )
+        card = TeamsMessageCard(themeColor="00FF00", text="Test Message", sections=[MessageCardSection(facts=[])])
 
         json_data = json.loads(card.model_dump_json(by_alias=True))
 

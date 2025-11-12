@@ -58,16 +58,11 @@ def retry_with_backoff(
                     last_exception = e
 
                     if attempt < max_attempts:
-                        logger.warning(
-                            f"Attempt {attempt}/{max_attempts} failed: {e}. "
-                            f"Retrying in {delay:.1f}s..."
-                        )
+                        logger.warning(f"Attempt {attempt}/{max_attempts} failed: {e}. " f"Retrying in {delay:.1f}s...")
                         time.sleep(delay)
                         delay *= backoff_factor
                     else:
-                        logger.error(
-                            f"All {max_attempts} attempts failed. " f"Last error: {e}"
-                        )
+                        logger.error(f"All {max_attempts} attempts failed. " f"Last error: {e}")
 
             # All attempts exhausted, raise last exception
             raise last_exception
@@ -77,9 +72,7 @@ def retry_with_backoff(
     return decorator
 
 
-def retry_with_timeout(
-    func: Callable, max_attempts: int = 3, timeout_seconds: Optional[float] = None
-) -> any:
+def retry_with_timeout(func: Callable, max_attempts: int = 3, timeout_seconds: Optional[float] = None) -> any:
     """
     Execute function with retry and optional timeout.
 
@@ -181,8 +174,6 @@ class CircuitBreaker:
 
             if self.failure_count >= self.failure_threshold:
                 self.is_open = True
-                logger.error(
-                    f"Circuit breaker OPENED after " f"{self.failure_count} failures"
-                )
+                logger.error(f"Circuit breaker OPENED after " f"{self.failure_count} failures")
 
             raise e
