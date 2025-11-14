@@ -351,7 +351,7 @@ jobs:
   # Job 5: Deploy to dev environment (for testing infrastructure changes)
   deploy-dev:
     name: Deploy to Dev Environment
-    needs: test
+    needs: [test, build]
     runs-on: ubuntu-latest
     # Only run on workflow_dispatch or when infrastructure files change
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[deploy-dev]')
