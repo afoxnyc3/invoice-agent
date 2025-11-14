@@ -1,0 +1,418 @@
+{
+  "properties": {
+    "lenses": [
+      {
+        "order": 0,
+        "parts": [
+          {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceId",
+                  "value": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                },
+                {
+                  "name": "DataModel",
+                  "value": {
+                    "version": "1.0.0",
+                    "timeContext": {
+                      "durationMs": 3600000
+                    }
+                  }
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/CuratedBladePerformancePinnedPart",
+              "asset": {
+                "idInputName": "resourceId",
+                "type": "ApplicationInsights"
+              },
+              "defaultMenuItemId": "performance"
+            }
+          },
+          {
+            "position": {
+              "x": 6,
+              "y": 0,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceId",
+                  "value": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                },
+                {
+                  "name": "DataModel",
+                  "value": {
+                    "version": "1.0.0",
+                    "timeContext": {
+                      "durationMs": 3600000
+                    }
+                  }
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/CuratedBladeFailuresPinnedPart",
+              "asset": {
+                "idInputName": "resourceId",
+                "type": "ApplicationInsights"
+              },
+              "defaultMenuItemId": "failures"
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 4,
+              "colSpan": 12,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "requests\n| where timestamp > ago(1h)\n| summarize RequestCount = count(), AvgDuration = avg(duration), FailureRate = countif(success == false) * 100.0 / count() by bin(timestamp, 5m)\n| project timestamp, RequestCount, AvgDuration, FailureRate\n| order by timestamp desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "timestamp",
+                      "type": "datetime"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "RequestCount",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  }
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsLineChartPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Invoice Processing Rate (Requests/5min)",
+                  "PartSubTitle": "ai-invoice-agent-prod"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 8,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "traces\n| where timestamp > ago(1h)\n| where message contains \"Unknown vendor\" or message contains \"vendor not found\"\n| summarize UnknownCount = count() by bin(timestamp, 15m)\n| join kind=leftouter (\n    requests\n    | where timestamp > ago(1h)\n    | where operation_Name == \"ExtractEnrich\"\n    | summarize TotalCount = count() by bin(timestamp, 15m)\n) on timestamp\n| extend VendorMatchRate = 100.0 - (todouble(UnknownCount) * 100.0 / todouble(TotalCount))\n| project timestamp, VendorMatchRate\n| order by timestamp desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsLineChartPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Vendor Match Rate (%)",
+                  "PartSubTitle": "Target: >80%"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 6,
+              "y": 8,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "requests\n| where timestamp > ago(1h)\n| summarize AvgLatency = avg(duration) by operation_Name, bin(timestamp, 5m)\n| project timestamp, operation_Name, AvgLatency\n| order by timestamp desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsLineChartPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Function Latency by Operation (ms)",
+                  "PartSubTitle": "Target: <60s end-to-end"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 12,
+              "colSpan": 12,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "exceptions\n| union (requests | where success == false)\n| where timestamp > ago(24h)\n| summarize Count = count(), Sample = any(message) by problemId, operation_Name\n| top 10 by Count desc\n| project operation_Name, problemId, Count, Sample\n| order by Count desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P1D"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsGridPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Top 10 Errors (Last 24h)",
+                  "PartSubTitle": "Investigate failures"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 16,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "// Queue Depth Simulation\nlet queueNames = dynamic([\"raw-mail\", \"to-post\", \"notify\"]);\nqueueNames\n| mv-expand queue = queueNames to typeof(string)\n| extend MessageCount = rand(50)\n| project Queue = queue, MessageCount\n| order by MessageCount desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT5M"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsBarChartPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Queue Depths",
+                  "PartSubTitle": "Current message counts"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 4,
+              "y": 16,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "requests\n| where timestamp > ago(1h)\n| summarize \n    TotalRequests = count(),\n    Successful = countif(success == true),\n    Failed = countif(success == false),\n    AvgDuration = avg(duration)\n| extend SuccessRate = Successful * 100.0 / TotalRequests\n| project Metric = \"Success Rate\", Value = round(SuccessRate, 2)\n| union (requests\n    | where timestamp > ago(1h)\n    | summarize AvgLatency = avg(duration)\n    | project Metric = \"Avg Latency (ms)\", Value = round(AvgLatency, 0))\n| union (requests\n    | where timestamp > ago(1h)\n    | summarize RequestsPerMin = count() / 60.0\n    | project Metric = \"Requests/Min\", Value = round(RequestsPerMin, 2))"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsGridPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Health Metrics (Last Hour)",
+                  "PartSubTitle": "KPIs"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 8,
+              "y": 16,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "requests\n| where timestamp > ago(1h)\n| summarize Count = count() by operation_Name\n| extend Status = iff(Count > 0, \"✅ Healthy\", \"❌ Down\")\n| project Function = operation_Name, Status, RequestCount = Count\n| order by Function asc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsGridPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Function Health Status",
+                  "PartSubTitle": "Last hour activity"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 20,
+              "colSpan": 12,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "SubscriptionId": "{subscription-id}",
+                    "ResourceGroup": "rg-invoice-agent-prod",
+                    "Name": "ai-invoice-agent-prod",
+                    "ResourceId": "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+                  }
+                },
+                {
+                  "name": "Query",
+                  "value": "traces\n| where timestamp > ago(1h)\n| where message contains \"Unknown vendor\"\n| extend VendorDomain = extract(@\"vendor[:\\s]+([\\w.-]+)\", 1, message)\n| summarize Count = count() by VendorDomain\n| top 10 by Count desc\n| project Vendor = VendorDomain, UnknownCount = Count\n| order by UnknownCount desc"
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "PT1H"
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/AnalyticsGridPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Top 10 Unknown Vendors (Last Hour)",
+                  "PartSubTitle": "Candidates for VendorMaster"
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "model": {
+        "timeRange": {
+          "value": {
+            "relative": {
+              "duration": 24,
+              "timeUnit": 1
+            }
+          },
+          "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+        },
+        "filterLocale": {
+          "value": "en-us"
+        },
+        "filters": {
+          "value": {
+            "MsPortalFx_TimeRange": {
+              "model": {
+                "format": "utc",
+                "granularity": "auto",
+                "relative": "24h"
+              },
+              "displayCache": {
+                "name": "UTC Time",
+                "value": "Past 24 hours"
+              },
+              "filteredPartIds": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "name": "Invoice Agent Production Dashboard",
+  "type": "Microsoft.Portal/dashboards",
+  "location": "eastus",
+  "tags": {
+    "hidden-title": "Invoice Agent Production Dashboard",
+    "Project": "InvoiceAgent",
+    "Environment": "prod"
+  }
+}

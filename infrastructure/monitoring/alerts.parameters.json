@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "prod"
+    },
+    "projectPrefix": {
+      "value": "invoice-agent"
+    },
+    "alertEmailAddresses": {
+      "value": [
+        "ops-team@company.com"
+      ]
+    },
+    "teamsWebhookUrl": {
+      "value": ""
+    },
+    "enableSmsAlerts": {
+      "value": false
+    },
+    "smsPhoneNumber": {
+      "value": ""
+    }
+  }
+}
