@@ -83,3 +83,6 @@ docs/.doctrees/
 tmp/
 temp/
 *.tmp
+# Screenshots and temporary files
+misc/
+Screenshot*.png
