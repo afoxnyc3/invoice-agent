@@ -1,0 +1,6 @@
+vendor_domain,vendor_name,expense_dept,allocation_schedule,gl_code,billing_party
+adobe_com,Adobe Inc,IT,MONTHLY,6100,Company HQ
+microsoft_com,Microsoft Corporation,IT,ANNUAL,6200,Company HQ
+salesforce_com,Salesforce Inc,SALES,MONTHLY,7100,Sales Division
+slack_com,Slack Technologies,IT,MONTHLY,6150,Company HQ
+zoom_us,Zoom Video Communications,IT,MONTHLY,6300,Company HQ

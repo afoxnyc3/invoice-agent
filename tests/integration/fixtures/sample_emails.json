@@ -1,0 +1,73 @@
+{
+  "known_vendor": {
+    "id": "test-email-known-001",
+    "sender": {
+      "emailAddress": {
+        "address": "billing@adobe.com"
+      }
+    },
+    "subject": "Invoice #12345 - November 2024",
+    "body": {
+      "contentType": "HTML",
+      "content": "<html><body>Please process the attached invoice.</body></html>"
+    },
+    "hasAttachments": true,
+    "attachments": [
+      {
+        "id": "att-known-001",
+        "name": "invoice_adobe_12345.pdf",
+        "contentType": "application/pdf",
+        "size": 245632
+      }
+    ],
+    "receivedDateTime": "2024-11-09T14:30:00Z"
+  },
+  "unknown_vendor": {
+    "id": "test-email-unknown-001",
+    "sender": {
+      "emailAddress": {
+        "address": "billing@newvendor.com"
+      }
+    },
+    "subject": "Invoice #99999 - New Vendor",
+    "body": {
+      "contentType": "HTML",
+      "content": "<html><body>Invoice from new vendor.</body></html>"
+    },
+    "hasAttachments": true,
+    "attachments": [
+      {
+        "id": "att-unknown-001",
+        "name": "invoice_newvendor_99999.pdf",
+        "contentType": "application/pdf",
+        "size": 189440
+      }
+    ],
+    "receivedDateTime": "2024-11-09T15:00:00Z"
+  },
+  "no_attachment": {
+    "id": "test-email-noattach-001",
+    "sender": {
+      "emailAddress": {
+        "address": "billing@microsoft.com"
+      }
+    },
+    "subject": "Invoice notification only",
+    "body": {
+      "contentType": "HTML",
+      "content": "<html><body>No attachment included.</body></html>"
+    },
+    "hasAttachments": false,
+    "receivedDateTime": "2024-11-09T16:00:00Z"
+  },
+  "malformed": {
+    "id": "test-email-malformed-001",
+    "subject": "Missing sender field",
+    "body": {
+      "contentType": "HTML",
+      "content": "<html><body>Malformed email.</body></html>"
+    },
+    "hasAttachments": true,
+    "receivedDateTime": "2024-11-09T17:00:00Z"
+  }
+}
