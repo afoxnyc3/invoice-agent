@@ -15,8 +15,8 @@ from typing import Dict, Any, List
 from unittest.mock import patch, MagicMock
 
 from shared.ulid_generator import generate_ulid
-from tests.integration.utils.storage_helper import StorageTestHelper
-from tests.integration.utils.mock_graph_api import MockGraphAPIClient
+from .utils.storage_helper import StorageTestHelper
+from .utils.mock_graph_api import MockGraphAPIClient
 
 
 # Connection string for Azurite (local Azure Storage emulator)

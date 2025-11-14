@@ -18,7 +18,7 @@ from functions.PostToAP import main as post_to_ap_main
 from functions.Notify import main as notify_main
 
 from shared.models import RawMail, EnrichedInvoice, NotificationMessage
-from tests.integration.utils.assertions import (
+from .utils.assertions import (
     assert_raw_mail_valid,
     assert_enriched_invoice_valid,
     assert_notification_message_valid,
