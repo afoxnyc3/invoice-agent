@@ -68,10 +68,10 @@ jobs:
       - name: Run unit tests with coverage
         working-directory: .
         run: |
-          echo "Running pytest with coverage (including integration tests)..."
+          echo "Running pytest with coverage..."
           # pytest.ini already configures PYTHONPATH, coverage targets, and 60% threshold
-          # Azurite is running for integration tests
-          pytest
+          # Exclude integration tests that require real Azure credentials
+          pytest -m "not integration"
 
       - name: Generate coverage report
         if: always()
