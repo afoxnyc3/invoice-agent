@@ -55,7 +55,7 @@ resource smartDetectionRules 'Microsoft.Insights/components/ProactiveDetectionCo
   parent: appInsights
   name: 'degradationindependencyduration'
   properties: {
-    RuleDefinitions: {
+    ruleDefinitions: {
       Name: 'degradationindependencyduration'
       DisplayName: 'Degradation in dependency duration'
       Description: 'Smart Detection rules notify you of performance anomaly issues.'
@@ -65,7 +65,8 @@ resource smartDetectionRules 'Microsoft.Insights/components/ProactiveDetectionCo
       IsInPreview: false
       SupportsEmailNotifications: true
     }
-    Enabled: false // Disable for MVP to reduce noise
+    enabled: false // Disable for MVP to reduce noise
+    customEmails: [] // Required property
   }
 }
 
