@@ -141,43 +141,11 @@ jobs:
           # Create archive for deployment
           zip -r ../function-app.zip .
 
-      - name: Prepare artifact directory
-        run: |
-          # Create the subdirectory structure that deploy jobs expect
-          mkdir -p function-app-package
-          mv function-app.zip function-app-package/function-app.zip
-          echo "Artifact structure:"
-          ls -lah function-app-package/
-
-      - name: Validate artifact
-        run: |
-          # Ensure the ZIP file exists and is not empty
-          ARTIFACT_PATH="function-app-package/function-app.zip"
-          if [ ! -f "$ARTIFACT_PATH" ]; then
-            echo "ERROR: Artifact file not found at $ARTIFACT_PATH"
-            exit 1
-          fi
-
-          SIZE=$(stat -f%z "$ARTIFACT_PATH" 2>/dev/null || stat -c%s "$ARTIFACT_PATH" 2>/dev/null)
-          echo "Artifact size: $SIZE bytes"
-
-          if [ "$SIZE" -lt 1000000 ]; then
-            echo "WARNING: Artifact seems small (< 1MB). Verify package is complete."
-          fi
-
-          # Verify ZIP is valid
-          unzip -t "$ARTIFACT_PATH" > /dev/null 2>&1
-          if [ $? -ne 0 ]; then
-            echo "ERROR: Artifact ZIP file is corrupted or invalid"
-            exit 1
-          fi
-          echo "✅ Artifact validation passed"
-
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: function-app-package
-          path: function-app-package
+          path: function-app.zip
           retention-days: 30
 
   # Job 3: Deploy to staging slot
@@ -199,6 +167,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: function-app-package
+          path: .
 
       - name: Azure Login
         uses: azure/login@v2
@@ -228,7 +197,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.func-name.outputs.function_app_name }}
-          package: function-app-package/function-app.zip
+          package: function-app.zip
           slot-name: staging
 
       - name: Wait for staging slot to be ready
@@ -421,6 +390,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: function-app-package
+          path: .
         continue-on-error: true
 
       - name: Azure Login
@@ -448,11 +418,11 @@ jobs:
           echo "Function App: ${FUNC_NAME}"
 
       - name: Deploy functions to dev
-        if: hashFiles('function-app-package/function-app.zip') != ''
+        if: hashFiles('function-app.zip') != ''
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.func-name.outputs.function_app_name }}
-          package: function-app-package/function-app.zip
+          package: function-app.zip
 
       - name: Azure Logout
         if: always()
