@@ -104,38 +104,62 @@ graph LR
     E --> F[💬 Teams]
 ```
 
-## 🛠️ Key Features
+## 🛠️ Current Features (MVP - Deployed Nov 14, 2024)
 
-### Current (MVP) - Production Ready
-- ✅ Automated email processing (5min polling)
-- ✅ Vendor lookup and enrichment (Table Storage)
-- ✅ GL code application (4-field enrichment)
-- ✅ AP email routing (Graph API integration)
-- ✅ Teams notifications (webhook cards)
-- ✅ Transaction audit log (ULID tracking)
-- ✅ Unknown vendor handling (registration flow)
-- ✅ HTTP vendor management endpoint
-- ✅ Comprehensive test suite (98 tests, 96% coverage)
+### Deployed to Production ✅
+- ✅ Full CI/CD pipeline with staging/production slot pattern
+- ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
+- ✅ 5 Azure Functions implemented and tested (98 tests, 96% coverage)
+- ✅ Comprehensive monitoring and logging
+- ✅ Managed Identity-based authentication (no secrets in code)
 
-### Planned (Phase 2+)
-- 🔄 PDF text extraction
-- 🔄 AI-powered vendor matching
-- 🔄 Duplicate detection
-- 🔄 NetSuite direct integration
-- 🔄 Multi-mailbox support
-- 🔄 Analytics dashboard
+### Ready for Activation (Functions Deployed, Awaiting Vendor Data)
+- 🟡 **Automated email processing** (5min polling) - Function deployed, requires VendorMaster data
+- 🟡 **Vendor lookup and enrichment** - Function deployed, VendorMaster table empty
+- 🟡 **GL code application** - Ready when vendor data available
+- 🟡 **AP email routing** - Ready when vendor data available
+- 🟡 **Teams notifications** - Configured and tested
+- 🟡 **Transaction audit log** - ULID-based tracking ready
+- 🟡 **Unknown vendor handling** - Ready
+- 🟡 **HTTP vendor management endpoint** - Deployed and functional
 
-## 📊 Performance Metrics & Quality
+**Next Steps to Activate:**
+1. Seed VendorMaster table: `python infrastructure/scripts/seed_vendors.py --env prod`
+2. Send test invoice email
+3. Monitor end-to-end processing
+4. Measure actual performance metrics
+
+## 📊 Quality Metrics (Current Status)
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Processing Time | <60s | Ready for testing |
-| Auto-routing Rate | >80% | Ready for testing |
-| Unknown Vendors | <10% | Ready for testing |
-| Error Rate | <1% | Ready for testing |
 | Test Coverage | 60%+ | **96%** ✅ |
 | Tests Passing | 100% | **98/98** ✅ |
 | CI/CD Pipeline | Stable | **Passing** ✅ |
+| Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
+| Infrastructure | Deployed | **Production Ready** ✅ |
+| Deployment Pattern | Blue/Green | **Staging Slot** ✅ |
+
+**Performance Metrics (Not Yet Tested in Production):**
+| Metric | Target | Status |
+|--------|--------|--------|
+| Processing Time | <60s | *Pending vendor data* |
+| Auto-routing Rate | >80% | *Pending vendor data* |
+| Unknown Vendors | <10% | *Pending vendor data* |
+| Error Rate | <1% | *Pending vendor data* |
+
+## 📋 Planned Features (Phase 2+)
+
+**Not Yet Built** - Future enhancements planned for upcoming phases:
+
+- 🔜 **PDF Text Extraction** - OCR/Form Recognizer integration for invoice documents
+- 🔜 **AI Vendor Matching** - Fuzzy matching for unknown vendors using Azure OpenAI
+- 🔜 **Duplicate Detection** - Prevent duplicate invoice processing
+- 🔜 **NetSuite Direct Integration** - Skip email approval workflow, post directly to NetSuite API
+- 🔜 **Multi-Mailbox Support** - Process from multiple shared mailboxes
+- 🔜 **Analytics Dashboard** - Power BI reporting on invoice processing metrics
+
+See [ROADMAP.md](docs/ROADMAP.md) for detailed phase planning.
 
 ## 🔧 Development Commands
 
@@ -216,4 +240,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready | **Version:** 1.0.0 | **Last Updated:** 2024-11-09
+**Status:** 🟢 Production Deployed (Functions Active, Awaiting Vendor Data) | **Version:** 1.0.0-MVP | **Last Updated:** 2024-11-14

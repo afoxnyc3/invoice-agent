@@ -213,6 +213,80 @@ az keyvault secret set --vault-name $KV_NAME --name "ApEmailAddress" --value "$A
 
 **Note:** The Bicep template automatically configures Function App settings to reference Key Vault.
 
+### Step 2.5: Configure Staging Slot App Settings (CRITICAL)
+
+**⚠️ IMPORTANT**: The staging slot is created by Bicep but **does NOT automatically inherit app settings from production**. This must be done manually or deployments to staging will fail with error: `"undefined.blob.core.windows.net"`.
+
+**Configure staging slot settings:**
+
+```bash
+# Get Function App name
+FUNC_NAME=$(az functionapp list \
+  --resource-group rg-invoice-agent-prod \
+  --query "[?contains(name, 'invoice-agent')].name" -o tsv)
+
+# Get production app settings
+az functionapp config appsettings list \
+  --name $FUNC_NAME \
+  --resource-group rg-invoice-agent-prod \
+  --output json > /tmp/prod-settings.json
+
+# Apply settings to staging slot
+az functionapp config appsettings set \
+  --name $FUNC_NAME \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging \
+  --settings @/tmp/prod-settings.json
+
+# Verify staging slot has settings (should show storage account name)
+az functionapp config appsettings list \
+  --name $FUNC_NAME \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging \
+  --query "[?name=='AzureWebJobsStorage__accountName'].value" -o tsv
+# Expected output: stinvoiceagentprod (NOT empty or "undefined")
+```
+
+**Restart staging slot to load settings:**
+
+```bash
+# Restart the staging slot
+az functionapp stop \
+  --name $FUNC_NAME \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging
+
+# Wait 10 seconds
+sleep 10
+
+# Start the slot
+az functionapp start \
+  --name $FUNC_NAME \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging
+
+# Wait for startup
+echo "Waiting 30 seconds for slot startup..."
+sleep 30
+```
+
+**Verify staging slot is healthy:**
+
+```bash
+# Check slot health
+STAGING_URL="https://${FUNC_NAME}-staging.azurewebsites.net"
+HEALTH=$(curl -s "${STAGING_URL}/admin/host/status" | grep -o '"state":"[^"]*"')
+echo "Staging slot status: $HEALTH"
+# Expected: "state":"Running"
+```
+
+**Troubleshooting:**
+- Error: `"undefined.blob.core.windows.net"` → App settings not synced to staging slot (re-run Step 2.5)
+- 500 errors after deployment → Restart staging slot again, settings may need more time to load
+- Key Vault access denied → Verify staging slot managed identity has Key Vault access policy
+
+---
+
 ### Step 3: Seed Vendor Data
 
 Initialize the VendorMaster table:

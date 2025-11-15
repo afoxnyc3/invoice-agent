@@ -620,27 +620,45 @@ The project includes AI automation slash commands in `.claude/commands/`:
 
 ## Current Implementation Status
 
-**Phase 1 (MVP) - COMPLETE:**
+**Phase 1 (MVP) - DEPLOYED TO PRODUCTION (Nov 14, 2024):**
 - ✅ Project structure and documentation
-- ✅ Infrastructure templates (Bicep)
+- ✅ Infrastructure templates (Bicep) - Deployed to Azure
 - ✅ Data models and schemas (Pydantic with full validation)
-- ✅ Core functions (100% complete - all 5 functions implemented)
-  - MailIngest: Email polling with blob storage
-  - ExtractEnrich: Vendor lookup and enrichment
-  - PostToAP: Email composition and sending
-  - Notify: Teams webhook notifications
-  - AddVendor: HTTP endpoint for vendor management
+- ✅ Core functions - All 5 deployed and active in production
+  - MailIngest: Email polling with blob storage (timer trigger)
+  - ExtractEnrich: Vendor lookup and enrichment (queue trigger)
+  - PostToAP: Email composition and sending (queue trigger)
+  - Notify: Teams webhook notifications (queue trigger)
+  - AddVendor: HTTP endpoint for vendor management (HTTP trigger)
 - ✅ Integration with Graph API (full MSAL auth, retry, throttling)
 - ✅ Shared utilities (ULID, logger, retry logic, email parser)
-- ✅ CI/CD Pipeline (98 tests passing, 96% coverage)
-- ✅ Vendor seeding script (implemented at infrastructure/scripts/seed_vendors.py, execution pending)
+- ✅ CI/CD Pipeline (98 tests passing, 96% coverage, slot swap pattern)
+- ✅ Staging slot configuration (manual setup after infrastructure deployment)
+- 🟡 Vendor seeding script (implemented at infrastructure/scripts/seed_vendors.py, **execution pending**)
 
-**Phase 2 (Planned):**
+### Deployment Lessons Learned (Critical for Next Iteration)
+1. **Staging Slot Configuration**: Must manually sync app settings from production to staging after Bicep deployment. See DEPLOYMENT_GUIDE.md Step 2.5.
+2. **Artifact Path Handling**: GitHub Actions download-artifact@v4 creates directory automatically. Upload ZIP directly, not in subdirectory.
+3. **Function App Restart**: App settings changes require Function App restart to take effect. Not automatic.
+4. **CI/CD Workflow**: Test + Build must pass BEFORE staging deployment. Staging deployment blocks production approval.
+
+### Activation Blockers (Prevents Live Processing)
+- **VendorMaster table is empty**: Must run seed script before system can match vendors
+- **No production testing**: Waiting for vendor data to perform end-to-end test
+
+### Recommended Next Actions
+1. Execute: `python infrastructure/scripts/seed_vendors.py --env prod`
+2. Send test invoice email to configured mailbox
+3. Monitor Application Insights for execution
+4. Verify Teams notifications received
+5. Measure actual end-to-end performance
+
+**Phase 2 (Planned - Not Started):**
 - PDF extraction (OCR/text extraction)
 - AI vendor matching (fuzzy matching for unknowns)
 - Duplicate detection
 
-**Phase 3 (Future):**
+**Phase 3 (Future - Not Planned):**
 - NetSuite integration (direct API posting)
 - Power BI analytics dashboard
 - Multi-mailbox support

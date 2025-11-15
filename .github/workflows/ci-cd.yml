@@ -145,6 +145,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: function-app-package
+          # IMPORTANT: Upload ZIP directly (not in subdirectory)
+          # download-artifact@v4 creates a directory named 'function-app-package/' automatically
+          # Pattern: If we upload 'dir/file.zip', download extracts to 'function-app-package/dir/file.zip' (WRONG)
+          # Pattern: If we upload 'file.zip', download extracts to 'function-app-package/file.zip' (CORRECT)
           path: function-app.zip
           retention-days: 30
 
@@ -167,6 +171,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: function-app-package
+          # Download to current directory: Results in ./function-app-package/function-app.zip
+          # (download-artifact creates subdirectory automatically, so we use . to extract at root level)
           path: .
 
       - name: Azure Login
