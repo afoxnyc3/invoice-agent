@@ -14,120 +14,14 @@ Issue Created → Feature Branch → Parallel Agents → Code Review (PR) → Me
 
 ---
 
-## Sub-Agent Strategy
+## Feature Branch & PR Workflow
 
-### When to Use Sub-Agents (Parallel Work)
+### When to Use Feature Branches
+- **Always** - Every piece of work (feature, bugfix, docs, refactor)
+- Create from `main`, merge back to `main` after PR approval
+- Keep branches focused (one issue per branch)
 
-**Use sub-agents when:**
-- You have 2+ independent tasks that don't depend on each other
-- Each task is substantial (>1 hour of work)
-- Tasks can be completed in parallel without blocking
-- Clear acceptance criteria can be defined upfront
-
-**Example:** Issues #10 (CI/CD Pipeline) and #11 (Local Dev Setup) are independent → Launch 2 agents in parallel
-
-**Don't use sub-agents when:**
-- Tasks are sequential or interdependent
-- Tasks are quick (<30 minutes)
-- Requires tight coordination or real-time discussion
-
-### Sub-Agent Execution Pattern
-
-#### Step 1: Plan & Create Feature Branches
-```bash
-# Create isolated feature branches FIRST
-git checkout -b feature/issue-XX-descriptive-name
-git checkout main
-git checkout -b feature/issue-YY-descriptive-name
-git checkout main
-```
-
-#### Step 2: Launch Agents in Parallel
-Use the Task tool with `subagent_type=general-purpose` for each independent task:
-
-```
-Task 1:
-  - Description: "Issue #XX: Clear one-line summary"
-  - Prompt: Detailed specification with acceptance criteria, constraints, file locations, git branch name
-  - Model: Choose Haiku/Sonnet/Opus based on complexity
-
-Task 2:
-  - Description: "Issue #YY: Clear one-line summary"
-  - Prompt: Detailed specification with acceptance criteria, constraints, file locations, git branch name
-  - Model: Choose Haiku/Sonnet/Opus based on complexity
-```
-
-**Both agents execute in parallel** - they don't block each other.
-
-#### Step 3: Verify & Create PRs
-After agents complete:
-1. Verify each feature branch independently
-2. Check syntax, logic, and quality
-3. Push branches to remote
-4. Create PRs for code review
-5. **Do NOT merge yet** - wait for review
-
-#### Step 4: Code Review & Merge
-1. Review PRs on GitHub
-2. Request changes if needed
-3. Agents can update branches
-4. Merge when satisfied
-
----
-
-## Model Selection Guide
-
-Choose the right model based on task complexity:
-
-### 🟢 HAIKU (Simple Tasks - 30 min - 2 hours)
-**Best for:** Configuration, scripts, simple automation, documentation
-
-**Examples:**
-- Adding a configuration file
-- Creating shell scripts
-- Writing documentation
-- Setting up tooling (Makefile, docker-compose.yml)
-- Vendor data operations
-- Simple utility functions
-
-**Cost:** Cheapest, fastest
-
-### 🟡 SONNET (Medium-Complex - 2 to 6 hours)
-**Best for:** CI/CD pipelines, architectural decisions, complex workflows, API integration
-
-**Examples:**
-- GitHub Actions CI/CD workflows (with conditional logic)
-- Deployment pipelines
-- Complex query logic
-- API client implementations
-- System design decisions
-- Integration testing frameworks
-
-**Cost:** Moderate, balanced speed/quality
-
-### 🔴 OPUS (Very Complex - 6+ hours)
-**Best for:** System architecture, complex optimization, edge case handling, novel problems
-
-**Examples:**
-- Complete system redesign
-- Complex performance optimization
-- Handling intricate error scenarios
-- Novel algorithmic problems
-- Full project rewrites
-
-**Cost:** Most expensive, highest quality
-
-**Recommendation for this project:**
-- Infrastructure/tooling → HAIKU
-- Pipelines/workflows → SONNET
-- Complex features → SONNET
-- Novel systems → OPUS
-
----
-
-## Feature Branch Convention
-
-### Naming Pattern
+### Branch Naming Pattern
 ```
 feature/issue-XX-descriptive-name
 bugfix/issue-XX-descriptive-name
@@ -135,20 +29,10 @@ refactor/issue-XX-descriptive-name
 docs/issue-XX-descriptive-name
 ```
 
-### Examples
-```
-feature/issue-10-deployment-pipeline
-feature/issue-11-local-dev-setup
-bugfix/issue-5-vendor-lookup-edge-case
-refactor/issue-8-extract-enrich-helper
-docs/issue-15-complete-documentation
-```
-
-### Rules
-- Always create from `main` (not other branches)
-- One issue per branch
-- Use lowercase, hyphens
-- Include issue number for traceability
+### Model Selection for Task Complexity
+- **HAIKU** (30min-2hr): Config, scripts, docs, tooling
+- **SONNET** (2-6hr): Pipelines, workflows, API integration, features
+- **OPUS** (6+hr): System redesign, optimization, novel problems
 
 ---
 
@@ -281,135 +165,61 @@ Closes #XX
 
 ---
 
-## Structuring Agent Prompts for Parallel Execution
+## Deployment Validation Checklist
 
-### Essential Information to Include
+**Before pushing to main:**
+- [ ] All tests passing locally (`pytest`)
+- [ ] Coverage ≥60% (`pytest --cov`)
+- [ ] Code formatted (`black --check`)
+- [ ] Linting passes (`flake8`)
+- [ ] Type checking passes (`mypy`)
+- [ ] Security scan passes (`bandit`)
+- [ ] No hardcoded secrets or credentials
 
-Every agent prompt should include:
-
-```
-## Context
-- Project name and purpose
-- Current working directory
-- Git branch the agent should work on
-- Status of related components
-
-## Acceptance Criteria
-Explicit list of MUST-HAVE requirements (checkboxes)
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
-
-## Deliverables
-Exact files to create/modify:
-- New file: path/to/file (line count, purpose)
-- Modified file: path/to/file (what changes)
-
-## Constraints & Patterns
-- Import structure required
-- Naming conventions
-- Existing patterns to follow
-- Performance targets
-- Error handling requirements
-
-## Out of Scope (Explicit)
-- ❌ Don't change X
-- ❌ Don't merge to main
-- ❌ Don't modify Y without approval
-
-## After Completion
-- Make commits on branch (don't push)
-- Provide summary of what was implemented
-- Indicate any blockers or decisions made
-```
-
-### Example Agent Prompt (Good)
-```
-You are working on Issue #10: Create Deployment Pipeline.
-
-## Task Overview
-Create a complete CI/CD pipeline using GitHub Actions that automates
-testing and deployment to Azure with staging slot pattern.
-
-## Current State
-- Project: /Users/alex/dev/invoice-agent
-- Git branch: feature/issue-10-deployment-pipeline (already created)
-- Tech Stack: Python 3.11, Azure Functions, GitHub Actions
-
-## Acceptance Criteria
-- [ ] Create .github/workflows/ci-cd.yml
-- [ ] Test job: Black, Flake8, Pytest (60% threshold)
-- [ ] Build job: Azure Functions packaging
-- [ ] Deploy staging: Bicep + smoke tests
-- [ ] Deploy production: Manual approval + slot swap
-- [ ] Document GitHub secrets required
-- [ ] Create rollback procedure
-
-## Deliverables
-1. .github/workflows/ci-cd.yml (400 lines) - Main pipeline
-2. docs/DEPLOYMENT_GUIDE.md (400+ lines) - Secret setup
-3. docs/ROLLBACK_PROCEDURE.md (400+ lines) - Recovery steps
-
-## Constraints
-- Use existing Bicep templates (no modifications)
-- Leverage GitHub environment protection rules
-- No hardcoded secrets (use ${{ secrets.NAME }})
-- Follow Azure Functions best practices
-- Include detailed comments in YAML
-
-## After Implementation
-1. Make commits on feature/issue-10-deployment-pipeline
-2. Do NOT push or create PR (main agent will do that)
-3. Provide summary of what was implemented
-4. Flag any blockers or questions
-
-Start working now.
-```
+**For infrastructure changes:**
+- [ ] Bicep templates validated (`az bicep build`)
+- [ ] Parameter files match environments (dev/prod)
+- [ ] Service principal permissions documented
+- [ ] Key Vault secrets configured
+- [ ] Staging slot app settings synced
+- [ ] Rollback procedure tested
 
 ---
 
-## Parallel Execution Workflow (Complete Example)
+## Staging Slot Deployment Pattern
 
-### Scenario: Two independent issues ready to implement
+Azure Function Apps use a **slot swap pattern** for zero-downtime deployments:
 
-```bash
-# Step 1: Create feature branches
-git checkout -b feature/issue-10-deployment-pipeline
-git checkout main
-git checkout -b feature/issue-11-local-dev-setup
-git checkout main
-
-# Step 2: Launch agents in parallel (in ONE message, using Task tool twice)
-# Agent 1 works on Issue #10 (complexity: SONNET, 4 hours)
-# Agent 2 works on Issue #11 (complexity: HAIKU, 2 hours)
-# Both execute simultaneously
+```
+Code → Test → Build → Deploy to Staging → Smoke Tests → Swap to Production
 ```
 
-Agents complete independently → Back to main agent:
+**Critical: Staging Slot App Settings**
+
+Staging slot does NOT auto-sync app settings from production. After Bicep deployment:
 
 ```bash
-# Step 3: Verify and push
-git checkout feature/issue-10-deployment-pipeline
-# Verify syntax, logic, quality
-git push -u origin feature/issue-10-deployment-pipeline
+# Get production settings
+az functionapp config appsettings list \
+  --name func-invoice-agent-prod \
+  --resource-group rg-invoice-agent-prod \
+  --output json > /tmp/prod-settings.json
 
-git checkout feature/issue-11-local-dev-setup
-# Verify syntax, logic, quality
-git push -u origin feature/issue-11-local-dev-setup
+# Apply to staging slot
+az functionapp config appsettings set \
+  --name func-invoice-agent-prod \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging \
+  --settings @/tmp/prod-settings.json
 
-# Step 4: Create PRs for both (ready for review)
-gh pr create --base main --head feature/issue-10-deployment-pipeline ...
-gh pr create --base main --head feature/issue-11-local-dev-setup ...
+# Restart staging slot
+az functionapp restart \
+  --name func-invoice-agent-prod \
+  --resource-group rg-invoice-agent-prod \
+  --slot staging
 ```
 
-User reviews PRs on GitHub → User merges when ready:
-
-```bash
-# Step 5: After user approves and merges
-git checkout main
-git pull origin main
-# Both features now in main
-```
+**Why?** Bicep copies initial config, but changes to production settings don't replicate to staging. This must be done manually before each deployment cycle or settings will show `undefined` errors.
 
 ---
 
