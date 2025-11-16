@@ -30,7 +30,9 @@ class RawMail(BaseModel):
     subject: str = Field(..., description="Email subject line")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     received_at: str = Field(..., description="ISO 8601 timestamp when email received")
-    vendor_name: Optional[str] = Field(None, description="Vendor name extracted from invoice (optional, for future PDF automation)")
+    vendor_name: Optional[str] = Field(
+        None, description="Vendor name extracted from invoice (optional, for future PDF automation)"
+    )
 
     @validator("blob_url")
     def validate_url(cls, v):
