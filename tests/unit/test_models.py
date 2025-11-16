@@ -238,31 +238,33 @@ class TestVendorMasterModel:
     def test_create_valid_vendor(self):
         """Test creating a valid VendorMaster entity."""
         vendor = VendorMaster(
-            RowKey="adobe_com",
-            VendorName="Adobe Inc",
+            RowKey="adobe",
+            VendorName="Adobe",
             ExpenseDept="IT",
-            AllocationScheduleNumber="MONTHLY",
+            AllocationSchedule="1",
             GLCode="6100",
-            BillingParty="Company HQ",
+            ProductCategory="Direct",
+            VenueRequired=False,
             UpdatedAt="2024-11-09T12:00:00Z",
         )
 
         assert vendor.PartitionKey == "Vendor"  # Default value
-        assert vendor.RowKey == "adobe_com"
-        assert vendor.VendorName == "Adobe Inc"
+        assert vendor.RowKey == "adobe"
+        assert vendor.VendorName == "Adobe"
         assert vendor.GLCode == "6100"
+        assert vendor.ProductCategory == "Direct"
         assert vendor.Active is True  # Default value
 
     def test_vendor_invalid_gl_code(self):
         """Test VendorMaster validation rejects invalid GL code."""
         with pytest.raises(ValidationError) as exc_info:
             VendorMaster(
-                RowKey="adobe_com",
-                VendorName="Adobe Inc",
+                RowKey="adobe",
+                VendorName="Adobe",
                 ExpenseDept="IT",
-                AllocationScheduleNumber="MONTHLY",
+                AllocationSchedule="1",
                 GLCode="ABC1",  # Not all digits
-                BillingParty="Company HQ",
+                ProductCategory="Direct",
                 UpdatedAt="2024-11-09T12:00:00Z",
             )
         assert "GLCode must be exactly 4 digits" in str(exc_info.value)
@@ -271,12 +273,12 @@ class TestVendorMasterModel:
         """Test VendorMaster validation rejects invalid RowKey."""
         with pytest.raises(ValidationError) as exc_info:
             VendorMaster(
-                RowKey="Adobe_Com",  # Not lowercase
-                VendorName="Adobe Inc",
+                RowKey="Adobe",  # Not lowercase
+                VendorName="Adobe",
                 ExpenseDept="IT",
-                AllocationScheduleNumber="MONTHLY",
+                AllocationSchedule="1",
                 GLCode="6100",
-                BillingParty="Company HQ",
+                ProductCategory="Direct",
                 UpdatedAt="2024-11-09T12:00:00Z",
             )
         assert "RowKey must be lowercase" in str(exc_info.value)
