@@ -20,26 +20,34 @@ def get_table_client(connection_string: str, table_name: str):
 
 def create_vendor_entity(vendor_data: dict) -> TableEntity:
     """Create a vendor entity for Table Storage."""
-    # Clean vendor name for row key (lowercase, replace spaces/dots)
-    row_key = vendor_data["email_domain"].lower().replace(".", "_").replace(" ", "_")
+    # Clean vendor name for row key (lowercase, replace spaces with underscores)
+    row_key = vendor_data["vendor_name"].lower().replace(" ", "_").replace("-", "_")
 
     return {
         "PartitionKey": "Vendor",
         "RowKey": row_key,
         "VendorName": vendor_data["vendor_name"],
+        "ProductCategory": vendor_data.get("product_category", "Direct"),
         "ExpenseDept": vendor_data["expense_dept"],
-        "AllocationScheduleNumber": vendor_data["allocation_schedule"],
+        "AllocationSchedule": vendor_data["allocation_schedule"],
         "GLCode": vendor_data["gl_code"],
-        "BillingParty": vendor_data["billing_party"],
+        "VenueRequired": vendor_data.get("venue_required", False),
         "Active": True,
         "UpdatedAt": datetime.utcnow().isoformat(),
-        "Notes": vendor_data.get("notes", ""),
     }
 
 
 def seed_vendors_from_csv(csv_path: str, connection_string: str):
     """Load vendors from CSV file into Table Storage."""
-    table_client = get_table_client(connection_string, "VendorMaster")
+    service_client = TableServiceClient.from_connection_string(connection_string)
+
+    # Create table if it doesn't exist
+    try:
+        table_client = service_client.create_table_if_not_exists("VendorMaster")
+        print("✅ VendorMaster table created or already exists")
+    except Exception as e:
+        print(f"⚠️ Table creation: {e}")
+        table_client = service_client.get_table_client("VendorMaster")
 
     with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
@@ -66,94 +74,76 @@ def create_default_vendors():
     """Create default vendor data if CSV doesn't exist."""
     default_vendors = [
         {
-            "vendor_name": "Adobe Inc",
-            "email_domain": "adobe.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6100",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Creative Cloud subscriptions",
-        },
-        {
-            "vendor_name": "Microsoft Corporation",
-            "email_domain": "microsoft.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "ANNUAL",
-            "gl_code": "6100",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Office 365, Azure services",
-        },
-        {
             "vendor_name": "Amazon Web Services",
-            "email_domain": "aws.amazon.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6110",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Cloud infrastructure",
+            "expense_dept": "Cloud",
+            "allocation_schedule": "14",
+            "gl_code": "7110",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "Salesforce",
-            "email_domain": "salesforce.com",
-            "expense_dept": "SALES",
-            "allocation_schedule": "ANNUAL",
-            "gl_code": "6200",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "CRM platform",
+            "vendor_name": "Amazon Business",
+            "expense_dept": "Hardware - Operations",
+            "allocation_schedule": "NA",
+            "gl_code": "6215",
+            "product_category": "Direct",
+            "venue_required": True,
         },
         {
-            "vendor_name": "Zoom Video Communications",
-            "email_domain": "zoom.us",
-            "expense_dept": "IT",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6120",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Video conferencing",
+            "vendor_name": "Microsoft",
+            "expense_dept": "M365 Suite",
+            "allocation_schedule": "3",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "Slack Technologies",
-            "email_domain": "slack.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6120",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Team collaboration",
+            "vendor_name": "FRSecure",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "Google Workspace",
-            "email_domain": "google.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6100",
-            "billing_party": "Chelsea Piers CT",
-            "notes": "Email and productivity suite",
+            "vendor_name": "Mimecast",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "Dropbox",
-            "email_domain": "dropbox.com",
-            "expense_dept": "IT",
-            "allocation_schedule": "ANNUAL",
-            "gl_code": "6130",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "File storage and sharing",
+            "vendor_name": "1Password",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "HubSpot",
-            "email_domain": "hubspot.com",
-            "expense_dept": "MARKETING",
-            "allocation_schedule": "MONTHLY",
-            "gl_code": "6300",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Marketing automation",
+            "vendor_name": "EasyDmarc",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
         },
         {
-            "vendor_name": "QuickBooks",
-            "email_domain": "intuit.com",
-            "expense_dept": "FINANCE",
-            "allocation_schedule": "ANNUAL",
-            "gl_code": "6400",
-            "billing_party": "Chelsea Piers NY",
-            "notes": "Accounting software",
+            "vendor_name": "Autocad",
+            "expense_dept": "Software - Facilities",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "Dell",
+            "expense_dept": "Hardware - Operations",
+            "allocation_schedule": "NA",
+            "gl_code": "6215",
+            "product_category": "Direct",
+            "venue_required": True,
         },
     ]
 
@@ -164,12 +154,11 @@ def create_default_vendors():
     with open(csv_path, "w", newline="") as f:
         fieldnames = [
             "vendor_name",
-            "email_domain",
             "expense_dept",
             "allocation_schedule",
             "gl_code",
-            "billing_party",
-            "notes",
+            "product_category",
+            "venue_required",
         ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -177,6 +166,38 @@ def create_default_vendors():
 
     print(f"Created default vendor CSV at {csv_path}")
     return csv_path
+
+
+def seed_vendors_directly(vendors_list: list, connection_string: str):
+    """Seed vendors directly without CSV file."""
+    service_client = TableServiceClient.from_connection_string(connection_string)
+
+    # Create table if it doesn't exist
+    try:
+        table_client = service_client.create_table_if_not_exists("VendorMaster")
+        print("✅ VendorMaster table created or already exists")
+    except Exception as e:
+        print(f"⚠️ Table creation: {e}")
+        table_client = service_client.get_table_client("VendorMaster")
+
+    vendors_added = 0
+    vendors_skipped = 0
+
+    for vendor_data in vendors_list:
+        vendor_entity = create_vendor_entity(vendor_data)
+
+        try:
+            table_client.create_entity(vendor_entity)
+            vendors_added += 1
+            print(f"✅ Added vendor: {vendor_data['vendor_name']}")
+        except ResourceExistsError:
+            vendors_skipped += 1
+            print(f"⚠️ Vendor already exists: {vendor_data['vendor_name']}")
+        except Exception as e:
+            print(f"❌ Error adding vendor {vendor_data['vendor_name']}: {e}")
+
+    print(f"\nSummary: {vendors_added} vendors added, {vendors_skipped} skipped")
+    return table_client
 
 
 def main():
@@ -192,25 +213,98 @@ def main():
             print("Or set AZURE_STORAGE_CONNECTION_STRING environment variable")
             sys.exit(1)
 
-    # Check for CSV file
-    csv_path = "data/vendors.csv"
-    if not os.path.exists(csv_path):
-        print("CSV file not found, creating default vendors...")
-        csv_path = create_default_vendors()
+    # MVP vendors (9 vendors)
+    mvp_vendors = [
+        {
+            "vendor_name": "Amazon Web Services",
+            "expense_dept": "Cloud",
+            "allocation_schedule": "14",
+            "gl_code": "7110",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "Amazon Business",
+            "expense_dept": "Hardware - Operations",
+            "allocation_schedule": "NA",
+            "gl_code": "6215",
+            "product_category": "Direct",
+            "venue_required": True,
+        },
+        {
+            "vendor_name": "Microsoft",
+            "expense_dept": "M365 Suite",
+            "allocation_schedule": "3",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "FRSecure",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "Mimecast",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "1Password",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "EasyDmarc",
+            "expense_dept": "CyberSecurity",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "Autocad",
+            "expense_dept": "Software - Facilities",
+            "allocation_schedule": "1",
+            "gl_code": "7112",
+            "product_category": "Direct",
+            "venue_required": False,
+        },
+        {
+            "vendor_name": "Dell",
+            "expense_dept": "Hardware - Operations",
+            "allocation_schedule": "NA",
+            "gl_code": "6215",
+            "product_category": "Direct",
+            "venue_required": True,
+        },
+    ]
 
     # Seed vendors
-    print(f"Seeding vendors from {csv_path}...")
-    seed_vendors_from_csv(csv_path, connection_string)
+    print(f"Seeding {len(mvp_vendors)} MVP vendors...")
+    table_client = seed_vendors_directly(mvp_vendors, connection_string)
 
     # Verify seeding
-    table_client = get_table_client(connection_string, "VendorMaster")
-    vendors = list(table_client.query_entities("PartitionKey eq 'Vendor'"))
-    print(f"\n✅ Total vendors in table: {len(vendors)}")
+    try:
+        vendors = list(table_client.query_entities("PartitionKey eq 'Vendor' and Active eq true"))
+        print(f"\n✅ Total vendors in table: {len(vendors)}")
 
-    # Display sample vendors
-    print("\nSample vendors:")
-    for vendor in vendors[:5]:
-        print(f"  - {vendor['VendorName']} ({vendor['RowKey']}) - GL: {vendor['GLCode']}")
+        # Display all vendors
+        print("\nAll seeded vendors:")
+        for vendor in vendors:
+            venue_str = " (Venue Required)" if vendor.get("VenueRequired") else ""
+            print(f"  - {vendor['VendorName']:<30} | Dept: {vendor['ExpenseDept']:<25} | GL: {vendor['GLCode']} | Sched: {vendor['AllocationSchedule']:<2}{venue_str}")
+    except Exception as e:
+        print(f"⚠️ Error verifying vendors: {e}")
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ class RawMail(BaseModel):
     subject: str = Field(..., description="Email subject line")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     received_at: str = Field(..., description="ISO 8601 timestamp when email received")
+    vendor_name: Optional[str] = Field(None, description="Vendor name extracted from invoice (optional, for future PDF automation)")
 
     @validator("blob_url")
     def validate_url(cls, v):
@@ -127,16 +128,17 @@ class VendorMaster(BaseModel):
 
     Storage Pattern:
     - PartitionKey: Always "Vendor"
-    - RowKey: vendor_domain (e.g., "adobe_com")
+    - RowKey: normalized_vendor_name (e.g., "amazon_web_services", "microsoft")
     """
 
     PartitionKey: str = Field(default="Vendor", description="Always 'Vendor' for all records")
-    RowKey: str = Field(..., description="Vendor domain normalized (e.g., 'adobe_com')")
-    VendorName: str = Field(..., description="Vendor display name")
+    RowKey: str = Field(..., description="Vendor name normalized (e.g., 'amazon_web_services')")
+    VendorName: str = Field(..., description="Vendor display name for matching in invoices")
+    ProductCategory: str = Field(..., description="'Direct' for direct vendors, 'Reseller' for VARs")
     ExpenseDept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
-    AllocationScheduleNumber: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
+    AllocationSchedule: str = Field(..., description="Allocation schedule code (numeric: 1, 3, 14, etc)")
     GLCode: str = Field(..., description="General ledger code (4 digits)")
-    BillingParty: str = Field(..., description="Entity responsible for payment")
+    VenueRequired: bool = Field(default=False, description="True if venue extraction required")
     Active: bool = Field(default=True, description="Soft delete flag")
     UpdatedAt: str = Field(..., description="ISO 8601 timestamp of last update")
 
@@ -147,9 +149,16 @@ class VendorMaster(BaseModel):
             raise ValueError("GLCode must be exactly 4 digits")
         return v
 
+    @validator("ProductCategory")
+    def validate_product_category(cls, v):
+        """Ensure ProductCategory is Direct or Reseller"""
+        if v not in ["Direct", "Reseller"]:
+            raise ValueError("ProductCategory must be 'Direct' or 'Reseller'")
+        return v
+
     @validator("RowKey")
     def validate_row_key(cls, v):
-        """Ensure RowKey is normalized (lowercase, no special chars)"""
+        """Ensure RowKey is normalized (lowercase, underscore-separated)"""
         if not v.islower() or " " in v:
             raise ValueError("RowKey must be lowercase with no spaces")
         return v
