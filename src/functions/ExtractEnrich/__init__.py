@@ -10,12 +10,12 @@ Looks up vendor in VendorMaster table by vendor name. Implements:
 
 import os
 import logging
-import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient
-from shared.models import RawMail, EnrichedInvoice, NotificationMessage
+from shared.models import RawMail, EnrichedInvoice
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
+from shared.email_parser import extract_domain
 
 logger = logging.getLogger(__name__)
 
@@ -68,33 +68,34 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
     """Extract vendor and enrich invoice data."""
     try:
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())
-        vendor_name = raw_mail.vendor_name  # From invoice extraction (future phase)
-
         table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
             "VendorMaster"
         )
 
-        # If vendor not provided, we can't proceed (return unknown for manual review)
-        if not vendor_name:
-            logger.warning(f"No vendor name provided for {raw_mail.id} - marking as unknown")
-            enriched = EnrichedInvoice(
-                id=raw_mail.id,
-                vendor_name="Unknown",
-                expense_dept="Unknown",
-                gl_code="0000",
-                allocation_schedule="Unknown",
-                billing_party="Unknown",
-                blob_url=raw_mail.blob_url,
-                status="unknown",
-            )
-            toPost.set(enriched.model_dump_json())
-            return
+        # Try vendor name first (from PDF extraction, future phase)
+        vendor_name = raw_mail.vendor_name
+        vendor = None
 
-        # Look up vendor in VendorMaster
-        vendor = _find_vendor_by_name(vendor_name, table_client)
+        if vendor_name:
+            vendor = _find_vendor_by_name(vendor_name, table_client)
 
+        # Fallback to email domain extraction (MVP phase)
+        if not vendor and raw_mail.sender:
+            try:
+                domain = extract_domain(raw_mail.sender)
+                # Extract company name from domain (e.g., "adobe_com" -> "adobe")
+                company_name = domain.split("_")[0]
+                vendor = _find_vendor_by_name(company_name, table_client)
+                if vendor:
+                    logger.info(f"Vendor matched via email domain: {company_name} -> {vendor['VendorName']}")
+                    vendor_name = company_name
+            except (ValueError, IndexError):
+                logger.warning(f"Could not extract domain from sender: {raw_mail.sender}")
+
+        # If still no vendor found, mark as unknown
         if not vendor:
-            # Vendor not found - send registration email and mark as unknown
+            if not vendor_name:
+                vendor_name = extract_domain(raw_mail.sender).split("_")[0]
             logger.warning(f"Vendor not found: {vendor_name} ({raw_mail.id})")
             _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
 
