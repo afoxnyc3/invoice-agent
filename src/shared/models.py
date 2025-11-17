@@ -9,7 +9,6 @@ This module defines all data models used throughout the invoice processing pipel
 
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, Dict, Literal
-from datetime import datetime
 
 
 # =============================================================================
@@ -142,9 +141,9 @@ class VendorMaster(BaseModel):
     PartitionKey: str = Field(default="Vendor", description="Always 'Vendor' for all records")
     RowKey: str = Field(..., description="Vendor name normalized (e.g., 'amazon_web_services')")
     VendorName: str = Field(..., description="Vendor display name for matching in invoices")
-    ProductCategory: str = Field(..., description="'Direct' for direct vendors, 'Reseller' for VARs")
+    ProductCategory: str = Field(..., description="Direct vendor or Reseller (VAR)")
     ExpenseDept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
-    AllocationSchedule: str = Field(..., description="Allocation schedule code (numeric: 1, 3, 14, etc)")
+    AllocationSchedule: str = Field(..., description="Allocation schedule code (numeric: 1, 3, 14)")
     GLCode: str = Field(..., description="General ledger code (4 digits)")
     VenueRequired: bool = Field(default=False, description="True if venue extraction required")
     Active: bool = Field(default=True, description="Soft delete flag")
@@ -197,12 +196,12 @@ class InvoiceTransaction(BaseModel):
     Status: Literal["processed", "unknown", "error"] = Field(..., description="Processing status")
     BlobUrl: str = Field(..., description="Full URL to invoice PDF in blob storage")
     ProcessedAt: str = Field(..., description="ISO 8601 timestamp of processing completion")
-    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is 'error'")
-    EmailsSentCount: int = Field(default=0, description="Number of emails sent to AP (prevents duplicates)")
+    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is error")
+    EmailsSentCount: int = Field(default=0, description="Count of emails sent to AP")
     OriginalMessageId: Optional[str] = Field(
         default=None, description="Graph API message ID of invoice email (for dedup)"
     )
-    LastEmailSentAt: Optional[str] = Field(default=None, description="ISO 8601 timestamp of last email sent")
+    LastEmailSentAt: Optional[str] = Field(default=None, description="ISO 8601 timestamp of last email")
 
     @validator("PartitionKey")
     def validate_partition_key(cls, v):

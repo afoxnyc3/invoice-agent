@@ -17,7 +17,6 @@ from datetime import datetime
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
-from azure.core.exceptions import ResourceNotFoundError
 from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 
@@ -39,7 +38,8 @@ def _validate_recipient(recipient: str, invoice_mailbox: str) -> None:
     if allowed_recipients:
         allowed_list = [email.strip().lower() for email in allowed_recipients.split(",")]
         if recipient.lower() not in allowed_list:
-            raise ValueError(f"Recipient {recipient} not in allowed AP email list (ALLOWED_AP_EMAILS)")
+            msg = f"Recipient {recipient} not in allowed AP email list (ALLOWED_AP_EMAILS)"
+            raise ValueError(msg)
 
     logger.info(f"Recipient validation passed: {recipient}")
 
@@ -53,9 +53,8 @@ def _check_already_processed(raw_mail: dict) -> bool:
 
     Returns: True if already processed, False otherwise
     """
-    table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
-        "InvoiceTransactions"
-    )
+    storage_conn = os.environ["AzureWebJobsStorage"]
+    table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
 
     message_id = raw_mail.get("original_message_id")
     if not message_id:
@@ -84,6 +83,7 @@ def _check_already_processed(raw_mail: dict) -> bool:
 def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
     """Compose email body for AP with invoice metadata."""
     subject = f"Invoice: {enriched.vendor_name} - GL {enriched.gl_code}"
+    alloc_label = "Allocation Schedule"
     body = f"""
 <html>
 <body style="font-family: Arial, sans-serif;">
@@ -93,7 +93,8 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
         <tr><td><strong>Vendor</strong></td><td>{enriched.vendor_name}</td></tr>
         <tr><td><strong>GL Code</strong></td><td>{enriched.gl_code}</td></tr>
         <tr><td><strong>Department</strong></td><td>{enriched.expense_dept}</td></tr>
-        <tr><td><strong>Allocation Schedule</strong></td><td>{enriched.allocation_schedule}</td></tr>
+        <tr><td><strong>{alloc_label}</strong></td><td>{enriched.allocation_schedule}\
+</td></tr>
         <tr><td><strong>Billing Party</strong></td><td>{enriched.billing_party}</td></tr>
     </table>
     <p>Invoice attachment included.</p>
@@ -105,9 +106,8 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 
 def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
     """Log transaction to InvoiceTransactions table with email tracking."""
-    table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
-        "InvoiceTransactions"
-    )
+    storage_conn = os.environ["AzureWebJobsStorage"]
+    table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
     now = datetime.utcnow().isoformat() + "Z"
     transaction = InvoiceTransaction(
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
@@ -137,8 +137,10 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
             logger.info(f"Skipping duplicate transaction {enriched.id}")
             return
 
-        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
-        blob_client = blob_service.get_blob_client(container="invoices", blob=enriched.blob_url.split("/invoices/")[-1])
+        storage_conn = os.environ["AzureWebJobsStorage"]
+        blob_service = BlobServiceClient.from_connection_string(storage_conn)
+        blob_name = enriched.blob_url.split("/invoices/")[-1]
+        blob_client = blob_service.get_blob_client(container="invoices", blob=blob_name)
         pdf_content = blob_client.download_blob().readall()
         subject, body = _compose_ap_email(enriched)
 

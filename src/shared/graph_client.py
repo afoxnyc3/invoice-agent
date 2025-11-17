@@ -11,12 +11,10 @@ Uses MSAL for authentication and handles throttling automatically.
 
 import os
 import time
-import base64
 from typing import List, Dict, Any, Optional
 import requests
 from msal import ConfidentialClientApplication
 from shared.retry import retry_with_backoff
-from shared.logger import get_logger
 
 
 class GraphAPIClient:
@@ -64,7 +62,8 @@ class GraphAPIClient:
 
         # Session for connection pooling
         self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json", "Accept": "application/json"})
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        self.session.headers.update(headers)
 
         self._access_token: Optional[str] = None
         self._token_expiry: float = 0
