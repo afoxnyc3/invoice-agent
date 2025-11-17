@@ -126,11 +126,20 @@ class TestExtractEnrich:
         {
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
             "INVOICE_MAILBOX": "invoices@example.com",
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+            "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
+    @patch("functions.ExtractEnrich.GraphAPIClient")
     @patch("functions.ExtractEnrich.TableServiceClient")
-    def test_extract_enrich_reseller_vendor(self, mock_table_service):
+    def test_extract_enrich_reseller_vendor(self, mock_table_service, mock_graph_class):
         """Test reseller vendor is flagged for manual review."""
+        # Mock GraphAPIClient
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+
         # Mock table client to return a reseller vendor
         mock_table_client = MagicMock()
         mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
@@ -172,7 +181,13 @@ class TestExtractEnrich:
         enriched_data = queued_messages[0]
         assert "unknown" in enriched_data
 
-    @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test", "INVOICE_MAILBOX": "invoices@example.com"})
+    @patch.dict(
+        "os.environ",
+        {
+            "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "INVOICE_MAILBOX": "invoices@example.com",
+        },
+    )
     def test_extract_enrich_invalid_message(self):
         """Test handling of invalid queue message."""
         # Invalid JSON message
@@ -194,6 +209,10 @@ class TestExtractEnrich:
         {
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
             "INVOICE_MAILBOX": "invoices@example.com",
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+            "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
     @patch("functions.ExtractEnrich.TableServiceClient")
@@ -204,6 +223,7 @@ class TestExtractEnrich:
         mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = [
             {
+                "RowKey": "microsoft",
                 "VendorName": "Microsoft",
                 "ExpenseDept": "IT",
                 "GLCode": "6200",
