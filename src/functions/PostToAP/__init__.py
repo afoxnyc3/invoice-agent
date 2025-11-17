@@ -3,6 +3,11 @@ PostToAP queue function - Send enriched invoices to AP mailbox.
 
 Composes email with all enriched metadata, attaches invoice PDF,
 sends to AP, logs transaction, and queues notification.
+
+Implements email loop prevention by:
+- Checking if transaction already processed (deduplication)
+- Validating recipient is not the invoice ingest mailbox
+- Tracking email sent count and timestamp
 """
 
 import os
@@ -12,10 +17,55 @@ from datetime import datetime
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
+from azure.core.exceptions import ResourceNotFoundError
 from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_recipient(recipient: str, invoice_mailbox: str) -> None:
+    """
+    Validate that recipient is safe for email delivery (loop prevention).
+
+    Raises ValueError if recipient is invalid for email delivery.
+    """
+    # Validate recipient is not the ingest mailbox (critical loop prevention)
+    if recipient.lower() == invoice_mailbox.lower():
+        raise ValueError(f"Cannot send to INVOICE_MAILBOX ({recipient}) - would create email loop")
+
+    # Validate recipient is in allowed list (if configured)
+    allowed_recipients = os.environ.get("ALLOWED_AP_EMAILS", "").strip()
+    if allowed_recipients:
+        allowed_list = [email.strip().lower() for email in allowed_recipients.split(",")]
+        if recipient.lower() not in allowed_list:
+            raise ValueError(f"Recipient {recipient} not in allowed AP email list (ALLOWED_AP_EMAILS)")
+
+    logger.info(f"Recipient validation passed: {recipient}")
+
+
+def _check_already_processed(enriched: EnrichedInvoice) -> bool:
+    """
+    Check if transaction has already been processed (deduplication).
+
+    Returns: True if already processed, False otherwise
+    """
+    table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+        "InvoiceTransactions"
+    )
+
+    try:
+        existing = table_client.get_entity(partition_key=datetime.utcnow().strftime("%Y%m"), row_key=enriched.id)
+
+        if existing.get("Status") == "processed":
+            logger.warning(f"Transaction {enriched.id} already processed at {existing.get('ProcessedAt')}")
+            return True
+
+    except ResourceNotFoundError:
+        # New transaction, not processed yet
+        return False
+
+    return False
 
 
 def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
@@ -40,21 +90,25 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
     return subject, body
 
 
-def _log_transaction(enriched: EnrichedInvoice):
-    """Log transaction to InvoiceTransactions table."""
+def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
+    """Log transaction to InvoiceTransactions table with email tracking."""
     table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
         "InvoiceTransactions"
     )
+    now = datetime.utcnow().isoformat() + "Z"
     transaction = InvoiceTransaction(
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
         RowKey=enriched.id,
         VendorName=enriched.vendor_name,
         SenderEmail="system@invoice-agent.com",
+        RecipientEmail=recipient_email,
         ExpenseDept=enriched.expense_dept,
         GLCode=enriched.gl_code,
         Status="processed",
         BlobUrl=enriched.blob_url,
-        ProcessedAt=datetime.utcnow().isoformat() + "Z",
+        ProcessedAt=now,
+        EmailsSentCount=1,
+        LastEmailSentAt=now,
     )
     table_client.upsert_entity(transaction.model_dump())
 
@@ -63,15 +117,27 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
     """Send enriched invoice to AP and log transaction."""
     try:
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())
+
+        # Check if transaction already processed (deduplication)
+        if _check_already_processed(enriched):
+            logger.info(f"Skipping duplicate transaction {enriched.id}")
+            return
+
         blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
         blob_client = blob_service.get_blob_client(container="invoices", blob=enriched.blob_url.split("/invoices/")[-1])
         pdf_content = blob_client.download_blob().readall()
         subject, body = _compose_ap_email(enriched)
 
         graph = GraphAPIClient()
+        ap_email = os.environ["AP_EMAIL_ADDRESS"]
+        invoice_mailbox = os.environ["INVOICE_MAILBOX"]
+
+        # Validate recipient before sending (loop prevention)
+        _validate_recipient(ap_email, invoice_mailbox)
+
         graph.send_email(
             from_address=os.environ["INVOICE_MAILBOX"],
-            to_address=os.environ["AP_EMAIL_ADDRESS"],
+            to_address=ap_email,
             subject=subject,
             body=body,
             is_html=True,
@@ -83,7 +149,7 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
                 }
             ],
         )
-        _log_transaction(enriched)
+        _log_transaction(enriched, ap_email)
 
         notification = NotificationMessage(
             type="success",

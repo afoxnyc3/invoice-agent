@@ -173,6 +173,9 @@ class InvoiceTransaction(BaseModel):
     This model represents a processed invoice transaction in Azure Table Storage,
     maintaining a complete audit trail for compliance and reporting.
 
+    Includes email loop prevention fields to track emails sent and prevent
+    duplicate processing of the same transaction.
+
     Storage Pattern:
     - PartitionKey: YYYYMM format (e.g., "202411") for efficient time-based queries
     - RowKey: ULID for unique, sortable transaction IDs
@@ -182,12 +185,18 @@ class InvoiceTransaction(BaseModel):
     RowKey: str = Field(..., description="ULID transaction identifier")
     VendorName: str = Field(..., description="Vendor name from enrichment")
     SenderEmail: EmailStr = Field(..., description="Original sender email address")
+    RecipientEmail: EmailStr = Field(..., description="Email address where invoice was sent")
     ExpenseDept: str = Field(..., description="Department code")
     GLCode: str = Field(..., description="General ledger code")
     Status: Literal["processed", "unknown", "error"] = Field(..., description="Processing status")
     BlobUrl: str = Field(..., description="Full URL to invoice PDF in blob storage")
     ProcessedAt: str = Field(..., description="ISO 8601 timestamp of processing completion")
     ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is 'error'")
+    EmailsSentCount: int = Field(default=0, description="Number of emails sent to AP (prevents duplicates)")
+    OriginalMessageId: Optional[str] = Field(
+        default=None, description="Graph API message ID of invoice email (for dedup)"
+    )
+    LastEmailSentAt: Optional[str] = Field(default=None, description="ISO 8601 timestamp of last email sent")
 
     @validator("PartitionKey")
     def validate_partition_key(cls, v):

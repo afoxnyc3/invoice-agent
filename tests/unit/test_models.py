@@ -294,6 +294,7 @@ class TestInvoiceTransactionModel:
             RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
             VendorName="Adobe Inc",
             SenderEmail="billing@adobe.com",
+            RecipientEmail="accountspayable@chelseapiers.com",
             ExpenseDept="IT",
             GLCode="6100",
             Status="processed",
@@ -305,6 +306,7 @@ class TestInvoiceTransactionModel:
         assert transaction.RowKey == "01JCK3Q7H8ZVXN3BARC9GWAEZM"
         assert transaction.Status == "processed"
         assert transaction.ErrorMessage is None
+        assert transaction.RecipientEmail == "accountspayable@chelseapiers.com"
 
     def test_transaction_with_error(self):
         """Test InvoiceTransaction with error status and message."""
@@ -313,6 +315,7 @@ class TestInvoiceTransactionModel:
             RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
             VendorName="Unknown Vendor",
             SenderEmail="unknown@example.com",
+            RecipientEmail="accountspayable@chelseapiers.com",
             ExpenseDept="UNKNOWN",
             GLCode="9999",
             Status="error",
@@ -332,6 +335,7 @@ class TestInvoiceTransactionModel:
                 RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
                 VendorName="Adobe Inc",
                 SenderEmail="billing@adobe.com",
+                RecipientEmail="accountspayable@chelseapiers.com",
                 ExpenseDept="IT",
                 GLCode="6100",
                 Status="processed",
@@ -348,6 +352,7 @@ class TestInvoiceTransactionModel:
                 RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
                 VendorName="Adobe Inc",
                 SenderEmail="billing@adobe.com",
+                RecipientEmail="accountspayable@chelseapiers.com",
                 ExpenseDept="IT",
                 GLCode="6100",
                 Status="error",

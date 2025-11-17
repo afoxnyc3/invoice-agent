@@ -3,13 +3,17 @@ MailIngest timer function - Poll shared mailbox every 5 minutes.
 
 Reads unread emails, downloads attachments to blob storage, and queues
 for vendor extraction processing.
+
+Implements email loop prevention by filtering:
+- Emails from the system mailbox (INVOICE_MAILBOX)
+- System-generated invoice emails (subject pattern matching)
+- Replies to vendor registration emails
 """
 
 import os
 import logging
-import json
+import re
 import base64
-from datetime import datetime
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 from shared.graph_client import GraphAPIClient
@@ -17,6 +21,35 @@ from shared.ulid_generator import generate_ulid
 from shared.models import RawMail
 
 logger = logging.getLogger(__name__)
+
+
+def _should_skip_email(email: dict, invoice_mailbox: str) -> tuple[bool, str]:
+    """
+    Determine if email should be skipped to prevent email loops.
+
+    Skips:
+    - Emails from the system mailbox (INVOICE_MAILBOX)
+    - System-generated invoice emails (Invoice: ... - GL ... pattern)
+    - Replies to vendor registration emails
+
+    Returns: (should_skip, reason)
+    """
+    sender = email.get("sender", {}).get("emailAddress", {}).get("address", "").lower()
+    subject = email.get("subject", "")
+
+    # Skip emails from the system mailbox (critical loop prevention)
+    if sender == invoice_mailbox.lower():
+        return True, f"sender is system mailbox ({sender})"
+
+    # Skip system-generated invoice email patterns
+    if re.match(r"^Invoice:\s+.+\s+-\s+GL\s+\d{4}$", subject):
+        return True, f"system-generated invoice pattern ({subject})"
+
+    # Skip replies to vendor registration emails
+    if subject.lower().startswith("re:") and "vendor registration" in subject.lower():
+        return True, f"reply to registration email ({subject})"
+
+    return False, ""
 
 
 def _process_email(email: dict, graph: GraphAPIClient, mailbox: str, blob_container, queue_output):
@@ -52,10 +85,18 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
         logger.info(f"Found {len(emails)} unread emails")
 
         for email in emails:
+            # Check if email should be skipped for loop prevention
+            should_skip, reason = _should_skip_email(email, mailbox)
+            if should_skip:
+                logger.info(f"Skipping email {email['id']}: {reason}")
+                graph.mark_as_read(mailbox, email["id"])
+                continue
+
             if not email.get("hasAttachments"):
                 logger.warning(f"Skipping email {email['id']} - no attachments")
                 graph.mark_as_read(mailbox, email["id"])
                 continue
+
             _process_email(email, graph, mailbox, blob_container, outQueueItem)
             graph.mark_as_read(mailbox, email["id"])
     except Exception as e:
