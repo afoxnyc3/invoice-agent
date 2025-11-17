@@ -44,9 +44,12 @@ def _validate_recipient(recipient: str, invoice_mailbox: str) -> None:
     logger.info(f"Recipient validation passed: {recipient}")
 
 
-def _check_already_processed(enriched: EnrichedInvoice) -> bool:
+def _check_already_processed(raw_mail: dict) -> bool:
     """
-    Check if transaction has already been processed (deduplication).
+    Check if transaction has already been processed (deduplication by message ID).
+
+    Uses Graph API message ID (stable across re-ingestion) instead of ULID
+    to detect duplicate processing of the same email.
 
     Returns: True if already processed, False otherwise
     """
@@ -54,15 +57,25 @@ def _check_already_processed(enriched: EnrichedInvoice) -> bool:
         "InvoiceTransactions"
     )
 
-    try:
-        existing = table_client.get_entity(partition_key=datetime.utcnow().strftime("%Y%m"), row_key=enriched.id)
+    message_id = raw_mail.get("original_message_id")
+    if not message_id:
+        return False  # No message ID to check, proceed with processing
 
-        if existing.get("Status") == "processed":
-            logger.warning(f"Transaction {enriched.id} already processed at {existing.get('ProcessedAt')}")
+    try:
+        # Query for any existing transaction with this message ID
+        filter_query = f"OriginalMessageId eq '{message_id}' and Status eq 'processed'"
+        results = list(table_client.query_entities(filter_query))
+
+        if results:
+            existing = results[0]
+            logger.warning(
+                f"Message {message_id} already processed at {existing.get('ProcessedAt')} "
+                f"(Transaction {existing.get('RowKey')})"
+            )
             return True
 
-    except ResourceNotFoundError:
-        # New transaction, not processed yet
+    except Exception as e:
+        logger.warning(f"Deduplication check failed: {str(e)} - proceeding with processing")
         return False
 
     return False
@@ -109,6 +122,7 @@ def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
         ProcessedAt=now,
         EmailsSentCount=1,
         LastEmailSentAt=now,
+        OriginalMessageId=enriched.original_message_id,
     )
     table_client.upsert_entity(transaction.model_dump())
 
@@ -118,8 +132,8 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
     try:
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())
 
-        # Check if transaction already processed (deduplication)
-        if _check_already_processed(enriched):
+        # Check if transaction already processed (deduplication by message ID)
+        if _check_already_processed(enriched.model_dump()):
             logger.info(f"Skipping duplicate transaction {enriched.id}")
             return
 

@@ -47,6 +47,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "ACME Corp",
             "blob_url": "https://storage.blob.core.windows.net/invoices/123/invoice.pdf",
+            "original_message_id": "graph-message-id-123",
             "status": "enriched"
         }
         """
@@ -114,6 +115,7 @@ class TestPostToAP:
             "allocation_schedule": "QUARTERLY",
             "billing_party": "Test Entity",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-456",
             "status": "enriched"
         }
         """
@@ -172,6 +174,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-789",
             "status": "enriched"
         }
         """
@@ -226,6 +229,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/missing.pdf",
+            "original_message_id": "graph-message-id-abc",
             "status": "enriched"
         }
         """
@@ -276,6 +280,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-def",
             "status": "enriched"
         }
         """

@@ -30,6 +30,9 @@ class RawMail(BaseModel):
     subject: str = Field(..., description="Email subject line")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     received_at: str = Field(..., description="ISO 8601 timestamp when email received")
+    original_message_id: str = Field(
+        ..., description="Graph API message ID for deduplication (stable across re-ingestion)"
+    )
     vendor_name: Optional[str] = Field(
         None, description="Vendor name extracted from invoice (optional, for future PDF automation)"
     )
@@ -64,6 +67,9 @@ class EnrichedInvoice(BaseModel):
     allocation_schedule: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
     billing_party: str = Field(..., description="Entity responsible for payment")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
+    original_message_id: str = Field(
+        ..., description="Graph API message ID for deduplication (stable across re-ingestion)"
+    )
     status: Literal["enriched", "unknown"] = Field(..., description="Processing status")
 
     @validator("gl_code")

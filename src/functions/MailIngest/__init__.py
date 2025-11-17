@@ -55,7 +55,8 @@ def _should_skip_email(email: dict, invoice_mailbox: str) -> tuple[bool, str]:
 def _process_email(email: dict, graph: GraphAPIClient, mailbox: str, blob_container, queue_output):
     """Process single email: download attachments and queue."""
     transaction_id = generate_ulid()
-    attachments = graph.get_attachments(mailbox, email["id"])
+    message_id = email["id"]  # Stable Graph API message ID for deduplication
+    attachments = graph.get_attachments(mailbox, message_id)
 
     for attachment in attachments:
         blob_name = f"{transaction_id}/{attachment['name']}"
@@ -69,6 +70,7 @@ def _process_email(email: dict, graph: GraphAPIClient, mailbox: str, blob_contai
             subject=email["subject"],
             blob_url=blob_client.url,
             received_at=email["receivedDateTime"],
+            original_message_id=message_id,
         )
         queue_output.set(raw_mail.model_dump_json())
         logger.info(f"Queued: {transaction_id} from {raw_mail.sender}")

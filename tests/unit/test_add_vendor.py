@@ -88,6 +88,7 @@ class TestAddVendor:
         """Test creating duplicate vendor (should fail with 400)."""
         mock_table_client = MagicMock()
         from azure.core.exceptions import ResourceExistsError
+
         mock_table_client.create_entity.side_effect = ResourceExistsError("Entity already exists")
         mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 

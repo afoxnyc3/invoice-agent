@@ -107,6 +107,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
                 allocation_schedule="Unknown",
                 billing_party="Chelsea Piers",
                 blob_url=raw_mail.blob_url,
+                original_message_id=raw_mail.original_message_id,
                 status="unknown",
             )
             toPost.set(enriched.model_dump_json())
@@ -125,6 +126,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
                 allocation_schedule="Unknown",
                 billing_party="Chelsea Piers",
                 blob_url=raw_mail.blob_url,
+                original_message_id=raw_mail.original_message_id,
                 status="unknown",
             )
             toPost.set(enriched.model_dump_json())
@@ -139,6 +141,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
             allocation_schedule=vendor["AllocationSchedule"],
             billing_party="Chelsea Piers",
             blob_url=raw_mail.blob_url,
+            original_message_id=raw_mail.original_message_id,
             status="enriched",
         )
         toPost.set(enriched.model_dump_json())
