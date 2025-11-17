@@ -119,16 +119,16 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/graph-client-secret/)'
         }
         {
+          name: 'INVOICE_MAILBOX'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/invoice-mailbox/)'
+        }
+        {
           name: 'AP_EMAIL_ADDRESS'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/ap-email-address/)'
         }
         {
           name: 'TEAMS_WEBHOOK_URL'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/teams-webhook-url/)'
-        }
-        {
-          name: 'INVOICE_MAILBOX'
-          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/ap-email-address/)'
         }
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
