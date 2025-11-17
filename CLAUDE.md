@@ -373,10 +373,11 @@ The project includes AI automation slash commands in `.claude/commands/`:
 - This matches Azure Functions runtime working directory expectations
 
 ### Queue Message Flow
-- `raw-mail`: Email metadata + blob URL
-- `to-post`: Enriched vendor data with GL codes
+- `raw-mail`: Email metadata + blob URL + Graph API message ID (for deduplication)
+- `to-post`: Enriched vendor data with GL codes + Graph API message ID
 - `notify`: Formatted notification messages
 - Poison queue after 5 retry attempts
+- **Note**: Graph API message ID is stable across re-ingestion for true deduplication
 
 ### Data Models (Pydantic)
 - `RawMail`: Email ingestion schema
@@ -442,26 +443,44 @@ The project includes AI automation slash commands in `.claude/commands/`:
   - AddVendor: HTTP endpoint for vendor management (HTTP trigger)
 - ✅ Integration with Graph API (full MSAL auth, retry, throttling)
 - ✅ Shared utilities (ULID, logger, retry logic, email parser)
-- ✅ CI/CD Pipeline (98 tests passing, 96% coverage, slot swap pattern)
+- ✅ CI/CD Pipeline (102 tests passing, 91.41% coverage, slot swap pattern)
 - ✅ Staging slot configuration (manual setup after infrastructure deployment)
+- ✅ Email loop prevention - **CRITICAL FIX**: Changed deduplication from ULID-based (broken) to Graph API message ID-based (secure)
+  - Layer 1: Sender validation (prevent INVOICE_MAILBOX sending to itself)
+  - Layer 2: Deduplication by Graph API message ID (prevents infinite loops on re-ingestion)
+  - Layer 3: Recipient validation (prevent sending to INVOICE_MAILBOX)
+  - Layer 4: Email tracking (audit log in InvoiceTransactions table)
 - 🟡 Vendor seeding script (implemented at infrastructure/scripts/seed_vendors.py, **execution pending**)
+
+### Deduplication Architecture (Critical Fix - Current Sprint)
+Changed from broken ULID-based deduplication to Graph API message ID:
+- **Problem**: Original code used ULID (generated fresh each time), so duplicate emails never matched
+- **Solution**: Use Graph API message ID (stable across multiple retrievals)
+- **Implementation**:
+  - Added `original_message_id` to RawMail, EnrichedInvoice, InvoiceTransaction models
+  - MailIngest captures `email["id"]` from Graph API
+  - PostToAP queries table by OriginalMessageId instead of RowKey
+  - All 102 tests updated with original_message_id values
+- **Status**: PR #31 ready for review, all quality gates passing
 
 ### Deployment Lessons Learned (Critical for Next Iteration)
 1. **Staging Slot Configuration**: Must manually sync app settings from production to staging after Bicep deployment. See DEPLOYMENT_GUIDE.md Step 2.5.
 2. **Artifact Path Handling**: GitHub Actions download-artifact@v4 creates directory automatically. Upload ZIP directly, not in subdirectory.
 3. **Function App Restart**: App settings changes require Function App restart to take effect. Not automatic.
 4. **CI/CD Workflow**: Test + Build must pass BEFORE staging deployment. Staging deployment blocks production approval.
+5. **Email Infrastructure**: INVOICE_MAILBOX and AP_EMAIL_ADDRESS must be different (separate Key Vault secrets configured)
 
 ### Activation Blockers (Prevents Live Processing)
 - **VendorMaster table is empty**: Must run seed script before system can match vendors
 - **No production testing**: Waiting for vendor data to perform end-to-end test
 
 ### Recommended Next Actions
-1. Execute: `python infrastructure/scripts/seed_vendors.py --env prod`
-2. Send test invoice email to configured mailbox
-3. Monitor Application Insights for execution
-4. Verify Teams notifications received
-5. Measure actual end-to-end performance
+1. Review and merge PR #31 (email loop prevention with deduplication fix)
+2. Execute: `python infrastructure/scripts/seed_vendors.py --env prod`
+3. Send test invoice email to configured mailbox
+4. Monitor Application Insights for execution
+5. Verify Teams notifications received
+6. Measure actual end-to-end performance
 
 **Phase 2 (Planned - Not Started):**
 - PDF extraction (OCR/text extraction)
