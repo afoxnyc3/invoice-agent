@@ -70,9 +70,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())
         vendor_name = raw_mail.vendor_name  # From invoice extraction (future phase)
 
-        table_client = TableServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        ).get_table_client("VendorMaster")
+        table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+            "VendorMaster"
+        )
 
         # If vendor not provided, we can't proceed (return unknown for manual review)
         if not vendor_name:
@@ -113,7 +113,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
 
         # Special handling for resellers (e.g., Myriad360) - flag for manual review
         if vendor.get("ProductCategory") == "Reseller":
-            logger.warning(f"Reseller vendor detected: {vendor['VendorName']} ({raw_mail.id}) - flagging for manual review")
+            logger.warning(
+                f"Reseller vendor detected: {vendor['VendorName']} ({raw_mail.id}) - flagging for manual review"
+            )
             enriched = EnrichedInvoice(
                 id=raw_mail.id,
                 vendor_name=vendor["VendorName"],
