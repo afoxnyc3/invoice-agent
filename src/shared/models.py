@@ -9,7 +9,6 @@ This module defines all data models used throughout the invoice processing pipel
 
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, Dict, Literal
-from datetime import datetime
 
 
 # =============================================================================
@@ -30,6 +29,9 @@ class RawMail(BaseModel):
     subject: str = Field(..., description="Email subject line")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
     received_at: str = Field(..., description="ISO 8601 timestamp when email received")
+    original_message_id: str = Field(
+        ..., description="Graph API message ID for deduplication (stable across re-ingestion)"
+    )
     vendor_name: Optional[str] = Field(
         None, description="Vendor name extracted from invoice (optional, for future PDF automation)"
     )
@@ -64,6 +66,9 @@ class EnrichedInvoice(BaseModel):
     allocation_schedule: str = Field(..., description="Billing frequency (MONTHLY, ANNUAL, etc)")
     billing_party: str = Field(..., description="Entity responsible for payment")
     blob_url: str = Field(..., description="URL to invoice PDF in blob storage")
+    original_message_id: str = Field(
+        ..., description="Graph API message ID for deduplication (stable across re-ingestion)"
+    )
     status: Literal["enriched", "unknown"] = Field(..., description="Processing status")
 
     @validator("gl_code")
@@ -136,9 +141,9 @@ class VendorMaster(BaseModel):
     PartitionKey: str = Field(default="Vendor", description="Always 'Vendor' for all records")
     RowKey: str = Field(..., description="Vendor name normalized (e.g., 'amazon_web_services')")
     VendorName: str = Field(..., description="Vendor display name for matching in invoices")
-    ProductCategory: str = Field(..., description="'Direct' for direct vendors, 'Reseller' for VARs")
+    ProductCategory: str = Field(..., description="Direct vendor or Reseller (VAR)")
     ExpenseDept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
-    AllocationSchedule: str = Field(..., description="Allocation schedule code (numeric: 1, 3, 14, etc)")
+    AllocationSchedule: str = Field(..., description="Allocation schedule code (numeric: 1, 3, 14)")
     GLCode: str = Field(..., description="General ledger code (4 digits)")
     VenueRequired: bool = Field(default=False, description="True if venue extraction required")
     Active: bool = Field(default=True, description="Soft delete flag")
@@ -173,6 +178,9 @@ class InvoiceTransaction(BaseModel):
     This model represents a processed invoice transaction in Azure Table Storage,
     maintaining a complete audit trail for compliance and reporting.
 
+    Includes email loop prevention fields to track emails sent and prevent
+    duplicate processing of the same transaction.
+
     Storage Pattern:
     - PartitionKey: YYYYMM format (e.g., "202411") for efficient time-based queries
     - RowKey: ULID for unique, sortable transaction IDs
@@ -182,12 +190,18 @@ class InvoiceTransaction(BaseModel):
     RowKey: str = Field(..., description="ULID transaction identifier")
     VendorName: str = Field(..., description="Vendor name from enrichment")
     SenderEmail: EmailStr = Field(..., description="Original sender email address")
+    RecipientEmail: EmailStr = Field(..., description="Email address where invoice was sent")
     ExpenseDept: str = Field(..., description="Department code")
     GLCode: str = Field(..., description="General ledger code")
     Status: Literal["processed", "unknown", "error"] = Field(..., description="Processing status")
     BlobUrl: str = Field(..., description="Full URL to invoice PDF in blob storage")
     ProcessedAt: str = Field(..., description="ISO 8601 timestamp of processing completion")
-    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is 'error'")
+    ErrorMessage: Optional[str] = Field(default=None, description="Error details if status is error")
+    EmailsSentCount: int = Field(default=0, description="Count of emails sent to AP")
+    OriginalMessageId: Optional[str] = Field(
+        default=None, description="Graph API message ID of invoice email (for dedup)"
+    )
+    LastEmailSentAt: Optional[str] = Field(default=None, description="ISO 8601 timestamp of last email")
 
     @validator("PartitionKey")
     def validate_partition_key(cls, v):

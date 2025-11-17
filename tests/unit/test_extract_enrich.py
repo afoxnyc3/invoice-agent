@@ -45,6 +45,7 @@ class TestExtractEnrich:
             "subject": "Invoice #12345",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
             "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "graph-message-id-123",
             "vendor_name": "Adobe"
         }
         """
@@ -97,6 +98,7 @@ class TestExtractEnrich:
             "subject": "Invoice #99999",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
             "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "graph-message-id-456",
             "vendor_name": "Unknown Vendor Corp"
         }
         """
@@ -162,6 +164,7 @@ class TestExtractEnrich:
             "subject": "Invoice",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
             "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "graph-message-id-789",
             "vendor_name": "Myriad360"
         }
         """
@@ -241,6 +244,7 @@ class TestExtractEnrich:
             "subject": "Invoice",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
             "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "graph-message-id-abc",
             "vendor_name": "MICROSOFT"
         }
         """

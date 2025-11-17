@@ -37,6 +37,7 @@ class TestRawMailModel:
             subject="Invoice #12345 - November 2024",
             blob_url="https://storage.blob.core.windows.net/invoices/raw/invoice123.pdf",
             received_at="2024-11-09T14:00:00Z",
+            original_message_id="graph-message-id-123",
         )
 
         assert raw_mail.id == "01JCK3Q7H8ZVXN3BARC9GWAEZM"
@@ -44,6 +45,7 @@ class TestRawMailModel:
         assert raw_mail.subject == "Invoice #12345 - November 2024"
         assert raw_mail.blob_url.startswith("https://")
         assert raw_mail.received_at == "2024-11-09T14:00:00Z"
+        assert raw_mail.original_message_id == "graph-message-id-123"
 
     def test_raw_mail_json_serialization(self):
         """Test RawMail JSON serialization."""
@@ -53,6 +55,7 @@ class TestRawMailModel:
             subject="Invoice #12345",
             blob_url="https://storage/invoices/raw/invoice.pdf",
             received_at="2024-11-09T14:00:00Z",
+            original_message_id="graph-message-id-123",
         )
 
         json_str = raw_mail.model_dump_json()
@@ -63,6 +66,7 @@ class TestRawMailModel:
         assert data["subject"] == "Invoice #12345"
         assert data["blob_url"] == "https://storage/invoices/raw/invoice.pdf"
         assert data["received_at"] == "2024-11-09T14:00:00Z"
+        assert data["original_message_id"] == "graph-message-id-123"
 
     def test_raw_mail_invalid_email(self):
         """Test RawMail validation rejects invalid email."""
@@ -73,6 +77,7 @@ class TestRawMailModel:
                 subject="Test",
                 blob_url="https://storage/test.pdf",
                 received_at="2024-11-09T14:00:00Z",
+                original_message_id="graph-message-id-123",
             )
         assert "sender" in str(exc_info.value)
 
@@ -85,6 +90,7 @@ class TestRawMailModel:
                 subject="Test",
                 blob_url="http://storage/test.pdf",  # HTTP not HTTPS
                 received_at="2024-11-09T14:00:00Z",
+                original_message_id="graph-message-id-123",
             )
         assert "blob_url must be HTTPS" in str(exc_info.value)
 
@@ -97,8 +103,38 @@ class TestRawMailModel:
                 subject="Test",
                 blob_url="https://storage/test.pdf",
                 received_at="2024-11-09T14:00:00Z",
+                original_message_id="graph-message-id-123",
             )
         assert "id cannot be empty" in str(exc_info.value)
+
+    def test_raw_mail_with_original_message_id(self):
+        """Test RawMail with original_message_id for deduplication."""
+        raw_mail = RawMail(
+            id="01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            sender="billing@adobe.com",
+            subject="Invoice #12345",
+            blob_url="https://storage/invoices/raw/invoice.pdf",
+            received_at="2024-11-09T14:00:00Z",
+            original_message_id="AAMkADExYjM5ZTg3LTBjZTUtNDI5Mi1iMjY4LTg4OTgxZjU4OWUyYgBGAAAAAACvZWm9r6BXRaYvHJvN8-cABwACPwxDp9QgR52KKW-z8RjbAAAAAAEMAAACPwxDp9QgR52KKW-z8RjbAABt7xS3AAA=",
+        )
+
+        assert (
+            raw_mail.original_message_id
+            == "AAMkADExYjM5ZTg3LTBjZTUtNDI5Mi1iMjY4LTg4OTgxZjU4OWUyYgBGAAAAAACvZWm9r6BXRaYvHJvN8-cABwACPwxDp9QgR52KKW-z8RjbAAAAAAEMAAACPwxDp9QgR52KKW-z8RjbAABt7xS3AAA="
+        )
+
+    def test_raw_mail_missing_original_message_id(self):
+        """Test RawMail validation requires original_message_id."""
+        with pytest.raises(ValidationError) as exc_info:
+            RawMail(
+                id="01JCK3Q7H8ZVXN3BARC9GWAEZM",
+                sender="billing@adobe.com",
+                subject="Test",
+                blob_url="https://storage/test.pdf",
+                received_at="2024-11-09T14:00:00Z",
+                # Missing original_message_id
+            )
+        assert "original_message_id" in str(exc_info.value)
 
 
 class TestEnrichedInvoiceModel:
@@ -114,6 +150,7 @@ class TestEnrichedInvoiceModel:
             allocation_schedule="MONTHLY",
             billing_party="Company HQ",
             blob_url="https://storage/invoices/raw/invoice.pdf",
+            original_message_id="graph-message-id-123",
             status="enriched",
         )
 
@@ -123,6 +160,7 @@ class TestEnrichedInvoiceModel:
         assert invoice.gl_code == "6100"
         assert invoice.allocation_schedule == "MONTHLY"
         assert invoice.billing_party == "Company HQ"
+        assert invoice.original_message_id == "graph-message-id-123"
         assert invoice.status == "enriched"
 
     def test_enriched_invoice_unknown_status(self):
@@ -135,11 +173,13 @@ class TestEnrichedInvoiceModel:
             allocation_schedule="UNKNOWN",
             billing_party="UNKNOWN",
             blob_url="https://storage/invoices/raw/invoice.pdf",
+            original_message_id="graph-message-id-123",
             status="unknown",
         )
 
         assert invoice.status == "unknown"
         assert invoice.vendor_name == "UNKNOWN"
+        assert invoice.original_message_id == "graph-message-id-123"
 
     def test_enriched_invoice_invalid_gl_code(self):
         """Test EnrichedInvoice validation rejects invalid GL code."""
@@ -152,6 +192,7 @@ class TestEnrichedInvoiceModel:
                 allocation_schedule="MONTHLY",
                 billing_party="Company HQ",
                 blob_url="https://storage/test.pdf",
+                original_message_id="graph-message-id-123",
                 status="enriched",
             )
         assert "gl_code must be exactly 4 digits" in str(exc_info.value)
@@ -167,9 +208,45 @@ class TestEnrichedInvoiceModel:
                 allocation_schedule="MONTHLY",
                 billing_party="Company HQ",
                 blob_url="https://storage/test.pdf",
+                original_message_id="graph-message-id-123",
                 status="enriched",
             )
         assert "Field cannot be empty" in str(exc_info.value)
+
+    def test_enriched_invoice_with_original_message_id(self):
+        """Test EnrichedInvoice with original_message_id for deduplication."""
+        invoice = EnrichedInvoice(
+            id="01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            vendor_name="Adobe Inc",
+            expense_dept="IT",
+            gl_code="6100",
+            allocation_schedule="MONTHLY",
+            billing_party="Company HQ",
+            blob_url="https://storage/invoices/raw/invoice.pdf",
+            original_message_id="AAMkADExYjM5ZTg3LTBjZTUtNDI5Mi1iMjY4LTg4OTgxZjU4OWUyYgBGAAAAAACvZWm9r6BXRaYvHJvN8-cABwACPwxDp9QgR52KKW-z8RjbAAAAAAEMAAACPwxDp9QgR52KKW-z8RjbAABt7xS3AAA=",
+            status="enriched",
+        )
+
+        assert (
+            invoice.original_message_id
+            == "AAMkADExYjM5ZTg3LTBjZTUtNDI5Mi1iMjY4LTg4OTgxZjU4OWUyYgBGAAAAAACvZWm9r6BXRaYvHJvN8-cABwACPwxDp9QgR52KKW-z8RjbAAAAAAEMAAACPwxDp9QgR52KKW-z8RjbAABt7xS3AAA="
+        )
+
+    def test_enriched_invoice_missing_original_message_id(self):
+        """Test EnrichedInvoice validation requires original_message_id."""
+        with pytest.raises(ValidationError) as exc_info:
+            EnrichedInvoice(
+                id="01JCK3Q7H8ZVXN3BARC9GWAEZM",
+                vendor_name="Adobe Inc",
+                expense_dept="IT",
+                gl_code="6100",
+                allocation_schedule="MONTHLY",
+                billing_party="Company HQ",
+                blob_url="https://storage/test.pdf",
+                status="enriched",
+                # Missing original_message_id
+            )
+        assert "original_message_id" in str(exc_info.value)
 
 
 class TestNotificationMessageModel:
@@ -294,6 +371,7 @@ class TestInvoiceTransactionModel:
             RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
             VendorName="Adobe Inc",
             SenderEmail="billing@adobe.com",
+            RecipientEmail="accountspayable@chelseapiers.com",
             ExpenseDept="IT",
             GLCode="6100",
             Status="processed",
@@ -305,6 +383,7 @@ class TestInvoiceTransactionModel:
         assert transaction.RowKey == "01JCK3Q7H8ZVXN3BARC9GWAEZM"
         assert transaction.Status == "processed"
         assert transaction.ErrorMessage is None
+        assert transaction.RecipientEmail == "accountspayable@chelseapiers.com"
 
     def test_transaction_with_error(self):
         """Test InvoiceTransaction with error status and message."""
@@ -313,6 +392,7 @@ class TestInvoiceTransactionModel:
             RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
             VendorName="Unknown Vendor",
             SenderEmail="unknown@example.com",
+            RecipientEmail="accountspayable@chelseapiers.com",
             ExpenseDept="UNKNOWN",
             GLCode="9999",
             Status="error",
@@ -332,6 +412,7 @@ class TestInvoiceTransactionModel:
                 RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
                 VendorName="Adobe Inc",
                 SenderEmail="billing@adobe.com",
+                RecipientEmail="accountspayable@chelseapiers.com",
                 ExpenseDept="IT",
                 GLCode="6100",
                 Status="processed",
@@ -348,6 +429,7 @@ class TestInvoiceTransactionModel:
                 RowKey="01JCK3Q7H8ZVXN3BARC9GWAEZM",
                 VendorName="Adobe Inc",
                 SenderEmail="billing@adobe.com",
+                RecipientEmail="accountspayable@chelseapiers.com",
                 ExpenseDept="IT",
                 GLCode="6100",
                 Status="error",

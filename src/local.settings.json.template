@@ -9,7 +9,8 @@
     "GRAPH_CLIENT_ID": "your-client-id",
     "GRAPH_CLIENT_SECRET": "your-client-secret",
 
-    "AP_EMAIL_ADDRESS": "accountspayable@chelseapiers.com",
+    "INVOICE_MAILBOX": "dev-invoices@chelseapiers.com",
+    "AP_EMAIL_ADDRESS": "dev-ap@chelseapiers.com",
     "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
 
     "STORAGE_ACCOUNT_NAME": "stinvoiceagentdev",

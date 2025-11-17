@@ -47,6 +47,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "ACME Corp",
             "blob_url": "https://storage.blob.core.windows.net/invoices/123/invoice.pdf",
+            "original_message_id": "graph-message-id-123",
             "status": "enriched"
         }
         """
@@ -114,6 +115,7 @@ class TestPostToAP:
             "allocation_schedule": "QUARTERLY",
             "billing_party": "Test Entity",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-456",
             "status": "enriched"
         }
         """
@@ -172,6 +174,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-789",
             "status": "enriched"
         }
         """
@@ -201,9 +204,17 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
+    @patch("functions.PostToAP.TableServiceClient")
     @patch("functions.PostToAP.BlobServiceClient")
-    def test_post_to_ap_blob_download_error(self, mock_blob_service):
+    def test_post_to_ap_blob_download_error(self, mock_blob_service, mock_table_service):
         """Test handling of blob download errors."""
+        # Mock table client for deduplication check (returns not found)
+        from azure.core.exceptions import ResourceNotFoundError
+
+        mock_table_client = MagicMock()
+        mock_table_client.get_entity.side_effect = ResourceNotFoundError("Not found")
+        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+
         # Mock blob client to raise exception
         mock_blob_client = MagicMock()
         mock_blob_client.download_blob.side_effect = Exception("Blob not found")
@@ -218,6 +229,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/missing.pdf",
+            "original_message_id": "graph-message-id-abc",
             "status": "enriched"
         }
         """
@@ -268,6 +280,7 @@ class TestPostToAP:
             "allocation_schedule": "MONTHLY",
             "billing_party": "Test",
             "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "original_message_id": "graph-message-id-def",
             "status": "enriched"
         }
         """
