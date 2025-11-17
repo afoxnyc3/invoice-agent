@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 import azure.functions as func
 from azure.data.tables import TableServiceClient
+from azure.core.exceptions import ResourceExistsError
 from pydantic import ValidationError
 from shared.models import VendorMaster
 
@@ -18,14 +19,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     """Add vendor to VendorMaster table via HTTP POST."""
     try:
         data = req.get_json()
+        # Normalize vendor name to RowKey format (lowercase, spaces/hyphens to underscores)
+        vendor_name = data.get("vendor_name", "").strip()
+        row_key = vendor_name.lower().replace(" ", "_").replace("-", "_")
+
         # Map snake_case API fields to PascalCase model fields
         vendor_data = {
-            "RowKey": data.get("vendor_domain", "").lower().replace(".", "_"),
-            "VendorName": data.get("vendor_name"),
+            "RowKey": row_key,
+            "VendorName": vendor_name,
             "ExpenseDept": data.get("expense_dept"),
-            "AllocationScheduleNumber": data.get("allocation_schedule"),
+            "AllocationSchedule": data.get("allocation_schedule"),
             "GLCode": data.get("gl_code"),
-            "BillingParty": data.get("billing_party"),
+            "ProductCategory": data.get("product_category", "Direct"),
+            "VenueRequired": data.get("venue_required", False),
             "UpdatedAt": datetime.utcnow().isoformat() + "Z",
         }
         vendor = VendorMaster(**vendor_data)
@@ -34,7 +40,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "VendorMaster"
         )
 
-        table_client.upsert_entity(vendor.model_dump())
+        table_client.create_entity(vendor.model_dump())
         logger.info(f"Added vendor: {vendor.VendorName} ({vendor.RowKey})")
         return func.HttpResponse(
             json.dumps({"status": "success", "vendor": vendor.VendorName}),
@@ -44,6 +50,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         errors = [{"field": err["loc"][0] if err["loc"] else "unknown", "message": err["msg"]} for err in e.errors()]
         return func.HttpResponse(
             json.dumps({"error": "Validation failed", "details": errors}),
+            status_code=400,
+        )
+    except ResourceExistsError as e:
+        logger.warning(f"Vendor already exists: {str(e)}")
+        return func.HttpResponse(
+            json.dumps({"error": "Vendor already exists"}),
             status_code=400,
         )
     except Exception as e:
