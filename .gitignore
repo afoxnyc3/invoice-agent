@@ -86,3 +86,4 @@ temp/
 # Screenshots and temporary files
 misc/
 Screenshot*.png
+.session-summary*.md
