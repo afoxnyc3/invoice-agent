@@ -59,7 +59,7 @@ class LiveMonitor:
             cutoff_iso = cutoff.isoformat() + "Z"
             query = f"CreatedAt gt datetime'{cutoff_iso}'"
 
-            entities = client.query_entities(filter=query)
+            entities = client.query_entities(query_filter=query)
             transactions = list(entities)
 
             # Filter for Test Invoice

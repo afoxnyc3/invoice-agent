@@ -26,11 +26,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from shared.graph_client import GraphAPIClient
 from shared.logger import get_logger
+from shared.ulid_generator import generate_ulid
 from azure.data.tables import TableClient
 from azure.identity import DefaultAzureCredential
 from azure.storage.queue import QueueClient
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, generate_ulid())
 
 
 class TestAnalyzer:
@@ -105,7 +106,7 @@ class TestAnalyzer:
             cutoff_iso = cutoff.isoformat() + "Z"
             query = f"CreatedAt gt datetime'{cutoff_iso}'"
 
-            entities = client.query_entities(filter=query)
+            entities = client.query_entities(query_filter=query)
             transactions = list(entities)
 
             if not transactions:

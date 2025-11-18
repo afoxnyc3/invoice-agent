@@ -19,8 +19,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from shared.graph_client import GraphAPIClient
 from shared.logger import get_logger
+from shared.ulid_generator import generate_ulid
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, generate_ulid())
 
 
 def verify_emails():
