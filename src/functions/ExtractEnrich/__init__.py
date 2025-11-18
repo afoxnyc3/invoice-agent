@@ -64,7 +64,7 @@ def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sende
     logger.warning(f"Unknown vendor: {vendor_name} - sent registration email to {sender}")
 
 
-def main(msg: func.QueueMessage, toPost: func.Out[str], notify: func.Out[str]):
+def main(msg: func.QueueMessage, toPost: func.Out[str]):
     """Extract vendor and enrich invoice data."""
     try:
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())

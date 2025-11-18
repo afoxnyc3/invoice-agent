@@ -59,7 +59,7 @@ class TestExtractEnrich:
         to_post_queue.set = lambda m: queued_messages.append(m)
 
         # Execute function
-        main(msg, to_post_queue, notify_queue)
+        main(msg, to_post_queue)
 
         # Assertions
         assert len(queued_messages) == 1
@@ -112,7 +112,7 @@ class TestExtractEnrich:
         to_post_queue.set = lambda m: queued_messages.append(m)
 
         # Execute function
-        main(msg, to_post_queue, notify_queue)
+        main(msg, to_post_queue)
 
         # Assertions
         assert len(queued_messages) == 1  # Message should be queued with unknown status
@@ -177,7 +177,7 @@ class TestExtractEnrich:
         to_post_queue.set = lambda m: queued_messages.append(m)
 
         # Execute function
-        main(msg, to_post_queue, notify_queue)
+        main(msg, to_post_queue)
 
         # Assertions - reseller should be flagged as unknown for manual review
         assert len(queued_messages) == 1
@@ -202,7 +202,7 @@ class TestExtractEnrich:
 
         # Execute function - should raise exception
         try:
-            main(msg, to_post_queue, notify_queue)
+            main(msg, to_post_queue)
             assert False, "Expected exception to be raised"
         except Exception:
             pass  # Expected
@@ -256,7 +256,7 @@ class TestExtractEnrich:
         queued_messages = []
         to_post_queue.set = lambda m: queued_messages.append(m)
 
-        main(msg, to_post_queue, notify_queue)
+        main(msg, to_post_queue)
 
         # Should match despite case difference
         assert len(queued_messages) == 1

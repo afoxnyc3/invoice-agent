@@ -1,6 +1,6 @@
 {
   "bindings": [
     {"type":"queueTrigger","direction":"in","name":"msg","queueName":"to-post","connection":"AzureWebJobsStorage"},
-    {"type":"queue","direction":"out","name":"toNotify","queueName":"notify","connection":"AzureWebJobsStorage"}
+    {"type":"queue","direction":"out","name":"notify","queueName":"notify","connection":"AzureWebJobsStorage"}
   ]
 }
