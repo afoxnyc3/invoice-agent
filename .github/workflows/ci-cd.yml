@@ -148,6 +148,44 @@ jobs:
           # Create archive for deployment
           zip -r ../function-app.zip .
 
+      - name: Validate deployment package
+        working-directory: ./src
+        run: |
+          # Check Python version
+          python --version
+
+          # Test imports with the exact PYTHONPATH that Azure Functions uses
+          export PYTHONPATH=.:.python_packages/lib/site-packages
+          python -c "
+          import sys
+          print(f'Python {sys.version}')
+          print(f'PYTHONPATH: {sys.path[:3]}')
+
+          # Test critical imports
+          try:
+              import azure.functions
+              print('✅ azure.functions imported')
+          except ImportError as e:
+              print(f'❌ Failed to import azure.functions: {e}')
+              sys.exit(1)
+
+          try:
+              import shared.models
+              print('✅ shared.models imported')
+          except ImportError as e:
+              print(f'❌ Failed to import shared.models: {e}')
+              sys.exit(1)
+
+          try:
+              from functions.MailIngest import main
+              print('✅ MailIngest function imported')
+          except ImportError as e:
+              print(f'❌ Failed to import MailIngest: {e}')
+              sys.exit(1)
+
+          print('✅ All critical imports successful')
+          "
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

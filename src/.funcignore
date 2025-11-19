@@ -1,0 +1,41 @@
+# Python cache files that cause version conflicts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing and development files
+.pytest_cache/
+.mypy_cache/
+tests/
+.coverage
+*.log
+
+# Local settings (should use Azure settings)
+local.settings.json
+
+# Development tools
+.vscode/
+.idea/
+
+# Documentation and non-runtime files
+*.md
+docs/
+scripts/
+infrastructure/
+
+# Git files
+.git/
+.gitignore
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
