@@ -12,10 +12,10 @@ import base64
 from datetime import datetime
 from unittest.mock import patch, MagicMock
 
-from functions.MailIngest import main as mail_ingest_main
-from functions.ExtractEnrich import main as extract_enrich_main
-from functions.PostToAP import main as post_to_ap_main
-from functions.Notify import main as notify_main
+from MailIngest import main as mail_ingest_main
+from ExtractEnrich import main as extract_enrich_main
+from PostToAP import main as post_to_ap_main
+from Notify import main as notify_main
 
 from shared.models import RawMail, EnrichedInvoice, NotificationMessage
 from .utils.assertions import (

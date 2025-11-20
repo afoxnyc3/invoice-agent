@@ -4,7 +4,7 @@ Unit tests for ExtractEnrich queue function.
 
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from functions.ExtractEnrich import main
+from ExtractEnrich import main
 
 
 class TestExtractEnrich:
@@ -18,7 +18,7 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("functions.ExtractEnrich.TableServiceClient")
+    @patch("ExtractEnrich.TableServiceClient")
     def test_extract_enrich_known_vendor(self, mock_table_service):
         """Test successful enrichment with known vendor."""
         # Mock table client with query_entities for vendor lookup
@@ -77,8 +77,8 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("functions.ExtractEnrich.GraphAPIClient")
-    @patch("functions.ExtractEnrich.TableServiceClient")
+    @patch("ExtractEnrich.GraphAPIClient")
+    @patch("ExtractEnrich.TableServiceClient")
     def test_extract_enrich_unknown_vendor(self, mock_table_service, mock_graph_class):
         """Test unknown vendor triggers registration email."""
         # Mock table client to return empty list (vendor not found)
@@ -134,8 +134,8 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("functions.ExtractEnrich.GraphAPIClient")
-    @patch("functions.ExtractEnrich.TableServiceClient")
+    @patch("ExtractEnrich.GraphAPIClient")
+    @patch("ExtractEnrich.TableServiceClient")
     def test_extract_enrich_reseller_vendor(self, mock_table_service, mock_graph_class):
         """Test reseller vendor is flagged for manual review."""
         # Mock GraphAPIClient
@@ -218,7 +218,7 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("functions.ExtractEnrich.TableServiceClient")
+    @patch("ExtractEnrich.TableServiceClient")
     def test_extract_enrich_case_insensitive_matching(self, mock_table_service):
         """Test vendor name matching is case-insensitive."""
         # Mock table client

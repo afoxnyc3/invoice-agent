@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 from unittest.mock import MagicMock
 
-from functions.AddVendor import main as add_vendor_main
+from AddVendor import main as add_vendor_main
 
 
 @pytest.mark.integration

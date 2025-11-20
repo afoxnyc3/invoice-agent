@@ -5,14 +5,14 @@ Unit tests for AddVendor HTTP function.
 import json
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from functions.AddVendor import main
+from AddVendor import main
 
 
 class TestAddVendor:
     """Test suite for AddVendor function."""
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_success(self, mock_table_service):
         """Test successful vendor creation."""
         # Mock table client
@@ -46,7 +46,7 @@ class TestAddVendor:
         assert call_args["PartitionKey"] == "Vendor"
         assert call_args["VendorName"] == "Adobe"
 
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_invalid_gl_code(self, mock_table_service):
         """Test validation fails with invalid GL code."""
         req_body = {
@@ -64,7 +64,7 @@ class TestAddVendor:
         response_data = json.loads(response.get_body())
         assert "error" in response_data
 
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_missing_required_field(self, mock_table_service):
         """Test validation fails with missing required field."""
         req_body = {
@@ -83,7 +83,7 @@ class TestAddVendor:
         assert "error" in response_data
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_duplicate_update(self, mock_table_service):
         """Test creating duplicate vendor (should fail with 400)."""
         mock_table_client = MagicMock()
@@ -106,7 +106,7 @@ class TestAddVendor:
         assert response.status_code == 400
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_table_error(self, mock_table_service):
         """Test handling of table storage errors."""
         mock_table_client = MagicMock()
@@ -129,7 +129,7 @@ class TestAddVendor:
         assert "error" in response_data
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("functions.AddVendor.TableServiceClient")
+    @patch("AddVendor.TableServiceClient")
     def test_add_vendor_name_normalization(self, mock_table_service):
         """Test vendor name normalization with various formats."""
         mock_table_client = MagicMock()

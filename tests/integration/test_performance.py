@@ -13,7 +13,7 @@ from unittest.mock import patch, MagicMock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from shared.ulid_generator import generate_ulid
-from functions.ExtractEnrich import main as extract_enrich_main
+from ExtractEnrich import main as extract_enrich_main
 
 
 @pytest.mark.integration
@@ -165,7 +165,7 @@ def test_single_invoice_latency(
     mock_graph.send_email.return_value = {"id": "sent-123"}
 
     with patch("functions.PostToAP.GraphAPIClient", return_value=mock_graph):
-        from functions.PostToAP import main as post_to_ap_main
+        from PostToAP import main as post_to_ap_main
 
         post_to_ap_main(mock_queue_msg, mock_notify_output)
 

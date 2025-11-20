@@ -11,8 +11,8 @@ import time
 from unittest.mock import patch, MagicMock
 from azure.core.exceptions import ServiceRequestError
 
-from functions.ExtractEnrich import main as extract_enrich_main
-from functions.PostToAP import main as post_to_ap_main
+from ExtractEnrich import main as extract_enrich_main
+from PostToAP import main as post_to_ap_main
 
 
 @pytest.mark.integration

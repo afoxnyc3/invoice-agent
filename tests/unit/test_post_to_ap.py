@@ -5,7 +5,7 @@ Unit tests for PostToAP queue function.
 import base64
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from functions.PostToAP import main
+from PostToAP import main
 
 
 class TestPostToAP:
@@ -19,9 +19,9 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("functions.PostToAP.GraphAPIClient")
-    @patch("functions.PostToAP.TableServiceClient")
-    @patch("functions.PostToAP.BlobServiceClient")
+    @patch("PostToAP.GraphAPIClient")
+    @patch("PostToAP.TableServiceClient")
+    @patch("PostToAP.BlobServiceClient")
     def test_post_to_ap_success(self, mock_blob_service, mock_table_service, mock_graph_class):
         """Test successful AP posting with all components."""
         # Mock blob client
@@ -87,9 +87,9 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("functions.PostToAP.GraphAPIClient")
-    @patch("functions.PostToAP.TableServiceClient")
-    @patch("functions.PostToAP.BlobServiceClient")
+    @patch("PostToAP.GraphAPIClient")
+    @patch("PostToAP.TableServiceClient")
+    @patch("PostToAP.BlobServiceClient")
     def test_post_to_ap_email_content(self, mock_blob_service, mock_table_service, mock_graph_class):
         """Test AP email contains all required metadata."""
         # Mock blob client
@@ -146,9 +146,9 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("functions.PostToAP.GraphAPIClient")
-    @patch("functions.PostToAP.TableServiceClient")
-    @patch("functions.PostToAP.BlobServiceClient")
+    @patch("PostToAP.GraphAPIClient")
+    @patch("PostToAP.TableServiceClient")
+    @patch("PostToAP.BlobServiceClient")
     def test_post_to_ap_attachment_format(self, mock_blob_service, mock_table_service, mock_graph_class):
         """Test PDF attachment is properly encoded."""
         # Mock blob client with specific content
@@ -204,8 +204,8 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("functions.PostToAP.TableServiceClient")
-    @patch("functions.PostToAP.BlobServiceClient")
+    @patch("PostToAP.TableServiceClient")
+    @patch("PostToAP.BlobServiceClient")
     def test_post_to_ap_blob_download_error(self, mock_blob_service, mock_table_service):
         """Test handling of blob download errors."""
         # Mock table client for deduplication check (returns not found)
@@ -253,9 +253,9 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("functions.PostToAP.GraphAPIClient")
-    @patch("functions.PostToAP.TableServiceClient")
-    @patch("functions.PostToAP.BlobServiceClient")
+    @patch("PostToAP.GraphAPIClient")
+    @patch("PostToAP.TableServiceClient")
+    @patch("PostToAP.BlobServiceClient")
     def test_post_to_ap_transaction_logging(self, mock_blob_service, mock_table_service, mock_graph_class):
         """Test transaction is logged with correct partition key format."""
         # Mock blob client

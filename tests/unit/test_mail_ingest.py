@@ -5,7 +5,7 @@ Unit tests for MailIngest timer function.
 import base64
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from functions.MailIngest import main
+from MailIngest import main
 
 
 class TestMailIngest:
@@ -18,8 +18,8 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.BlobServiceClient")
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.BlobServiceClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_with_attachment(self, mock_graph_class, mock_blob_service):
         """Test successful email processing with attachment."""
         # Mock Graph API client
@@ -74,8 +74,8 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.BlobServiceClient")
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.BlobServiceClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_without_attachment(self, mock_graph_class, mock_blob_service):
         """Test email without attachment is skipped."""
         # Mock Graph API client
@@ -112,8 +112,8 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.BlobServiceClient")
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.BlobServiceClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_multiple_emails(self, mock_graph_class, mock_blob_service):
         """Test processing multiple emails."""
         # Mock Graph API client
@@ -174,7 +174,7 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_graph_api_error(self, mock_graph_class):
         """Test handling of Graph API errors."""
         # Mock Graph API client to raise exception
@@ -200,8 +200,8 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.BlobServiceClient")
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.BlobServiceClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_no_emails(self, mock_graph_class, mock_blob_service):
         """Test when mailbox has no unread emails."""
         # Mock Graph API client
@@ -229,8 +229,8 @@ class TestMailIngest:
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
         },
     )
-    @patch("functions.MailIngest.BlobServiceClient")
-    @patch("functions.MailIngest.GraphAPIClient")
+    @patch("MailIngest.BlobServiceClient")
+    @patch("MailIngest.GraphAPIClient")
     def test_mail_ingest_multiple_attachments(self, mock_graph_class, mock_blob_service):
         """Test email with multiple attachments."""
         # Mock Graph API client
