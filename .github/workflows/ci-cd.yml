@@ -202,8 +202,8 @@ jobs:
     name: Deploy to Staging Slot
     needs: build
     runs-on: ubuntu-latest
-    # Only run on main branch pushes, not PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Run on main branch pushes or manual trigger
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     environment:
       name: staging
       url: https://func-invoice-agent-prod-staging.azurewebsites.net
@@ -326,8 +326,8 @@ jobs:
     name: Deploy to Production
     needs: deploy-staging
     runs-on: ubuntu-latest
-    # Only run on main branch pushes
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Run on main branch pushes or manual trigger
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     # Uses GitHub environment protection rules for manual approval
     environment:
       name: production
