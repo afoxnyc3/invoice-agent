@@ -9,6 +9,16 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 **Current State:** Manual processing takes 5+ minutes per invoice
 **Target State:** Automated processing in <60 seconds
 
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| **[CLAUDE.md](CLAUDE.md)** | Development workflow, coding standards, deployment procedures |
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Technical architecture, system design, integration specs |
+| **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** | Local setup and development guide |
+| **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** | Deployment procedures and checklists |
+| **[docs/ROADMAP.md](docs/ROADMAP.md)** | Product roadmap and future enhancements |
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -60,31 +70,36 @@ See [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) for detailed instructio
 
 ```
 invoice-agent/
-├── .claude/              # AI automation tools
-│   ├── agents/          # Code generation agents
-│   ├── commands/        # Slash commands
-│   ├── CLAUDE.md        # AI instructions
-│   └── SPEC.md          # System specification
+├── CLAUDE.md            # Development workflow and standards
+├── README.md            # This file (project overview)
+├── .claude/             # AI automation tools
+│   ├── agents/         # Code generation agents
+│   └── commands/       # Slash commands
 ├── docs/                # Documentation
-│   ├── ARCHITECTURE.md  # System design
-│   ├── DECISIONS.md     # ADRs
+│   ├── ARCHITECTURE.md  # Technical architecture (comprehensive)
+│   ├── DECISIONS.md     # Architectural decision records
+│   ├── LOCAL_DEVELOPMENT.md  # Local setup guide
+│   ├── DEPLOYMENT_GUIDE.md   # Deployment procedures
 │   ├── ROADMAP.md       # Product roadmap
-│   └── CHANGE-LOG.md    # Version history
-├── infrastructure/       # Azure deployment
-│   ├── bicep/           # IaC templates
-│   ├── parameters/      # Environment configs
-│   └── scripts/         # Deployment scripts
+│   ├── CHANGE-LOG.md    # Version history
+│   ├── api/            # API documentation
+│   ├── monitoring/     # Monitoring and logging guides
+│   └── operations/     # Operational runbooks
+├── infrastructure/      # Azure deployment
+│   ├── bicep/          # Infrastructure as Code
+│   ├── parameters/     # Environment configs
+│   └── scripts/        # Deployment & seed scripts
 ├── src/                 # Source code
-│   ├── functions/       # Azure Functions
-│   ├── shared/          # Shared utilities
-│   ├── host.json        # Function App config
+│   ├── functions/      # Azure Functions (5 functions)
+│   ├── shared/         # Shared utilities
+│   ├── host.json       # Function App config
 │   └── requirements.txt # Python dependencies
-├── tests/               # Test suite
+├── tests/               # Test suite (98 tests, 96% coverage)
 │   ├── unit/           # Unit tests
 │   ├── integration/    # Integration tests
 │   └── fixtures/       # Test data
-└── data/               # Seed data
-    └── vendors.csv     # Vendor master list
+└── data/                # Seed data
+    └── vendors.csv      # Vendor master list
 ```
 
 ## 🔄 How It Works
@@ -214,10 +229,16 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 
 ## 📖 Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) - System design and components
-- [Decisions](docs/DECISIONS.md) - Architectural decision records
-- [Roadmap](docs/ROADMAP.md) - Product vision and phases
-- [API Spec](.claude/SPEC.md) - Technical specification
+### Core Documentation
+- **[CLAUDE.md](CLAUDE.md)** - Development workflow, coding standards, quality gates
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete technical architecture and system design
+- **[docs/DECISIONS.md](docs/DECISIONS.md)** - Architectural decision records (ADRs)
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Product roadmap and future enhancements
+
+### Operational Guides
+- **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** - Local setup and development
+- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Deployment procedures
+- **[docs/operations/](docs/operations/)** - Runbooks, troubleshooting, disaster recovery
 
 ## 🤝 Contributing
 
