@@ -14,6 +14,7 @@ import os
 import logging
 import re
 import base64
+import traceback
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 from shared.graph_client import GraphAPIClient
@@ -79,12 +80,25 @@ def _process_email(email: dict, graph: GraphAPIClient, mailbox: str, blob_contai
 def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
     """Poll mailbox and queue unread emails with attachments."""
     try:
+        # Startup diagnostics
         mailbox = os.environ["INVOICE_MAILBOX"]
+        tenant_id = os.environ.get("GRAPH_TENANT_ID", "not-set")
+        tenant_display = f"{tenant_id[:8]}..." if tenant_id != "not-set" else "not-set"
+
+        logger.info(f"MailIngest starting - polling mailbox: {mailbox}")
+        logger.debug(f"Graph API tenant: {tenant_display}")
+
+        # Initialize Graph API client
         graph = GraphAPIClient()
+        logger.debug("Graph API client initialized successfully")
+
+        # Initialize blob storage
         blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
         blob_container = blob_service.get_container_client("invoices")
+
+        # Retrieve unread emails
         emails = graph.get_unread_emails(mailbox, max_results=50)
-        logger.info(f"Found {len(emails)} unread emails")
+        logger.info(f"Found {len(emails)} unread emails in {mailbox}")
 
         for email in emails:
             # Check if email should be skipped for loop prevention
@@ -101,6 +115,24 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
 
             _process_email(email, graph, mailbox, blob_container, outQueueItem)
             graph.mark_as_read(mailbox, email["id"])
+
+        logger.info(f"MailIngest completed successfully - processed {len(emails)} emails")
+
+    except KeyError as e:
+        # Environment variable missing
+        logger.error(f"MailIngest failed - missing environment variable: {str(e)}")
+        logger.error(f"Check Key Vault secrets: INVOICE_MAILBOX, GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET")
+        logger.debug(traceback.format_exc())
+        raise
+    except ValueError as e:
+        # Authentication/credential error
+        logger.error(f"MailIngest failed - invalid configuration: {str(e)}")
+        logger.error("Check Graph API credentials in Key Vault")
+        logger.debug(traceback.format_exc())
+        raise
     except Exception as e:
-        logger.error(f"MailIngest failed: {str(e)}")
+        # Unexpected error
+        logger.error(f"MailIngest failed with unexpected error: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(traceback.format_exc())
         raise
