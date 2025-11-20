@@ -54,16 +54,16 @@ jobs:
         working-directory: ./src
         run: |
           echo "Running Black formatter check..."
-          black --check --diff functions/ shared/
+          black --check --diff MailIngest/ ExtractEnrich/ PostToAP/ Notify/ AddVendor/ shared/
 
       - name: Lint with Flake8
         working-directory: ./src
         run: |
           echo "Running Flake8 linter..."
           # Stop the build if there are Python syntax errors or undefined names
-          flake8 functions/ shared/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 MailIngest/ ExtractEnrich/ PostToAP/ Notify/ AddVendor/ shared/ --count --select=E9,F63,F7,F82 --show-source --statistics
           # Exit-zero treats all errors as warnings (line length=127 to match Black default)
-          flake8 functions/ shared/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 MailIngest/ ExtractEnrich/ PostToAP/ Notify/ AddVendor/ shared/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Run unit tests with coverage
         working-directory: .
@@ -177,7 +177,7 @@ jobs:
               sys.exit(1)
 
           try:
-              from functions.MailIngest import main
+              from MailIngest import main
               print('✅ MailIngest function imported')
           except ImportError as e:
               print(f'❌ Failed to import MailIngest: {e}')
