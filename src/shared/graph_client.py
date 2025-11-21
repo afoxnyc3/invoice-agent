@@ -258,9 +258,7 @@ class GraphAPIClient:
         return self._make_request("POST", endpoint, json=body)
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def create_subscription(
-        self, mailbox: str, webhook_url: str, client_state: str
-    ) -> Dict[str, Any]:
+    def create_subscription(self, mailbox: str, webhook_url: str, client_state: str) -> Dict[str, Any]:
         """
         Create a Graph API change notification subscription for new emails.
 
