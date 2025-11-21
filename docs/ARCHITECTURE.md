@@ -55,44 +55,77 @@ Automated Azure serverless system that extracts vendor information from email, a
 
 ### Core Architecture
 
+**Event-Driven Webhook Architecture (Nov 2024)**
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Shared Mailbox                            │
 │                    (invoices@example.com)                       │
 └────────────────────────────┬────────────────────────────────────┘
-                             │ Timer (5 min)
+                             │ Email arrives
                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MailIngest Function                         │
-│  - Poll unread emails via Graph API                             │
-│  - Save attachments to Blob Storage                             │
-│  - Queue message with metadata                                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ Queue: raw-mail
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    ExtractEnrich Function                        │
-│  - Extract vendor from email                                    │
-│  - Lookup in VendorMaster table                                │
-│  - Apply GL codes and metadata                                 │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ Queue: to-post
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      PostToAP Function                           │
-│  - Compose standardized email                                   │
-│  - Send to AP mailbox via Graph                                │
-│  - Log to InvoiceTransactions                                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ Queue: notify
-                             ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                       Notify Function                            │
-│  - Format Teams message                                         │
-│  - Post to webhook                                              │
-│  - Non-critical (no retry)                                      │
-└─────────────────────────────────────────────────────────────────┘
+│                   Microsoft Graph API                            │
+│  - Detects new email instantly (<5 seconds)                     │
+│  - Sends change notification via webhook                        │
+└──────────────┬─────────────────────────────┬────────────────────┘
+               │ HTTP POST (<10 sec)         │
+               ↓                             │ Subscription Management
+┌─────────────────────────────────────────┐  │
+│        MailWebhook Function (NEW)       │  │
+│  - HTTP trigger receives notification  │  │
+│  - Validates client state (security)   │  │
+│  - Saves attachments to Blob Storage   │  │
+│  - Queues for processing                │  │
+└──────────────┬──────────────────────────┘  │
+               │ Queue: webhook-notifications│
+               ↓                             │
+┌─────────────────────────────────────────┐  │
+│     ExtractEnrich Function              │  │
+│  - Extract vendor from email            │  │
+│  - Lookup in VendorMaster table         │  │
+│  - Apply GL codes and metadata          │  │
+└──────────────┬──────────────────────────┘  │
+               │ Queue: to-post              │
+               ↓                             │
+┌─────────────────────────────────────────┐  │
+│        PostToAP Function                │  │
+│  - Compose standardized email           │  │
+│  - Send to AP mailbox via Graph         │  │
+│  - Log to InvoiceTransactions           │  │
+└──────────────┬──────────────────────────┘  │
+               │ Queue: notify               │
+               ↓                             │
+┌─────────────────────────────────────────┐  │
+│         Notify Function                 │  │
+│  - Format Teams message                 │  │
+│  - Post to webhook                      │  │
+│  - Non-critical (no retry)              │  │
+└─────────────────────────────────────────┘  │
+                                             │
+┌─────────────────────────────────────────┐  │
+│  SubscriptionManager Function (NEW)    │◄─┘
+│  - Timer: Every 6 days                  │
+│  - Renews Graph API subscription        │
+│  - Stores state in GraphSubscriptions   │
+│  - Ensures webhooks stay active         │
+└─────────────────────────────────────────┘
+
+┌────────────────────────── FALLBACK ──────────────────────────────┐
+│  MailIngest Function (MODIFIED - Hourly Safety Net)              │
+│  - Timer: Every hour (was 5 minutes)                             │
+│  - Polls for any missed emails                                   │
+│  - Queues to raw-mail for processing                             │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Architecture Changes (Nov 2024):**
+- **Primary Path**: Event-driven webhooks (<10 sec latency, 95% of emails)
+- **Fallback Path**: Hourly polling (safety net, 5% of emails)
+- **Cost Reduction**: 70% savings ($0.60/month vs $2.00/month)
+- **Function Count**: 7 (was 5) - Added MailWebhook + SubscriptionManager
+- **New Queue**: `webhook-notifications` for webhook-based ingestion
+- **New Table**: `GraphSubscriptions` for subscription state management
 
 ### Technology Stack (as of Nov 2024)
 - **Python**: 3.11
@@ -108,10 +141,46 @@ Automated Azure serverless system that extracts vendor information from email, a
 
 ### Function Specifications
 
-#### 1. MailIngest Function
-**Purpose**: Monitor shared mailbox and ingest invoices
+#### 1. MailWebhook Function (NEW - Nov 2024)
+**Purpose**: Receive real-time email notifications from Microsoft Graph API
 
-- **Trigger**: Timer (cron: `0 */5 * * * *` - every 5 minutes)
+- **Trigger**: HTTP POST (webhook endpoint)
+- **Input**: Graph API change notification
+- **Output**: Queue message to `webhook-notifications`
+- **Processing**:
+  1. **MODE 1 - Validation Handshake**: Return validation token during subscription creation
+  2. **MODE 2 - Notification Processing**:
+     - Validate `clientState` for security
+     - Extract notification details (message ID, mailbox)
+     - Fetch email details via Graph API
+     - Download attachments to Blob Storage (`invoices/raw/`)
+     - Create queue message with email metadata
+     - Return 202 Accepted to Graph
+- **Max Execution Time**: 30 seconds
+- **Scaling**: Auto-scale based on HTTP requests
+- **Security**: Client state validation prevents unauthorized notifications
+
+#### 2. SubscriptionManager Function (NEW - Nov 2024)
+**Purpose**: Maintain Graph API webhook subscriptions
+
+- **Trigger**: Timer (cron: `0 0 0 */6 * *` - every 6 days)
+- **Input**: None (auto-managed)
+- **Output**: Updates GraphSubscriptions table
+- **Processing**:
+  1. Query GraphSubscriptions table for existing subscription
+  2. Check expiration (Graph max: 7 days for mail resources)
+  3. **If exists & expires in <48 hours**: Renew subscription via Graph API
+  4. **If not exists**: Create new subscription with validation handshake
+  5. Store subscription ID, expiration, and metadata
+  6. Deactivate old subscriptions
+- **Max Execution Time**: 2 minutes
+- **Scaling**: Single instance (timer-triggered)
+- **Why 6 days?**: Renews before 7-day expiration, with 24-hour buffer
+
+#### 3. MailIngest Function (MODIFIED - Nov 2024)
+**Purpose**: Fallback polling for missed emails (safety net)
+
+- **Trigger**: Timer (cron: `0 0 * * * *` - every hour, **was 5 minutes**)
 - **Input**: None (polls Graph API)
 - **Output**: Queue message to `raw-mail`
 - **Processing**:
@@ -122,8 +191,9 @@ Automated Azure serverless system that extracts vendor information from email, a
   5. Mark email as read
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Single instance (timer-triggered)
+- **Role Change**: Primary ingestion → Fallback/safety net (handles ~5% of emails)
 
-#### 2. ExtractEnrich Function
+#### 4. ExtractEnrich Function
 **Purpose**: Extract vendor and enrich with GL codes
 
 - **Trigger**: Queue (`raw-mail`)
@@ -139,7 +209,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 3. PostToAP Function
+#### 5. PostToAP Function
 **Purpose**: Send enriched invoice to AP mailbox
 
 - **Trigger**: Queue (`to-post`)
@@ -154,7 +224,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 4. Notify Function
+#### 6. Notify Function
 **Purpose**: Post status notifications to Teams
 
 - **Trigger**: Queue (`notify`)
@@ -167,7 +237,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 2 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 5. AddVendor Function
+#### 7. AddVendor Function
 **Purpose**: HTTP endpoint for vendor management
 
 - **Trigger**: HTTP POST
@@ -198,13 +268,15 @@ Automated Azure serverless system that extracts vendor information from email, a
 **Tables:**
 - `VendorMaster`: Vendor lookup data (~100-1000 vendors)
 - `InvoiceTransactions`: Audit log (7-year retention)
+- `GraphSubscriptions`: **NEW** - Webhook subscription state management
 
 **Blobs:**
 - `invoices/raw/`: Original email attachments
 - `invoices/processed/`: Archived invoices (future)
 
 **Queues:**
-- `raw-mail`: Unprocessed emails from MailIngest
+- `webhook-notifications`: **NEW** - Real-time email notifications from MailWebhook (primary path)
+- `raw-mail`: Unprocessed emails from MailIngest (fallback path)
 - `to-post`: Enriched invoices for AP routing
 - `notify`: Notifications for Teams
 - `*-poison`: Dead letter queues (5 retry attempts)
@@ -217,6 +289,8 @@ Automated Azure serverless system that extracts vendor information from email, a
 
 **Key Vault** (Standard tier)
 - `graph-client-secret`: Service principal secret
+- `graph-client-state`: **NEW** - Webhook validation secret (security)
+- `mail-webhook-url`: **NEW** - MailWebhook endpoint URL with function key
 - `ap-email-address`: AP mailbox address
 - `teams-webhook-url`: Teams channel webhook
 - `invoice-mailbox`: Shared mailbox address
@@ -284,6 +358,34 @@ entities = table_client.query_entities(
     query_filter="PartitionKey eq '202411'"
 )
 ```
+
+### GraphSubscriptions Table Schema (NEW - Nov 2024)
+
+Table Storage schema for webhook subscription management:
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| PartitionKey | string | Always "GraphSubscription" | "GraphSubscription" |
+| RowKey | string | subscription_id | "da93534d-0c4c-4d9d-9b9e-c429c0549221" |
+| SubscriptionId | string | Graph API subscription ID | "da93534d-0c4c-4d9d-9b9e-c429c0549221" |
+| Resource | string | Monitored resource path | "users/invoices@company.com/mailFolders('Inbox')/messages" |
+| ExpirationDateTime | datetime | When subscription expires | "2025-11-23T22:25:47Z" |
+| IsActive | bool | Current status | true |
+| CreatedAt | datetime | Creation timestamp | "2025-11-20T18:30:00Z" |
+| LastRenewed | datetime | Last renewal timestamp | "2025-11-20T18:30:00Z" |
+
+**Query Pattern**: Single active subscription per resource
+```python
+# Query for active subscription
+query_filter = "PartitionKey eq 'GraphSubscription' and IsActive eq true"
+entities = list(table_client.query_entities(query_filter))
+```
+
+**Subscription Lifecycle:**
+- Created by SubscriptionManager on first run
+- Renewed every 6 days (Graph max: 7 days for mail resources)
+- Marked inactive when replaced by new subscription
+- Subscription ID stored for renewal/deletion operations
 
 ### Queue Message Schemas
 

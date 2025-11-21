@@ -205,7 +205,8 @@ Closes #XX
 - This matches Azure Functions runtime working directory expectations
 
 ### Queue Message Flow
-- `raw-mail`: Email metadata + blob URL
+- `webhook-notifications`: Graph API change notifications (NEW - webhook path)
+- `raw-mail`: Email metadata + blob URL (fallback timer path)
 - `to-post`: Enriched vendor data with GL codes
 - `notify`: Formatted notification messages
 - Poison queue after 5 retry attempts
@@ -404,7 +405,9 @@ Track these across all work:
 ## Scope Boundaries
 
 ### IN SCOPE ✅
-- Email polling from shared mailbox every 5 minutes
+- **Real-time email processing** via Graph API webhooks (<10 second latency)
+- **Webhook subscription management** (automatic renewal every 6 days)
+- **Fallback hourly polling** as safety net for missed notifications
 - Attachment storage to Azure Blob
 - Vendor extraction from email sender/subject
 - Vendor lookup and enrichment (4 fields)
@@ -456,21 +459,32 @@ When working with this codebase, Claude should:
 
 ## Current Focus
 
-**MVP Deployed to Production (Nov 14, 2024)**
+**Webhook Migration Complete (Nov 20, 2024)**
 
-Building MVP with simplest possible implementation that works reliably. Complexity can be added later if needed. NetSuite handles all the complex approval logic - we just need to get the invoice there with the right metadata.
+Migrated from timer-based polling to event-driven webhooks using Microsoft Graph Change Notifications. System now processes emails in real-time (<10 seconds) with 70% cost savings.
 
 **Current State:**
-- ✅ All 5 functions deployed and active
+- ✅ All 7 functions deployed and active
+  - **New:** MailWebhook (HTTP) - Receives Graph API notifications
+  - **New:** SubscriptionManager (Timer) - Auto-renews subscriptions every 6 days
+  - **Modified:** MailIngest - Now hourly fallback/safety net (was 5-min primary)
+  - Existing: ExtractEnrich, PostToAP, Notify, AddVendor
 - ✅ CI/CD pipeline operational (98 tests passing, 96% coverage)
 - ✅ Infrastructure ready (staging + production slots)
+- ✅ Webhook subscription active and tested
 - 🟡 Awaiting vendor data seed to activate live processing
+
+**Architecture Change:**
+```
+BEFORE: Timer (5 min) → Poll Mailbox → Process (5 min latency, $2/month)
+AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/month)
+```
 
 **Next Steps:**
 1. Seed VendorMaster table
-2. End-to-end production testing
-3. Performance measurement
-4. Monitor and optimize
+2. End-to-end production testing with webhook flow
+3. Performance measurement and monitoring
+4. Phase 2: PDF extraction and AI vendor matching
 
 ---
 

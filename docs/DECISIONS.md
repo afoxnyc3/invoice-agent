@@ -243,7 +243,8 @@ This document records all significant architectural decisions made during the de
 ## ADR-012: Timer Trigger over Event-Based
 
 **Date:** 2024-11-09
-**Status:** Accepted
+**Status:** ~~Accepted~~ **SUPERSEDED** (2024-11-20)
+**Superseded By:** ADR-021 (Event-Driven Webhooks)
 **Context:** Email polling strategy
 **Decision:** Use 5-minute timer instead of Graph webhooks
 
@@ -258,6 +259,12 @@ This document records all significant architectural decisions made during the de
 - ✅ No external dependencies
 - ⚠️ 5-minute maximum latency
 - ⚠️ Unnecessary polling when no emails
+
+**Why Superseded:**
+- Timer triggers proved unreliable on Consumption plan (AlwaysOn not available)
+- Latency requirements changed to <10 seconds
+- Webhook solution provides 70% cost reduction ($0.60/month vs $2.00/month)
+- See ADR-021 for webhook implementation details
 
 ---
 
@@ -426,6 +433,60 @@ This document records all significant architectural decisions made during the de
 - ✅ Quick rollback
 - ⚠️ Slightly complex setup
 - ⚠️ Double resource cost during deployment
+
+---
+
+## ADR-021: Event-Driven Webhooks over Timer Polling
+
+**Date:** 2024-11-20
+**Status:** Accepted
+**Supersedes:** ADR-012
+**Context:** Timer triggers proved unreliable on Consumption plan (AlwaysOn not available)
+
+**Decision:** Migrate from timer-based polling to Microsoft Graph Change Notifications (webhooks) for email ingestion
+
+**Rationale:**
+- **Real-time processing**: <10 seconds vs 5 minutes
+- **Cost reduction**: 70% savings (~$0.60/month vs $2.00/month)
+- **Reliability**: Timer triggers unreliable on Consumption plan when app is idle
+- **Efficiency**: No unnecessary polling when no emails
+- **Scalability**: Event-driven architecture handles thousands of emails/day
+- **Industry best practice**: Standard approach for email/notification systems
+
+**Implementation Details:**
+- **MailWebhook**: HTTP endpoint receives Graph API change notifications
+- **SubscriptionManager**: Timer function (every 6 days) renews subscriptions
+- **MailIngest**: Retained as hourly fallback/safety net
+- **GraphSubscriptions**: New table for subscription state management
+- **New environment variables**: GRAPH_CLIENT_STATE, MAIL_WEBHOOK_URL
+
+**Architecture:**
+```
+Email arrives → Graph detects → HTTP POST to MailWebhook → Queue → Process
+   (vs old: Timer(5 min) → Poll → Process)
+```
+
+**Consequences:**
+- ✅ Real-time processing (<10s latency vs 5 min)
+- ✅ 70% cost savings (1,500 vs 8,640 executions/month)
+- ✅ No cold starts from unnecessary polling
+- ✅ Scalable to thousands of emails/day
+- ✅ Aligns with event-driven architecture principles
+- ⚠️ Public HTTPS endpoint required (security handled via client state validation)
+- ⚠️ Webhook subscription must be renewed every 7 days (automated via SubscriptionManager)
+- ⚠️ More complex setup (subscription registration + secret management)
+- ⚠️ Requires proper error handling for notification delivery failures
+
+**Rollback Plan:**
+- Re-enable MailIngest timer: `0 */5 * * * *` (every 5 minutes)
+- Delete Graph subscription via SubscriptionManager or manually
+- Disable MailWebhook function
+
+**References:**
+- [Microsoft Graph Change Notifications](https://learn.microsoft.com/en-us/graph/webhooks)
+- ADR-012 (superseded)
+- WEBHOOK_SETUP_GUIDE.md
+- SESSION_SUMMARY.md (archived)
 
 ---
 
