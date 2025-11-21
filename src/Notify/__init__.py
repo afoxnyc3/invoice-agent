@@ -9,40 +9,72 @@ import os
 import logging
 import requests
 import azure.functions as func
-from shared.models import (
-    NotificationMessage,
-    TeamsMessageCard,
-    MessageCardSection,
-    MessageCardFact,
-)
+from shared.models import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
 
-def _build_teams_card(notification: NotificationMessage) -> TeamsMessageCard:
-    """Build Teams message card from notification."""
-    color_map = {"success": "00FF00", "unknown": "FFA500", "error": "FF0000"}
-    facts = [MessageCardFact(name=k.title(), value=v) for k, v in notification.details.items()]
+def _build_teams_payload(notification: NotificationMessage) -> dict:
+    """
+    Build Teams webhook payload for Power Automate workflows.
 
-    return TeamsMessageCard(
-        themeColor=color_map.get(notification.type, "808080"),
-        text=notification.message,
-        sections=[MessageCardSection(facts=facts)],
-    )
+    Power Automate webhooks expect Adaptive Card format with attachments array.
+
+    Note: This workflow may fail with "bot not in roster" error until the
+    Power Automate Flow bot is granted permission to post to the channel.
+    This is a platform limitation that requires admin intervention.
+    """
+    emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌"}
+    color_map = {"success": "good", "unknown": "warning", "error": "attention"}
+
+    emoji = emoji_map.get(notification.type, "ℹ️")
+    color = color_map.get(notification.type, "default")
+
+    # Build facts for Adaptive Card FactSet
+    facts = [
+        {"title": f"{k.title()}:", "value": str(v)}
+        for k, v in notification.details.items()
+    ]
+
+    return {
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "type": "AdaptiveCard",
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"{emoji} {notification.message}",
+                            "weight": "Bolder",
+                            "size": "Large",
+                            "color": color
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": facts
+                        }
+                    ]
+                }
+            }
+        ]
+    }
 
 
 def main(msg: func.QueueMessage):
     """Post notification to Teams webhook."""
     try:
         notification = NotificationMessage.model_validate_json(msg.get_body().decode())
-        card = _build_teams_card(notification)
+        payload = _build_teams_payload(notification)
 
         webhook_url = os.environ.get("TEAMS_WEBHOOK_URL")
         if not webhook_url:
             logger.warning("Teams webhook URL not configured, skipping notification")
             return
 
-        response = requests.post(webhook_url, json=card.model_dump(by_alias=True), timeout=10)
+        response = requests.post(webhook_url, json=payload, timeout=10)
         response.raise_for_status()
         logger.info(f"Posted {notification.type} notification to Teams")
     except Exception as e:
