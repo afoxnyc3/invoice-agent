@@ -257,6 +257,79 @@ class GraphAPIClient:
 
         return self._make_request("POST", endpoint, json=body)
 
+    @retry_with_backoff(max_attempts=3, initial_delay=2.0)
+    def create_subscription(
+        self, mailbox: str, webhook_url: str, client_state: str
+    ) -> Dict[str, Any]:
+        """
+        Create a Graph API change notification subscription for new emails.
+
+        Args:
+            mailbox: Email address to monitor
+            webhook_url: HTTPS endpoint to receive notifications
+            client_state: Random secret for validating notifications
+
+        Returns:
+            dict: Subscription details including ID and expiration
+
+        Example:
+            >>> client.create_subscription(
+            ...     mailbox='invoices@example.com',
+            ...     webhook_url='https://myapp.azurewebsites.net/api/webhook',
+            ...     client_state='random-secret-string'
+            ... )
+            {'id': 'sub-12345', 'expirationDateTime': '2025-11-27T...'}
+        """
+        from datetime import datetime, timedelta
+
+        # Graph max: 4230 minutes (just under 7 days) for mail resources
+        expiration = datetime.utcnow() + timedelta(minutes=4200)
+
+        payload = {
+            "changeType": "created",
+            "notificationUrl": webhook_url,
+            "resource": f"users/{mailbox}/mailFolders('Inbox')/messages",
+            "expirationDateTime": expiration.isoformat() + "Z",
+            "clientState": client_state,
+        }
+
+        return self._make_request("POST", "subscriptions", json=payload)
+
+    @retry_with_backoff(max_attempts=3, initial_delay=2.0)
+    def renew_subscription(self, subscription_id: str) -> Dict[str, Any]:
+        """
+        Renew an existing Graph API subscription.
+
+        Args:
+            subscription_id: ID of subscription to renew
+
+        Returns:
+            dict: Updated subscription details
+
+        Example:
+            >>> client.renew_subscription('sub-12345')
+            {'id': 'sub-12345', 'expirationDateTime': '2025-11-27T...'}
+        """
+        from datetime import datetime, timedelta
+
+        expiration = datetime.utcnow() + timedelta(minutes=4200)
+        payload = {"expirationDateTime": expiration.isoformat() + "Z"}
+
+        return self._make_request("PATCH", f"subscriptions/{subscription_id}", json=payload)
+
+    @retry_with_backoff(max_attempts=3, initial_delay=2.0)
+    def delete_subscription(self, subscription_id: str) -> None:
+        """
+        Delete a Graph API subscription.
+
+        Args:
+            subscription_id: ID of subscription to delete
+
+        Example:
+            >>> client.delete_subscription('sub-12345')
+        """
+        self._make_request("DELETE", f"subscriptions/{subscription_id}")
+
     def __del__(self):
         """Clean up session on deletion."""
         if hasattr(self, "session"):
