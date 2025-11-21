@@ -1,0 +1,19 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "name": "msg",
+      "type": "queueTrigger",
+      "direction": "in",
+      "queueName": "webhook-notifications",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "name": "outQueueItem",
+      "type": "queue",
+      "direction": "out",
+      "queueName": "raw-mail",
+      "connection": "AzureWebJobsStorage"
+    }
+  ]
+}
