@@ -182,6 +182,33 @@ class GraphAPIClient:
         response = self._make_request("GET", endpoint)
         return response.get("value", [])
 
+    @retry_with_backoff(max_attempts=3, initial_delay=2.0)
+    def get_email(self, mailbox: str, message_id: str) -> Dict[str, Any]:
+        """
+        Get a single email by message ID.
+
+        Args:
+            mailbox: Email address of mailbox
+            message_id: ID of the email message
+
+        Returns:
+            dict: Email message object with:
+                - id: Message ID
+                - sender: Sender information
+                - subject: Email subject
+                - receivedDateTime: Timestamp
+                - hasAttachments: Boolean
+                - body: Email body
+
+        Raises:
+            Exception: If email not found or request fails
+        """
+        endpoint = f"users/{mailbox}/messages/{message_id}"
+        params = {
+            "$select": "id,sender,subject,receivedDateTime,hasAttachments,body"
+        }
+        return self._make_request("GET", endpoint, params=params)
+
     @retry_with_backoff(max_attempts=3, initial_delay=1.0)
     def mark_as_read(self, mailbox: str, message_id: str) -> bool:
         """

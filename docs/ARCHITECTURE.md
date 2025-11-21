@@ -151,16 +151,34 @@ Automated Azure serverless system that extracts vendor information from email, a
   1. **MODE 1 - Validation Handshake**: Return validation token during subscription creation
   2. **MODE 2 - Notification Processing**:
      - Validate `clientState` for security
-     - Extract notification details (message ID, mailbox)
-     - Fetch email details via Graph API
-     - Download attachments to Blob Storage (`invoices/raw/`)
-     - Create queue message with email metadata
-     - Return 202 Accepted to Graph
+     - Extract notification metadata (subscription ID, resource, change type)
+     - Queue notification to `webhook-notifications` for processing
+     - Return 202 Accepted to Graph (must respond quickly <3 seconds)
 - **Max Execution Time**: 30 seconds
 - **Scaling**: Auto-scale based on HTTP requests
 - **Security**: Client state validation prevents unauthorized notifications
+- **Design**: Lightweight endpoint that queues notifications immediately to avoid timeout
 
-#### 2. SubscriptionManager Function (NEW - Nov 2024)
+#### 2. MailWebhookProcessor Function (NEW - Nov 2024)
+**Purpose**: Process webhook notifications and fetch email details
+
+- **Trigger**: Queue trigger on `webhook-notifications`
+- **Input**: Webhook notification message from MailWebhook
+- **Output**: Queue message to `raw-mail`
+- **Processing**:
+  1. Parse webhook notification (extract mailbox and message ID from resource path)
+  2. Fetch email details via Graph API (`get_email`)
+  3. Check email loop prevention (skip system-generated emails)
+  4. Download attachments to Blob Storage (`invoices/raw/`)
+  5. Create RawMail queue message with email metadata
+  6. Queue to `raw-mail` for ExtractEnrich processing
+  7. Mark email as read
+- **Max Execution Time**: 5 minutes
+- **Scaling**: Auto-scale based on queue depth
+- **Shared Logic**: Uses `shared.email_processor` module (same as MailIngest)
+- **Why Separate?**: Decouples fast HTTP response from slow email fetching
+
+#### 3. SubscriptionManager Function (NEW - Nov 2024)
 **Purpose**: Maintain Graph API webhook subscriptions
 
 - **Trigger**: Timer (cron: `0 0 0 */6 * *` - every 6 days)
@@ -177,7 +195,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Scaling**: Single instance (timer-triggered)
 - **Why 6 days?**: Renews before 7-day expiration, with 24-hour buffer
 
-#### 3. MailIngest Function (MODIFIED - Nov 2024)
+#### 4. MailIngest Function (MODIFIED - Nov 2024)
 **Purpose**: Fallback polling for missed emails (safety net)
 
 - **Trigger**: Timer (cron: `0 0 * * * *` - every hour, **was 5 minutes**)
@@ -186,14 +204,17 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Processing**:
   1. Authenticate to Graph API with service principal
   2. Query unread emails from shared mailbox
-  3. Download attachments to Blob Storage (`invoices/raw/`)
-  4. Create queue message with email metadata
-  5. Mark email as read
+  3. Check email loop prevention (skip system-generated emails)
+  4. Download attachments to Blob Storage (`invoices/raw/`)
+  5. Create RawMail queue message with email metadata
+  6. Queue to `raw-mail` for ExtractEnrich processing
+  7. Mark email as read
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Single instance (timer-triggered)
+- **Shared Logic**: Uses `shared.email_processor` module (same as MailWebhookProcessor)
 - **Role Change**: Primary ingestion → Fallback/safety net (handles ~5% of emails)
 
-#### 4. ExtractEnrich Function
+#### 5. ExtractEnrich Function
 **Purpose**: Extract vendor and enrich with GL codes
 
 - **Trigger**: Queue (`raw-mail`)
@@ -209,7 +230,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 5. PostToAP Function
+#### 6. PostToAP Function
 **Purpose**: Send enriched invoice to AP mailbox
 
 - **Trigger**: Queue (`to-post`)
@@ -224,7 +245,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 5 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 6. Notify Function
+#### 7. Notify Function
 **Purpose**: Post status notifications to Teams
 
 - **Trigger**: Queue (`notify`)
@@ -237,7 +258,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Max Execution Time**: 2 minutes
 - **Scaling**: Auto-scale based on queue depth
 
-#### 7. AddVendor Function
+#### 8. AddVendor Function
 **Purpose**: HTTP endpoint for vendor management
 
 - **Trigger**: HTTP POST

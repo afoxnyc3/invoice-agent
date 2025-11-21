@@ -90,8 +90,9 @@ invoice-agent/
 │   ├── parameters/     # Environment configs
 │   └── scripts/        # Deployment & seed scripts
 ├── src/                 # Source code
-│   ├── functions/      # Azure Functions (7 functions)
+│   ├── functions/      # Azure Functions (8 functions)
 │   │   ├── MailWebhook/          # HTTP webhook (NEW)
+│   │   ├── MailWebhookProcessor/ # Webhook processor (NEW)
 │   │   ├── SubscriptionManager/  # Subscription renewal (NEW)
 │   │   ├── MailIngest/           # Fallback polling (MODIFIED)
 │   │   ├── ExtractEnrich/        # Vendor enrichment
@@ -148,7 +149,7 @@ graph LR
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
 - ✅ Full CI/CD pipeline with staging/production slot pattern
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
-- ✅ **7 Azure Functions** implemented and tested (98 tests, 96% coverage)
+- ✅ **8 Azure Functions** implemented and tested (98 tests, 96% coverage)
 - ✅ Comprehensive monitoring and logging
 - ✅ Managed Identity-based authentication (no secrets in code)
 
