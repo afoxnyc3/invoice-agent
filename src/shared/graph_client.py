@@ -204,9 +204,7 @@ class GraphAPIClient:
             Exception: If email not found or request fails
         """
         endpoint = f"users/{mailbox}/messages/{message_id}"
-        params = {
-            "$select": "id,sender,subject,receivedDateTime,hasAttachments,body"
-        }
+        params = {"$select": "id,sender,subject,receivedDateTime,hasAttachments,body"}
         return self._make_request("GET", endpoint, params=params)
 
     @retry_with_backoff(max_attempts=3, initial_delay=1.0)
