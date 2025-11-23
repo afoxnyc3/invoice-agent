@@ -5,10 +5,9 @@ Provides helper functions to interact with Azurite (local Azure Storage emulator
 for queues, blobs, and tables during integration testing.
 """
 
-import base64
 from typing import Optional, List, Dict, Any
 from azure.storage.queue import QueueServiceClient, QueueClient
-from azure.storage.blob import BlobServiceClient, BlobClient
+from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient, TableClient
 
 

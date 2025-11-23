@@ -3,7 +3,7 @@ Unit tests for AddVendor HTTP function.
 """
 
 import json
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 import azure.functions as func
 from AddVendor import main
 

@@ -5,8 +5,7 @@ Provides specialized assertion functions for validating Azure Storage
 data structures and queue message schemas.
 """
 
-import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from shared.models import RawMail, EnrichedInvoice, NotificationMessage, InvoiceTransaction
 
 

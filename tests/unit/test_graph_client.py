@@ -6,7 +6,6 @@ and retry logic with mocked Graph API responses.
 """
 
 import pytest
-import time
 from unittest.mock import Mock, MagicMock, patch
 from shared.graph_client import GraphAPIClient
 
@@ -276,7 +275,7 @@ class TestSendEmail:
             mock_response.json.return_value = {}
             mock_request.return_value = mock_response
 
-            result = client.send_email(
+            _result = client.send_email(  # noqa: F841 - return value not checked in test
                 from_address="sender@example.com",
                 to_address="recipient@example.com",
                 subject="Test Subject",
@@ -304,7 +303,7 @@ class TestSendEmail:
 
             attachments = [{"name": "invoice.pdf", "contentBytes": "base64content", "contentType": "application/pdf"}]
 
-            result = client.send_email(
+            _result = client.send_email(  # noqa: F841 - return value not checked in test
                 from_address="sender@example.com",
                 to_address="recipient@example.com",
                 subject="Invoice",

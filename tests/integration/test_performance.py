@@ -315,7 +315,6 @@ def test_memory_usage_stability(
     Validates no memory leaks during repeated processing.
     """
     import gc
-    import sys
 
     num_iterations = 100
     initial_objects = len(gc.get_objects())

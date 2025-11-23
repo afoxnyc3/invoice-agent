@@ -7,12 +7,11 @@ Each test gets isolated storage resources that are cleaned up after execution.
 
 import pytest
 import json
-import os
 import csv
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from shared.ulid_generator import generate_ulid
 from .utils.storage_helper import StorageTestHelper

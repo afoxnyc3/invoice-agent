@@ -7,7 +7,6 @@ through the HTTP API.
 
 import pytest
 import json
-from datetime import datetime
 from unittest.mock import MagicMock
 
 from AddVendor import main as add_vendor_main

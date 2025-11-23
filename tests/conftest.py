@@ -4,9 +4,7 @@ Pytest configuration and shared fixtures for Invoice Agent tests
 
 import pytest
 import json
-import os
-from unittest.mock import Mock, MagicMock
-from datetime import datetime
+from unittest.mock import MagicMock
 from typing import Dict, Any
 
 

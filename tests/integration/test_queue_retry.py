@@ -7,7 +7,6 @@ and automatic poison queue routing after max retry attempts.
 
 import pytest
 import json
-import time
 from unittest.mock import patch, MagicMock
 from azure.core.exceptions import ServiceRequestError
 

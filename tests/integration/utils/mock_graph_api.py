@@ -6,7 +6,6 @@ Simulates Graph API responses without making actual API calls.
 
 import base64
 from typing import List, Dict, Any, Optional
-from unittest.mock import MagicMock
 
 
 class MockGraphAPIClient:

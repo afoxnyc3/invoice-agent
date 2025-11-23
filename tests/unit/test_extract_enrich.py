@@ -54,7 +54,7 @@ class TestExtractEnrich:
 
         # Mock queue outputs
         to_post_queue = Mock(spec=func.Out)
-        notify_queue = Mock(spec=func.Out)
+        _notify_queue = Mock(spec=func.Out)  # noqa: F841 - intentionally unused
         queued_messages = []
         to_post_queue.set = lambda m: queued_messages.append(m)
 
@@ -107,7 +107,7 @@ class TestExtractEnrich:
 
         # Mock queue outputs
         to_post_queue = Mock(spec=func.Out)
-        notify_queue = Mock(spec=func.Out)
+        _notify_queue = Mock(spec=func.Out)  # noqa: F841 - intentionally unused
         queued_messages = []
         to_post_queue.set = lambda m: queued_messages.append(m)
 
@@ -172,7 +172,7 @@ class TestExtractEnrich:
         msg.get_body.return_value = raw_mail_json.encode()
 
         to_post_queue = Mock(spec=func.Out)
-        notify_queue = Mock(spec=func.Out)
+        _notify_queue = Mock(spec=func.Out)  # noqa: F841 - intentionally unused
         queued_messages = []
         to_post_queue.set = lambda m: queued_messages.append(m)
 
@@ -198,7 +198,7 @@ class TestExtractEnrich:
         msg.get_body.return_value = b"invalid json{"
 
         to_post_queue = Mock(spec=func.Out)
-        notify_queue = Mock(spec=func.Out)
+        _notify_queue = Mock(spec=func.Out)  # noqa: F841 - intentionally unused
 
         # Execute function - should raise exception
         try:
@@ -252,7 +252,7 @@ class TestExtractEnrich:
         msg.get_body.return_value = raw_mail_json.encode()
 
         to_post_queue = Mock(spec=func.Out)
-        notify_queue = Mock(spec=func.Out)
+        _notify_queue = Mock(spec=func.Out)  # noqa: F841 - intentionally unused
         queued_messages = []
         to_post_queue.set = lambda m: queued_messages.append(m)
 
