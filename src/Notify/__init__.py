@@ -31,10 +31,7 @@ def _build_teams_payload(notification: NotificationMessage) -> dict:
     color = color_map.get(notification.type, "default")
 
     # Build facts for Adaptive Card FactSet
-    facts = [
-        {"title": f"{k.title()}:", "value": str(v)}
-        for k, v in notification.details.items()
-    ]
+    facts = [{"title": f"{k.title()}:", "value": str(v)} for k, v in notification.details.items()]
 
     return {
         "attachments": [
@@ -50,14 +47,11 @@ def _build_teams_payload(notification: NotificationMessage) -> dict:
                             "text": f"{emoji} {notification.message}",
                             "weight": "Bolder",
                             "size": "Large",
-                            "color": color
+                            "color": color,
                         },
-                        {
-                            "type": "FactSet",
-                            "facts": facts
-                        }
-                    ]
-                }
+                        {"type": "FactSet", "facts": facts},
+                    ],
+                },
             }
         ]
     }
