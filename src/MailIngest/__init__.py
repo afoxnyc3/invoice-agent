@@ -64,7 +64,7 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
     except KeyError as e:
         # Environment variable missing
         logger.error(f"MailIngest failed - missing environment variable: {str(e)}")
-        logger.error(f"Check Key Vault secrets: INVOICE_MAILBOX, GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET")
+        logger.error("Check Key Vault secrets: INVOICE_MAILBOX, GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET")
         logger.debug(traceback.format_exc())
         raise
     except ValueError as e:
