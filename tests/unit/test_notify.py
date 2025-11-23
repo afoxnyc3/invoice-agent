@@ -42,13 +42,24 @@ class TestNotify:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
-        # Verify card structure
+        # Verify Adaptive Card structure
         card_data = call_args[1]["json"]
-        assert card_data["@type"] == "MessageCard"
-        assert card_data["themeColor"] == "00FF00"  # Green for success
-        assert "Processed: Adobe Inc" in card_data["text"]
-        assert len(card_data["sections"]) > 0
-        assert len(card_data["sections"][0]["facts"]) == 3
+        assert "attachments" in card_data
+        assert len(card_data["attachments"]) == 1
+        content = card_data["attachments"][0]["content"]
+        assert content["type"] == "AdaptiveCard"
+
+        # Verify body elements
+        body = content["body"]
+        text_block = body[0]
+        assert text_block["type"] == "TextBlock"
+        assert "✅ Processed: Adobe Inc - GL 6100" in text_block["text"]
+        assert text_block["color"] == "good"
+
+        # Verify facts
+        fact_set = body[1]
+        assert fact_set["type"] == "FactSet"
+        assert len(fact_set["facts"]) == 3
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
     @patch("Notify.requests")
@@ -75,9 +86,11 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify orange color for unknown
+        # Verify warning color for unknown vendor
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["themeColor"] == "FFA500"  # Orange
+        content = card_data["attachments"][0]["content"]
+        text_block = content["body"][0]
+        assert text_block["color"] == "warning"
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
     @patch("Notify.requests")
@@ -104,9 +117,11 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify red color for error
+        # Verify attention color for error
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["themeColor"] == "FF0000"  # Red
+        content = card_data["attachments"][0]["content"]
+        text_block = content["body"][0]
+        assert text_block["color"] == "attention"
 
     @patch.dict("os.environ", {})  # No webhook URL configured
     @patch("Notify.requests")
@@ -179,17 +194,19 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify facts are properly formatted
+        # Verify facts are properly formatted in Adaptive Card
         card_data = mock_requests.post.call_args[1]["json"]
-        facts = card_data["sections"][0]["facts"]
+        content = card_data["attachments"][0]["content"]
+        fact_set = content["body"][1]
+        facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount
 
-        # Verify fact names are titlecased
-        fact_names = [f["name"] for f in facts]
-        assert "Vendor" in fact_names
-        assert "Gl_Code" in fact_names
-        assert "Department" in fact_names
-        assert "Transaction_Id" in fact_names
+        # Verify fact titles are titlecased (Adaptive Cards use "title" not "name")
+        fact_titles = [f["title"] for f in facts]
+        assert "Vendor:" in fact_titles
+        assert "Gl_Code:" in fact_titles
+        assert "Department:" in fact_titles
+        assert "Transaction_Id:" in fact_titles
 
     def test_notify_invalid_message(self):
         """Test handling of invalid queue message."""
