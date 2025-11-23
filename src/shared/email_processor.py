@@ -8,7 +8,7 @@ MailWebhookProcessor to ensure consistent processing logic.
 
 import logging
 import base64
-from typing import Dict, Any, List
+from typing import Dict, Any
 import azure.functions as func
 from azure.storage.blob import ContainerClient
 from shared.graph_client import GraphAPIClient

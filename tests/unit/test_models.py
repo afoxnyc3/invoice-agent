@@ -7,7 +7,6 @@ and Teams webhook message card models for validation and serialization.
 
 import pytest
 import json
-from datetime import datetime
 from pydantic import ValidationError
 from shared.models import (
     RawMail,

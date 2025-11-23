@@ -6,7 +6,7 @@ Tests ULID generation, email parsing, logging, and retry logic.
 
 import pytest
 import time
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 from shared.ulid_generator import generate_ulid, ulid_to_timestamp
 from shared.email_parser import extract_domain, normalize_vendor_name, parse_invoice_subject
 from shared.logger import get_logger, CorrelatedLogger
@@ -287,7 +287,7 @@ class TestCircuitBreaker:
         for _ in range(3):
             try:
                 breaker.call(lambda: (_ for _ in ()).throw(Exception("fail")))
-            except:
+            except Exception:
                 pass
 
         assert breaker.is_open
@@ -301,7 +301,7 @@ class TestCircuitBreaker:
         for _ in range(2):
             try:
                 breaker.call(lambda: (_ for _ in ()).throw(Exception("fail")))
-            except:
+            except Exception:
                 pass
 
         # Should now be blocked
@@ -317,7 +317,7 @@ class TestCircuitBreaker:
         # One failure
         try:
             breaker.call(lambda: (_ for _ in ()).throw(Exception("fail")))
-        except:
+        except Exception:
             pass
 
         assert breaker.failure_count == 1
