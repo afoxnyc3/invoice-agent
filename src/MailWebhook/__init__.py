@@ -30,16 +30,12 @@ def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpRespons
     try:
         # MODE 1: VALIDATION HANDSHAKE
         # Graph sends this during subscription creation to verify endpoint
-        validation_token = req.params.get('validationToken')
+        validation_token = req.params.get("validationToken")
         if validation_token:
             logger.info("Webhook validation request received")
             # Must respond with URL-decoded token as plain text
             decoded_token = urllib.parse.unquote(validation_token)
-            return func.HttpResponse(
-                decoded_token,
-                status_code=200,
-                mimetype="text/plain"
-            )
+            return func.HttpResponse(decoded_token, status_code=200, mimetype="text/plain")
 
         # MODE 2: NOTIFICATION PROCESSING
         # Graph sends notification when email arrives
@@ -78,8 +74,7 @@ def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpRespons
             change_type = notification.get("changeType")
 
             logger.info(
-                f"Processing notification: type={change_type}, "
-                f"subscription={subscription_id}, resource={resource}"
+                f"Processing notification: type={change_type}, " f"subscription={subscription_id}, resource={resource}"
             )
 
             # Queue message for processing
@@ -90,7 +85,7 @@ def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpRespons
                 "subscription_id": subscription_id,
                 "resource": resource,
                 "change_type": change_type,
-                "timestamp": notification.get("clientState")
+                "timestamp": notification.get("clientState"),
             }
 
             outQueueItem.set(json.dumps(webhook_message))

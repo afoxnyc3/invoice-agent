@@ -46,7 +46,7 @@ def _save_subscription_record(table_client, subscription_id: str, expiration: st
         "ExpirationDateTime": expiration,
         "CreatedAt": datetime.utcnow().isoformat(),
         "LastRenewed": datetime.utcnow().isoformat(),
-        "IsActive": True
+        "IsActive": True,
     }
     try:
         table_client.upsert_entity(entity)
@@ -119,10 +119,7 @@ def main(timer: func.TimerRequest):
                 existing_subscription["ExpirationDateTime"] = expiration
                 table_client.update_entity(existing_subscription)
 
-                logger.info(
-                    f"✅ Subscription renewed successfully. "
-                    f"Expires: {expiration}"
-                )
+                logger.info(f"✅ Subscription renewed successfully. " f"Expires: {expiration}")
 
             except Exception as e:
                 logger.error(f"Failed to renew subscription {subscription_id}: {str(e)}")
@@ -133,19 +130,12 @@ def main(timer: func.TimerRequest):
             # Create new subscription
             logger.info("Creating new Graph API subscription...")
 
-            result = graph.create_subscription(
-                mailbox=mailbox,
-                webhook_url=webhook_url,
-                client_state=client_state
-            )
+            result = graph.create_subscription(mailbox=mailbox, webhook_url=webhook_url, client_state=client_state)
 
             subscription_id = result.get("id")
             expiration = result.get("expirationDateTime")
 
-            logger.info(
-                f"✅ Subscription created successfully. "
-                f"ID: {subscription_id}, Expires: {expiration}"
-            )
+            logger.info(f"✅ Subscription created successfully. " f"ID: {subscription_id}, Expires: {expiration}")
 
             # Save to Table Storage
             _save_subscription_record(table_client, subscription_id, expiration)

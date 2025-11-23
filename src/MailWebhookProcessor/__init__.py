@@ -65,15 +65,11 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
             return
 
         # Initialize blob storage
-        blob_service = BlobServiceClient.from_connection_string(
-            os.environ["AzureWebJobsStorage"]
-        )
+        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
         blob_container = blob_service.get_container_client("invoices")
 
         # Process attachments and queue
-        count = process_email_attachments(
-            email, graph, mailbox, blob_container, outQueueItem
-        )
+        count = process_email_attachments(email, graph, mailbox, blob_container, outQueueItem)
 
         logger.info(f"Processed {count} attachments from email {message_id}")
 
@@ -92,9 +88,7 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         raise
     except KeyError as e:
         logger.error(f"Missing environment variable: {str(e)}")
-        logger.error(
-            "Check Key Vault secrets: INVOICE_MAILBOX, GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET"
-        )
+        logger.error("Check Key Vault secrets: INVOICE_MAILBOX, GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET")
         logger.debug(traceback.format_exc())
         raise
     except Exception as e:
