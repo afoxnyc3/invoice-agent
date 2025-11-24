@@ -63,37 +63,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-// Placeholder secrets (will be populated post-deployment)
-var secrets = [
-  {
-    name: 'graph-tenant-id'
-    value: 'placeholder-update-after-deployment'
-  }
-  {
-    name: 'graph-client-id'
-    value: 'placeholder-update-after-deployment'
-  }
-  {
-    name: 'graph-client-secret'
-    value: 'placeholder-update-after-deployment'
-  }
-  {
-    name: 'ap-email-address'
-    value: 'accountspayable@chelseapiers.com'
-  }
-  {
-    name: 'teams-webhook-url'
-    value: 'placeholder-update-after-deployment'
-  }
-]
-
-resource keyVaultSecrets 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = [for secret in secrets: {
-  parent: keyVault
-  name: secret.name
-  properties: {
-    value: secret.value
-  }
-}]
+// Secrets are managed outside of Bicep to prevent accidental overwriting
+// Use configure-prod-secrets.sh or Azure Portal to manage secrets
 
 // Outputs
 output keyVaultName string = keyVault.name
