@@ -1,4 +1,5 @@
 {
+  "scriptFile": "__init__.py",
   "bindings": [
     {"type":"timerTrigger","direction":"in","name":"timer","schedule":"0 0 * * * *"},
     {"type":"queue","direction":"out","name":"outQueueItem","queueName":"raw-mail","connection":"AzureWebJobsStorage"}

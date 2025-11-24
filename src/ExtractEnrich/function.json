@@ -1,4 +1,5 @@
 {
+  "scriptFile": "__init__.py",
   "bindings": [
     {"type":"queueTrigger","direction":"in","name":"msg","queueName":"raw-mail","connection":"AzureWebJobsStorage"},
     {"type":"queue","direction":"out","name":"toPost","queueName":"to-post","connection":"AzureWebJobsStorage"}

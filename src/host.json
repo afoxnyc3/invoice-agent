@@ -8,19 +8,40 @@
     "applicationInsights": {
       "samplingSettings": {
         "isEnabled": true,
-        "maxTelemetryItemsPerSecond": 20,
-        "excludedTypes": "Request"
+        "maxTelemetryItemsPerSecond": 100,
+        "evaluationInterval": "00:00:15",
+        "initialSamplingPercentage": 100,
+        "samplingPercentageIncreaseTimeout": "00:02:00",
+        "samplingPercentageDecreaseTimeout": "00:02:00",
+        "minSamplingPercentage": 100,
+        "maxSamplingPercentage": 100,
+        "movingAverageRatio": 0.25,
+        "excludedTypes": "Dependency;Event"
       },
       "httpAutoCollectionOptions": {
         "enableHttpTriggerExtendedInfoCollection": true,
-        "enableResponseHeaderInjection": true
-      }
+        "enableResponseHeaderInjection": true,
+        "enableW3CDistributedTracing": true
+      },
+      "enableLiveMetrics": true,
+      "enableDependencyTracking": true,
+      "enablePerformanceCountersCollection": true
     },
     "logLevel": {
       "default": "Information",
       "Host.Results": "Information",
-      "Function": "Information",
+      "Function": "Debug",
+      "Function.MailWebhook": "Debug",
+      "Function.MailIngest": "Debug",
+      "Function.ExtractEnrich": "Debug",
+      "Function.PostToAP": "Debug",
+      "Function.Notify": "Debug",
+      "Function.AddVendor": "Debug",
+      "Function.SubscriptionManager": "Debug",
       "Host.Aggregator": "Warning"
+    },
+    "console": {
+      "isEnabled": true
     }
   },
   "extensions": {

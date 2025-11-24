@@ -275,7 +275,12 @@ class GraphAPIClient:
         }
 
         if attachments:
-            message["attachments"] = attachments
+            # Add @odata.type to each attachment (required by Graph API)
+            formatted_attachments = []
+            for att in attachments:
+                formatted_att = {"@odata.type": "#microsoft.graph.fileAttachment", **att}
+                formatted_attachments.append(formatted_att)
+            message["attachments"] = formatted_attachments
 
         endpoint = f"users/{from_address}/sendMail"
         body = {"message": message, "saveToSentItems": True}
