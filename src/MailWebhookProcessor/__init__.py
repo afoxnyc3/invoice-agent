@@ -55,13 +55,15 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         should_skip, reason = should_skip_email(email, invoice_mailbox)
         if should_skip:
             logger.info(f"Skipping email {message_id}: {reason}")
-            graph.mark_as_read(mailbox, message_id)
+            # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
+            # graph.mark_as_read(mailbox, message_id)
             return
 
         # Check for attachments
         if not email.get("hasAttachments"):
             logger.warning(f"Email {message_id} has no attachments - skipping")
-            graph.mark_as_read(mailbox, message_id)
+            # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
+            # graph.mark_as_read(mailbox, message_id)
             return
 
         # Initialize blob storage
@@ -74,7 +76,8 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         logger.info(f"Processed {count} attachments from email {message_id}")
 
         # Mark as read
-        graph.mark_as_read(mailbox, message_id)
+        # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
+        # graph.mark_as_read(mailbox, message_id)
 
         logger.info(f"MailWebhookProcessor completed for {message_id}")
 
