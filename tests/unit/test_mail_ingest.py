@@ -65,7 +65,8 @@ class TestMailIngest:
         assert "vendor@adobe.com" in queued_messages[0]
         assert "Invoice #12345" in queued_messages[0]
         mock_blob_client.upload_blob.assert_called_once()
-        mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-123")
+        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
+        # mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-123")
 
     @patch.dict(
         "os.environ",
@@ -102,7 +103,8 @@ class TestMailIngest:
 
         # Assertions
         assert len(queued_messages) == 0  # Nothing queued
-        mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-456")
+        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
+        # mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-456")
         mock_graph.get_attachments.assert_not_called()
 
     @patch.dict(
@@ -165,7 +167,8 @@ class TestMailIngest:
         assert len(queued_messages) == 2
         assert "vendor1@test.com" in queued_messages[0]
         assert "vendor2@test.com" in queued_messages[1]
-        assert mock_graph.mark_as_read.call_count == 2
+        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
+        # assert mock_graph.mark_as_read.call_count == 2
 
     @patch.dict(
         "os.environ",
@@ -281,4 +284,5 @@ class TestMailIngest:
         # Assertions
         assert len(queued_messages) == 2  # One message per attachment
         assert mock_blob_client.upload_blob.call_count == 2
-        mock_graph.mark_as_read.assert_called_once()
+        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
+        # mock_graph.mark_as_read.assert_called_once()
