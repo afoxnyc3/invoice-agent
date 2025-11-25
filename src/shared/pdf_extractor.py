@@ -15,6 +15,7 @@ import os
 import logging
 import io
 from typing import Optional
+from urllib.parse import unquote
 import pdfplumber
 from openai import AzureOpenAI
 from azure.storage.blob import BlobServiceClient
@@ -41,6 +42,8 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
         parts = blob_url.split("/")
         container = parts[3]
         blob_name = "/".join(parts[4:])
+        # Decode URL-encoded characters (e.g., %20 -> space) to prevent double-encoding
+        blob_name = unquote(blob_name)
 
         # Download using connection string
         blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
@@ -137,9 +140,7 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
 
     except KeyError as e:
         logger.error(f"Missing Azure OpenAI environment variable: {str(e)}")
-        logger.error(
-            "Required: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT (optional)"
-        )
+        logger.error("Required: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT (optional)")
         return None
     except Exception as e:
         logger.error(f"Azure OpenAI API call failed: {str(e)}")
