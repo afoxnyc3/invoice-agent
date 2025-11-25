@@ -27,8 +27,12 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
     """
     Download PDF bytes from Azure Blob Storage.
 
+    Supports both production and local development (Azurite) storage URLs:
+    - Production: https://{account}.blob.core.windows.net/{container}/{blob_name}
+    - Dev: http://127.0.0.1:10000/devstoreaccount1/{container}/{blob_name}
+
     Args:
-        blob_url: Full URL to blob (e.g., https://storage.../invoices/txn123/invoice.pdf)
+        blob_url: Full URL to blob
 
     Returns:
         bytes: PDF file contents
@@ -37,11 +41,19 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
         Exception: If download fails
     """
     try:
-        # Extract blob name from URL
-        # URL format: https://{account}.blob.core.windows.net/{container}/{blob_name}
+        # Extract container and blob name from URL
         parts = blob_url.split("/")
-        container = parts[3]
-        blob_name = "/".join(parts[4:])
+
+        # Handle dev storage vs production storage URL formats
+        if len(parts) > 3 and parts[3] == "devstoreaccount1":
+            # Dev storage: http://127.0.0.1:10000/devstoreaccount1/{container}/{blob}
+            container = parts[4]
+            blob_name = "/".join(parts[5:])
+        else:
+            # Production: https://{account}.blob.core.windows.net/{container}/{blob}
+            container = parts[3]
+            blob_name = "/".join(parts[4:])
+
         # Decode URL-encoded characters (e.g., %20 -> space) to prevent double-encoding
         blob_name = unquote(blob_name)
 
