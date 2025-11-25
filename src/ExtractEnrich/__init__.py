@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 import azure.functions as func
 from azure.data.tables import TableServiceClient
+from azure.core.exceptions import ResourceExistsError
 from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
@@ -80,26 +81,37 @@ def _get_existing_transaction(original_message_id: str | None, table_client):
         return None
 
 
-def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_client):
-    """Persist an unknown vendor transaction to prevent repeat emails."""
+def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client) -> bool:
+    """
+    Attempt to claim a transaction by inserting it first.
+
+    Uses create_entity to atomically check-and-set. Returns True if this
+    instance successfully claimed the transaction, False if another instance
+    already claimed it (preventing duplicate emails).
+    """
     now = datetime.utcnow().isoformat() + "Z"
     transaction = InvoiceTransaction(
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
         RowKey=raw_mail.id,
         VendorName=vendor_name,
         SenderEmail=raw_mail.sender,
-        RequestorEmail=raw_mail.sender,
+        RecipientEmail=raw_mail.sender,
         ExpenseDept="Unknown",
         GLCode="0000",
         Status="unknown",
         BlobUrl=raw_mail.blob_url,
         ProcessedAt=now,
         ErrorMessage=None,
-        EmailsSentCount=0,
+        EmailsSentCount=1,
         OriginalMessageId=raw_mail.original_message_id,
         LastEmailSentAt=now,
     )
-    table_client.upsert_entity(transaction.model_dump())
+    try:
+        table_client.create_entity(transaction.model_dump())
+        return True
+    except ResourceExistsError:
+        logger.info(f"Transaction already exists for {raw_mail.id}, skipping email")
+        return False
 
 
 def main(msg: func.QueueMessage, toPost: func.Out[str]):
@@ -148,8 +160,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             if not vendor_name:
                 vendor_name = extract_domain(raw_mail.sender).split("_")[0]
             logger.warning(f"Vendor not found: {vendor_name} ({raw_mail.id})")
-            _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
-            _record_unknown_transaction(raw_mail, vendor_name, tx_table)
+            # Try to claim the transaction first to prevent race conditions
+            if _try_claim_transaction(raw_mail, vendor_name, tx_table):
+                _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
             return
 
         # Special handling for resellers (e.g., Myriad360) - flag for manual review
