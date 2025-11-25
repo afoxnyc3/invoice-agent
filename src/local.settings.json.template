@@ -9,6 +9,11 @@
     "GRAPH_CLIENT_ID": "your-client-id",
     "GRAPH_CLIENT_SECRET": "your-client-secret",
 
+    "AZURE_OPENAI_ENDPOINT": "https://your-openai-resource.openai.azure.com/",
+    "AZURE_OPENAI_API_KEY": "your-azure-openai-api-key",
+    "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
+    "AZURE_OPENAI_API_VERSION": "2024-02-01",
+
     "INVOICE_MAILBOX": "dev-invoices@chelseapiers.com",
     "AP_EMAIL_ADDRESS": "dev-ap@chelseapiers.com",
     "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",

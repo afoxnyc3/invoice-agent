@@ -4,16 +4,19 @@ Email processing utilities shared across functions.
 Provides reusable functions for processing emails, downloading attachments,
 and creating RawMail queue messages. Used by both MailIngest and
 MailWebhookProcessor to ensure consistent processing logic.
+
+Includes intelligent PDF vendor extraction using pdfplumber + Azure OpenAI.
 """
 
 import logging
 import base64
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import azure.functions as func
 from azure.storage.blob import ContainerClient
 from shared.graph_client import GraphAPIClient
 from shared.ulid_generator import generate_ulid
 from shared.models import RawMail
+from shared.pdf_extractor import extract_vendor_from_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,20 @@ def process_email_attachments(
         content = base64.b64decode(attachment["contentBytes"])
         blob_client.upload_blob(content, overwrite=True)
 
+        # Extract vendor from PDF if attachment is PDF
+        vendor_name: Optional[str] = None
+        attachment_name = attachment["name"].lower()
+        if attachment_name.endswith(".pdf"):
+            try:
+                vendor_name = extract_vendor_from_pdf(blob_client.url)
+                if vendor_name:
+                    logger.info(f"PDF extraction: {vendor_name} from {attachment['name']}")
+                else:
+                    logger.info(f"PDF extraction: no vendor found in {attachment['name']}")
+            except Exception as e:
+                # Don't fail processing if PDF extraction fails - fall back to email domain
+                logger.warning(f"PDF extraction failed for {attachment['name']}: {str(e)}")
+
         raw_mail = RawMail(
             id=transaction_id,
             sender=email["sender"]["emailAddress"]["address"],
@@ -93,6 +110,7 @@ def process_email_attachments(
             blob_url=blob_client.url,
             received_at=email["receivedDateTime"],
             original_message_id=message_id,
+            vendor_name=vendor_name,  # Populated from PDF extraction, or None
         )
         queue_output.set(raw_mail.model_dump_json())
         logger.info(f"Queued: {transaction_id} from {raw_mail.sender}")

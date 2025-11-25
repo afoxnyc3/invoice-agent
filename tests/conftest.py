@@ -187,6 +187,10 @@ def mock_environment(monkeypatch):
         "AP_EMAIL_ADDRESS": "accountspayable@test.com",
         "TEAMS_WEBHOOK_URL": "https://test.webhook.url",
         "KEY_VAULT_URL": "https://test-keyvault.vault.azure.net/",
+        "AZURE_OPENAI_ENDPOINT": "https://test-openai.openai.azure.com/",
+        "AZURE_OPENAI_API_KEY": "test-openai-key",
+        "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
+        "AZURE_OPENAI_API_VERSION": "2024-02-01",
     }
 
     for key, value in env_vars.items():
