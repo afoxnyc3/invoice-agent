@@ -283,11 +283,13 @@ jobs:
 
           # Test 3: Verify Storage connectivity via app settings
           echo "Test 3: Verifying Storage Account connectivity..."
-          STORAGE_NAME=$(az functionapp config appsettings list \
+          CONN_STRING=$(az functionapp config appsettings list \
             --name "${FUNC_NAME}" \
             --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
             --slot staging \
-            --query "[?name=='AzureWebJobsStorage'].value" -o tsv | cut -d';' -f4 | cut -d'=' -f2)
+            --query "[?name=='AzureWebJobsStorage'].value" -o tsv)
+          # Extract AccountName using grep (handles variable field order)
+          STORAGE_NAME=$(echo "$CONN_STRING" | grep -oE 'AccountName=[^;]+' | cut -d'=' -f2)
 
           if [ -n "$STORAGE_NAME" ]; then
             STORAGE_EXISTS=$(az storage account show --name "$STORAGE_NAME" --query "name" -o tsv 2>/dev/null || echo "")
