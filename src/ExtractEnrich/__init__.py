@@ -71,7 +71,8 @@ def _get_existing_transaction(original_message_id: str | None, table_client):
         return None
 
     try:
-        filter_query = f"OriginalMessageId eq '{original_message_id}'"
+        safe_message_id = original_message_id.replace("'", "''")
+        filter_query = f"OriginalMessageId eq '{safe_message_id}'"
         results = list(table_client.query_entities(filter_query))
         return results[0] if results else None
     except Exception as exc:  # pragma: no cover - defensive logging only
