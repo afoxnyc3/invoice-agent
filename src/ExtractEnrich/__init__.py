@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 import azure.functions as func
 from azure.data.tables import TableServiceClient
+from azure.core.exceptions import ResourceExistsError
 from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
@@ -84,8 +85,17 @@ def _get_existing_transaction(original_message_id: str | None, table_client):
         return None
 
 
-def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_client):
-    """Persist an unknown vendor transaction to prevent repeat emails."""
+def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client) -> bool:
+    """
+    Attempt to claim a transaction by inserting it atomically.
+
+    Uses create_entity to atomically check-and-set. Returns True if this
+    instance successfully claimed the transaction, False if another instance
+    already claimed it (preventing duplicate emails).
+
+    This solves the race condition where multiple concurrent function instances
+    might process the same message and send duplicate registration emails.
+    """
     now = datetime.utcnow().isoformat() + "Z"
     transaction = InvoiceTransaction(
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
@@ -99,11 +109,16 @@ def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_clien
         BlobUrl=raw_mail.blob_url,
         ProcessedAt=now,
         ErrorMessage=None,
-        EmailsSentCount=1,  # Registration email was sent before recording
+        EmailsSentCount=1,  # Will be set to 1 if email sent successfully
         OriginalMessageId=raw_mail.original_message_id,
-        LastEmailSentAt=now,  # Timestamp after registration email was sent
+        LastEmailSentAt=now,  # Timestamp when registration email sent
     )
-    table_client.upsert_entity(transaction.model_dump())
+    try:
+        table_client.create_entity(transaction.model_dump())
+        return True  # Successfully claimed - this instance should send the email
+    except ResourceExistsError:
+        logger.info(f"Transaction {raw_mail.id} already claimed by another instance, skipping email")
+        return False  # Another instance already claimed - don't send duplicate email
 
 
 def main(msg: func.QueueMessage, toPost: func.Out[str]):
@@ -158,9 +173,13 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             if not vendor_name:
                 vendor_name = extract_domain(raw_mail.sender).split("_")[0]
             logger.warning(f"Vendor not found: {vendor_name} ({raw_mail.id})")
-            _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
 
-            # Queue with unknown status for downstream processing
+            # Try to claim transaction first (atomic operation prevents race condition)
+            # Only send email if this instance successfully claims the transaction
+            if _try_claim_transaction(raw_mail, vendor_name, tx_table):
+                _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
+
+            # Queue with unknown status for downstream processing (always queue)
             enriched = EnrichedInvoice(
                 id=raw_mail.id,
                 vendor_name=vendor_name,
@@ -173,9 +192,6 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 status="unknown",
             )
             toPost.set(enriched.model_dump_json())
-
-            # Record transaction to prevent duplicate registration emails
-            _record_unknown_transaction(raw_mail, vendor_name, tx_table)
             return
 
         # Special handling for resellers (e.g., Myriad360) - flag for manual review
