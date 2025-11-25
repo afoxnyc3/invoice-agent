@@ -124,6 +124,9 @@ class GraphAPIClient:
             retry_after = int(response.headers.get("Retry-After", 60))
             raise Exception(f"Throttled, retry after {retry_after}s")
 
+        # Log error response body before raising
+        if not response.ok:
+            logger.error(f"Graph API error {response.status_code}: {response.text}")
         response.raise_for_status()
         return response.json() if response.content else {}
 
