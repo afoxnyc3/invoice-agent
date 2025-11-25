@@ -413,6 +413,102 @@ resource storageThrottlingAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
+// Alert 9: Duplicate Processing Detection (>5 duplicates in 1 hour)
+resource duplicateProcessingAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01-preview' = {
+  name: 'alert-${namingPrefix}-duplicate-processing'
+  location: resourceGroup().location
+  tags: {
+    Project: 'InvoiceAgent'
+    Environment: environment
+    Severity: 'P2'
+  }
+  properties: {
+    description: 'Triggers when more than 5 duplicate invoices are detected in 1 hour (indicates potential webhook/fallback overlap)'
+    severity: 2
+    enabled: true
+    evaluationFrequency: 'PT15M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT1H'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            traces
+            | where message contains "Skipping duplicate"
+            | summarize DuplicateCount = count()
+          '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 5
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
+// Alert 10: High Duplicate Rate (>10% over 6 hours)
+resource highDuplicateRateAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01-preview' = {
+  name: 'alert-${namingPrefix}-high-duplicate-rate'
+  location: resourceGroup().location
+  tags: {
+    Project: 'InvoiceAgent'
+    Environment: environment
+    Severity: 'P1'
+  }
+  properties: {
+    description: 'CRITICAL: High duplicate rate indicates deduplication logic may be failing or webhook/fallback overlap is excessive'
+    severity: 1
+    enabled: true
+    evaluationFrequency: 'PT30M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT6H'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            let total = traces
+            | where operation_Name == "ExtractEnrich"
+            | where message contains "Processing" or message contains "Skipping duplicate"
+            | count;
+            let duplicates = traces
+            | where operation_Name == "ExtractEnrich"
+            | where message contains "Skipping duplicate"
+            | count;
+            let rate = toscalar(duplicates) * 100.0 / toscalar(total);
+            print DuplicateRate = rate
+            | where DuplicateRate > 10
+          '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
 // Outputs
 output actionGroupId string = actionGroup.id
 output actionGroupName string = actionGroup.name
@@ -425,4 +521,6 @@ output alertsCreated array = [
   unknownVendorAlert.name
   availabilityAlert.name
   storageThrottlingAlert.name
+  duplicateProcessingAlert.name
+  highDuplicateRateAlert.name
 ]
