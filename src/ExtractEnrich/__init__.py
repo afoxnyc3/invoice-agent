@@ -16,6 +16,7 @@ from shared.models import RawMail, EnrichedInvoice
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
 from shared.email_parser import extract_domain
+from shared.deduplication import is_message_already_processed
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,12 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
     """Extract vendor and enrich invoice data."""
     try:
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())
+
+        # Deduplication: Skip if already processed (prevents duplicate registration emails)
+        if is_message_already_processed(raw_mail.original_message_id):
+            logger.info(f"Skipping duplicate message {raw_mail.id}")
+            return
+
         table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
             "VendorMaster"
         )

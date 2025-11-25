@@ -263,3 +263,90 @@ class TestExtractEnrich:
         enriched_data = queued_messages[0]
         assert "Microsoft" in enriched_data
         assert "enriched" in enriched_data
+
+    @patch.dict(
+        "os.environ",
+        {
+            "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "INVOICE_MAILBOX": "invoices@example.com",
+            "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
+        },
+    )
+    @patch("ExtractEnrich.is_message_already_processed")
+    @patch("ExtractEnrich.GraphAPIClient")
+    @patch("ExtractEnrich.TableServiceClient")
+    def test_skips_duplicate_message(self, mock_table_service, mock_graph_class, mock_dedup):
+        """Test duplicate messages are skipped without processing."""
+        mock_dedup.return_value = True  # Message already processed
+
+        raw_mail_json = """
+        {
+            "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            "sender": "billing@unknown.com",
+            "subject": "Invoice",
+            "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "duplicate-message-id"
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = raw_mail_json.encode()
+
+        to_post_queue = Mock(spec=func.Out)
+        queued_messages = []
+        to_post_queue.set = lambda m: queued_messages.append(m)
+
+        main(msg, to_post_queue)
+
+        # Should NOT process - no vendor lookup, no emails, no queue output
+        mock_table_service.from_connection_string.assert_not_called()
+        mock_graph_class.return_value.send_email.assert_not_called()
+        assert len(queued_messages) == 0
+
+    @patch.dict(
+        "os.environ",
+        {
+            "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "INVOICE_MAILBOX": "invoices@example.com",
+            "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
+        },
+    )
+    @patch("ExtractEnrich.is_message_already_processed")
+    @patch("ExtractEnrich.GraphAPIClient")
+    @patch("ExtractEnrich.TableServiceClient")
+    def test_processes_new_message(self, mock_table_service, mock_graph_class, mock_dedup):
+        """Test new messages are processed normally."""
+        mock_dedup.return_value = False  # Message NOT already processed
+
+        # Mock table client to return empty (unknown vendor)
+        mock_table_client = MagicMock()
+        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client.query_entities.return_value = []
+
+        # Mock Graph API client
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
+
+        raw_mail_json = """
+        {
+            "id": "01JCK3Q7H8ZVXN3BARC9GWAEZM",
+            "sender": "billing@newvendor.com",
+            "subject": "Invoice",
+            "blob_url": "https://storage.blob.core.windows.net/invoices/test.pdf",
+            "received_at": "2024-11-10T10:00:00Z",
+            "original_message_id": "new-message-id"
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = raw_mail_json.encode()
+
+        to_post_queue = Mock(spec=func.Out)
+        queued_messages = []
+        to_post_queue.set = lambda m: queued_messages.append(m)
+
+        main(msg, to_post_queue)
+
+        # Should process - vendor lookup happens, email sent for unknown vendor
+        mock_table_service.from_connection_string.assert_called()
+        mock_graph.send_email.assert_called_once()  # Registration email
+        assert len(queued_messages) == 1

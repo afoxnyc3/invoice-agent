@@ -19,6 +19,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
 from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
+from shared.deduplication import is_message_already_processed
 
 logger = logging.getLogger(__name__)
 
@@ -42,42 +43,6 @@ def _validate_recipient(recipient: str, invoice_mailbox: str) -> None:
             raise ValueError(msg)
 
     logger.info(f"Recipient validation passed: {recipient}")
-
-
-def _check_already_processed(raw_mail: dict) -> bool:
-    """
-    Check if transaction has already been processed (deduplication by message ID).
-
-    Uses Graph API message ID (stable across re-ingestion) instead of ULID
-    to detect duplicate processing of the same email.
-
-    Returns: True if already processed, False otherwise
-    """
-    storage_conn = os.environ["AzureWebJobsStorage"]
-    table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
-
-    message_id = raw_mail.get("original_message_id")
-    if not message_id:
-        return False  # No message ID to check, proceed with processing
-
-    try:
-        # Query for any existing transaction with this message ID
-        filter_query = f"OriginalMessageId eq '{message_id}' and Status eq 'processed'"
-        results = list(table_client.query_entities(filter_query))
-
-        if results:
-            existing = results[0]
-            logger.warning(
-                f"Message {message_id} already processed at {existing.get('ProcessedAt')} "
-                f"(Transaction {existing.get('RowKey')})"
-            )
-            return True
-
-    except Exception as e:
-        logger.warning(f"Deduplication check failed: {str(e)} - proceeding with processing")
-        return False
-
-    return False
 
 
 def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
@@ -133,7 +98,7 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())
 
         # Check if transaction already processed (deduplication by message ID)
-        if _check_already_processed(enriched.model_dump()):
+        if is_message_already_processed(enriched.original_message_id):
             logger.info(f"Skipping duplicate transaction {enriched.id}")
             return
 
