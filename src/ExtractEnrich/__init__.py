@@ -10,9 +10,10 @@ Looks up vendor in VendorMaster table by vendor name. Implements:
 
 import os
 import logging
+from datetime import datetime
 import azure.functions as func
 from azure.data.tables import TableServiceClient
-from shared.models import RawMail, EnrichedInvoice
+from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
 from shared.email_parser import extract_domain
@@ -64,6 +65,42 @@ def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sende
     logger.warning(f"Unknown vendor: {vendor_name} - sent registration email to {sender}")
 
 
+def _get_existing_transaction(original_message_id: str | None, table_client):
+    """Return existing transaction for the original message if present."""
+    if not original_message_id:
+        return None
+
+    try:
+        filter_query = f"OriginalMessageId eq '{original_message_id}'"
+        results = list(table_client.query_entities(filter_query))
+        return results[0] if results else None
+    except Exception as exc:  # pragma: no cover - defensive logging only
+        logger.warning(f"Transaction lookup failed: {exc}")
+        return None
+
+
+def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_client):
+    """Persist an unknown vendor transaction to prevent repeat emails."""
+    now = datetime.utcnow().isoformat() + "Z"
+    transaction = InvoiceTransaction(
+        PartitionKey=datetime.utcnow().strftime("%Y%m"),
+        RowKey=raw_mail.id,
+        VendorName=vendor_name,
+        SenderEmail=raw_mail.sender,
+        RecipientEmail=raw_mail.sender,
+        ExpenseDept="Unknown",
+        GLCode="0000",
+        Status="unknown",
+        BlobUrl=raw_mail.blob_url,
+        ProcessedAt=now,
+        ErrorMessage=None,
+        EmailsSentCount=0,
+        OriginalMessageId=raw_mail.original_message_id,
+        LastEmailSentAt=now,
+    )
+    table_client.upsert_entity(transaction.model_dump())
+
+
 def main(msg: func.QueueMessage, toPost: func.Out[str]):
     """Extract vendor and enrich invoice data."""
     try:
@@ -71,6 +108,19 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
         table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
             "VendorMaster"
         )
+
+        # Deduplicate by original message ID to avoid repeat notification loops
+        tx_table = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
+            "InvoiceTransactions"
+        )
+        existing_tx = _get_existing_transaction(raw_mail.original_message_id, tx_table)
+        if existing_tx:
+            logger.info(
+                "Skipping processing for already handled message %s (status: %s)",
+                raw_mail.original_message_id,
+                existing_tx.get("Status", "unknown"),
+            )
+            return
 
         # Try vendor name first (from PDF extraction, future phase)
         vendor_name = raw_mail.vendor_name
@@ -98,19 +148,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 vendor_name = extract_domain(raw_mail.sender).split("_")[0]
             logger.warning(f"Vendor not found: {vendor_name} ({raw_mail.id})")
             _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
-
-            enriched = EnrichedInvoice(
-                id=raw_mail.id,
-                vendor_name=vendor_name,
-                expense_dept="Unknown",
-                gl_code="0000",
-                allocation_schedule="Unknown",
-                billing_party="Chelsea Piers",
-                blob_url=raw_mail.blob_url,
-                original_message_id=raw_mail.original_message_id,
-                status="unknown",
-            )
-            toPost.set(enriched.model_dump_json())
+            _record_unknown_transaction(raw_mail, vendor_name, tx_table)
             return
 
         # Special handling for resellers (e.g., Myriad360) - flag for manual review
