@@ -113,7 +113,7 @@ resource errorRateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   }
 }
 
-// Alert 2: Function Execution Failures
+// Alert 2: Function Execution Failures (>5 failures in 5 minutes)
 resource functionFailureAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01-preview' = {
   name: 'alert-${namingPrefix}-function-failures'
   location: resourceGroup().location
@@ -123,7 +123,7 @@ resource functionFailureAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01
     Severity: 'P1'
   }
   properties: {
-    description: 'Triggers when any function execution fails'
+    description: 'Triggers when more than 5 function executions fail in 5 minutes'
     severity: 1
     enabled: true
     evaluationFrequency: 'PT5M'
@@ -142,7 +142,7 @@ resource functionFailureAlert 'Microsoft.Insights/scheduledQueryRules@2023-12-01
           '''
           timeAggregation: 'Count'
           operator: 'GreaterThan'
-          threshold: 0
+          threshold: 5
           failingPeriods: {
             numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1
