@@ -87,7 +87,7 @@ def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_clien
         RowKey=raw_mail.id,
         VendorName=vendor_name,
         SenderEmail=raw_mail.sender,
-        RecipientEmail=raw_mail.sender,
+        RequestorEmail=raw_mail.sender,
         ExpenseDept="Unknown",
         GLCode="0000",
         Status="unknown",
