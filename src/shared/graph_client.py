@@ -11,10 +11,13 @@ Uses MSAL for authentication and handles throttling automatically.
 
 import os
 import time
+import logging
 from typing import List, Dict, Any, Optional
 import requests
 from msal import ConfidentialClientApplication
 from shared.retry import retry_with_backoff
+
+logger = logging.getLogger(__name__)
 
 
 class GraphAPIClient:
