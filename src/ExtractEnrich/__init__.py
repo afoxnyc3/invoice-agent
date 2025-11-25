@@ -95,6 +95,7 @@ def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client) ->
         RowKey=raw_mail.id,
         VendorName=vendor_name,
         SenderEmail=raw_mail.sender,
+        # RecipientEmail is the invoice sender who receives the registration email
         RecipientEmail=raw_mail.sender,
         ExpenseDept="Unknown",
         GLCode="0000",

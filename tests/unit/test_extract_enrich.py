@@ -208,6 +208,7 @@ class TestExtractEnrich:
         # Set up table mocks with reseller vendor
         vendor_data = [
             {
+                "PartitionKey": "Vendor",
                 "RowKey": "myriad360",
                 "VendorName": "Myriad360",
                 "ExpenseDept": "Hardware - Operations",
