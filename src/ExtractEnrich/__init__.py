@@ -66,15 +66,18 @@ def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sende
 
 
 def _get_existing_transaction(original_message_id: str | None, table_client):
-    """Return existing transaction for the original message if present."""
+    """Return existing unknown vendor transaction for the original message if present."""
     if not original_message_id:
         return None
 
     try:
         safe_message_id = original_message_id.replace("'", "''")
-        filter_query = f"OriginalMessageId eq '{safe_message_id}'"
+        # Only check for unknown vendor transactions to prevent duplicate registration emails
+        filter_query = f"OriginalMessageId eq '{safe_message_id}' and Status eq 'unknown'"
         results = list(table_client.query_entities(filter_query))
-        return results[0] if results else None
+        # Filter out non-transaction entities (like vendors) that don't have Status field
+        transactions = [r for r in results if r.get("Status") == "unknown"]
+        return transactions[0] if transactions else None
     except Exception as exc:  # pragma: no cover - defensive logging only
         logger.warning(f"Transaction lookup failed: {exc}")
         return None
@@ -88,16 +91,16 @@ def _record_unknown_transaction(raw_mail: RawMail, vendor_name: str, table_clien
         RowKey=raw_mail.id,
         VendorName=vendor_name,
         SenderEmail=raw_mail.sender,
-        RequestorEmail=raw_mail.sender,
+        RecipientEmail=raw_mail.sender,  # Registration email sent to requestor
         ExpenseDept="Unknown",
         GLCode="0000",
         Status="unknown",
         BlobUrl=raw_mail.blob_url,
         ProcessedAt=now,
         ErrorMessage=None,
-        EmailsSentCount=0,
+        EmailsSentCount=1,  # Registration email was sent before recording
         OriginalMessageId=raw_mail.original_message_id,
-        LastEmailSentAt=now,
+        LastEmailSentAt=now,  # Timestamp after registration email was sent
     )
     table_client.upsert_entity(transaction.model_dump())
 
@@ -149,6 +152,22 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 vendor_name = extract_domain(raw_mail.sender).split("_")[0]
             logger.warning(f"Vendor not found: {vendor_name} ({raw_mail.id})")
             _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
+
+            # Queue with unknown status for downstream processing
+            enriched = EnrichedInvoice(
+                id=raw_mail.id,
+                vendor_name=vendor_name,
+                expense_dept="Unknown",
+                gl_code="0000",
+                allocation_schedule="Unknown",
+                billing_party="Chelsea Piers",
+                blob_url=raw_mail.blob_url,
+                original_message_id=raw_mail.original_message_id,
+                status="unknown",
+            )
+            toPost.set(enriched.model_dump_json())
+
+            # Record transaction to prevent duplicate registration emails
             _record_unknown_transaction(raw_mail, vendor_name, tx_table)
             return
 
