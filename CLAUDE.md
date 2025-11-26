@@ -121,7 +121,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 96% coverage maintained
+- Unit tests: 89% coverage maintained (140 tests)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -563,7 +563,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
   - No breaking changes - optional feature with degradation path
-- ✅ CI/CD pipeline operational (98 tests passing, 96% coverage)
+- ✅ CI/CD pipeline operational (140 tests passing, 89% coverage)
 - ✅ Infrastructure ready (staging + production slots)
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational

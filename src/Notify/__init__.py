@@ -24,8 +24,8 @@ def _build_teams_payload(notification: NotificationMessage) -> dict:
     Power Automate Flow bot is granted permission to post to the channel.
     This is a platform limitation that requires admin intervention.
     """
-    emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌"}
-    color_map = {"success": "good", "unknown": "warning", "error": "attention"}
+    emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
+    color_map = {"success": "good", "unknown": "warning", "error": "attention", "duplicate": "warning"}
 
     emoji = emoji_map.get(notification.type, "ℹ️")
     color = color_map.get(notification.type, "default")
