@@ -1,0 +1,187 @@
+Vendor,Expense_Dept,Allocation_Schedule,GL_Code,email_domain,billing_party
+Meraki Licensing,Networks,14,7110,meraki_licensing,Chelsea Piers
+Meraki Licensing,Networks,15,7110,meraki_licensing,Chelsea Piers
+TBD,Networks,16,7110,tbd,Chelsea Piers
+Netgear,Networks,17,7110,netgear.com,Chelsea Piers
+AWS TGW,Networks,18,7110,amazon.com,Chelsea Piers
+Cisco Remote Access,Networks,18,7110,cisco.com,Chelsea Piers
+AWS,Cloud,1,7112,amazon.com,Chelsea Piers
+M365 Manager+ License,Cloud,1,7112,microsoft.com,Chelsea Piers
+M365 Manager+ Tech License,Cloud,1,7112,microsoft.com,Chelsea Piers
+M365 Manager+ Instance,Cloud,1,7112,microsoft.com,Chelsea Piers
+Dropbox,Cloud,1,7112,dropbox.com,Chelsea Piers
+Heroku,Cloud,1,7112,heroku.com,Chelsea Piers
+Red Paladin,CyberSecurity,2,7111,redpaladin.com,Chelsea Piers
+Mimecast - M365,CyberSecurity,1,7112,mimecast.com,Chelsea Piers
+Mimecast - Awareness Training,CyberSecurity,1,7112,mimecast.com,Chelsea Piers
+Mimecast - Advanced Support,CyberSecurity,1,7112,mimecast.com,Chelsea Piers
+EasyDmarc,CyberSecurity,1,7112,easydmarc,Chelsea Piers
+1Password,CyberSecurity,1,7112,1password,Chelsea Piers
+Prowler,CyberSecurity,1,7112,prowler,Chelsea Piers
+AWS Security Hub,CyberSecurity,1,7112,amazon.com,Chelsea Piers
+Wazuh,CyberSecurity,1,7112,wazuh,Chelsea Piers
+Cisco,CyberSecurity,1,7112,cisco.com,Chelsea Piers
+FRSecure,CyberSecurity,1,7112,frsecure,Chelsea Piers
+Sentinel One,CyberSecurity,3,7112,sentinelone.com,Chelsea Piers
+Microsoft,M365 Suite,3,7112,microsoft.com,Chelsea Piers
+Red Paladin,M365 Suite,2,7111,redpaladin.com,Chelsea Piers
+Intune,M365 Suite,3,7112,microsoft.com,Chelsea Piers
+Adobe Standard DC,Software - Marketing,1,7112,adobe.com,Chelsea Piers
+???,Software - Marketing,1,7112,???,Chelsea Piers
+Creative Cloud All Apps,Software - Marketing,1,7112,adobe.com,Chelsea Piers
+"Suitcase, etc.",Software - Marketing,1,7112,"suitcase,_etc_",Chelsea Piers
+Lytho,Software - Marketing,1,7112,lytho,Chelsea Piers
+n24x7,Software - Marketing,2,7111,n24x7,Chelsea Piers
+BeeFree,Software - Marketing,1,7112,beefree,Chelsea Piers
+Bouncify,Software - Marketing,1,7112,bouncify,Chelsea Piers
+Canva,Software - Marketing,1,7112,canva,Chelsea Piers
+Eventbrite,Software - Marketing,,7112,eventbrite,Chelsea Piers
+Google Analytics 4,Software - Marketing,1,7112,google.com,Chelsea Piers
+MXMetrics,Software - Marketing,4,7112,mxmetrics,Chelsea Piers
+Yext,Software - Marketing,1,7112,yext,Chelsea Piers
+ZeptoMail,Software - Marketing,1,7112,zeptomail,Chelsea Piers
+Zoho Campaigns - Professional,Software - Marketing,"100%, no allocation",7112,zoho_campaigns_-_professional,Chelsea Piers
+Zoho Social - Premium,Software - Marketing,1,7112,zoho_social_-_premium,Chelsea Piers
+Zoho Social - Premium Add-on,Software - Marketing,1,7112,zoho_social_-_premium_add-on,Chelsea Piers
+Zoho Survey - Enterprise Plan,Software - Marketing,1,7112,zoho_survey_-_enterprise_plan,Chelsea Piers
+Zoho Survey - Enterprise Users,Software - Marketing,1,7112,zoho_survey_-_enterprise_users,Chelsea Piers
+Zoho Analytics - Enterprise,Software - Sales,1,7112,zoho_analytics_-_enterprise,Chelsea Piers
+Zoho Bookings - Premium,Software - Sales,4,7112,zoho_bookings_-_premium,Chelsea Piers
+Zoho Bookings - Premium Add-on,Software - Sales,4,7112,zoho_bookings_-_premium_add-on,Chelsea Piers
+Zoho CRM - Enterprise,Software - Sales,5,7112,zoho_crm_-_enterprise,Chelsea Piers
+Zoho CRM - Enterprise Team,Software - Sales,5,7112,zoho_crm_-_enterprise_team,Chelsea Piers
+Zoho Desk - Agents,Software - Sales,6,7112,zoho_desk_-_agents,Chelsea Piers
+Zoho Desk - Lite agents,Software - Sales,6,7112,zoho_desk_-_lite_agents,Chelsea Piers
+Zoho Sign - Standard,Software - Sales,"100%, no allocation",7112,zoho_sign_-_standard,Chelsea Piers
+Docusign,Software - Sales,"100%, no allocation",7112,docusign.com,Chelsea Piers
+Zenatta,Software - Sales,1,7112,zenatta,Chelsea Piers
+Adyen,Software - Finance,12,7112,adyen,Chelsea Piers
+Netsuite,Software - Finance,7,7112,netsuite.com,Chelsea Piers
+Netsuite,Software - Finance,"100%, no allocation",7112,netsuite.com,Chelsea Piers
+Netsuite,Software - Finance,8,7112,netsuite.com,Chelsea Piers
+Squareworks,Software - Finance,7,7112,squareworks,Chelsea Piers
+PowerBI,Software - Finance,1,7112,powerbi,Chelsea Piers
+Lagarsoft,Software - Finance,1,7112,lagarsoft,Chelsea Piers
+Sage,Software - Finance,"100%, no allocation",7112,sage,Chelsea Piers
+Qualys,Software - Finance,"100%, no allocation",7112,qualys,Chelsea Piers
+Myers Holum,Software - Finance,9,7111,myers_holum,Chelsea Piers
+Cohn Reznick,Software - Finance,9,7111,cohn_reznick,Chelsea Piers
+AlertMedia,Software - People Ops,1,7112,alertmedia,Chelsea Piers
+Indeed,Software - People Ops,1,7112,indeed,Chelsea Piers
+Homebase,Software - People Ops,4,6214,homebase,Chelsea Piers
+Paycom,Software - People Ops,Allocated by HR CPLP/CPFH,7112,paycom,Chelsea Piers
+Trinet,Software - People Ops,"100%, no allocation",7112,trinet,Chelsea Piers
+MaintainX,Software - Facilities,"100%, no allocation",7112,maintainx,Chelsea Piers
+Rackspace,Software - Facilities,"100%, no allocation",7112,rackspace,Chelsea Piers
+KPA Services,Software - Facilities,1,7112,kpa_services,Chelsea Piers
+Autocad,Software - Facilities,1,7112,autocad,Chelsea Piers
+Confluence,Software - IT,1,7112,atlassian.com,Chelsea Piers
+Jira Software,Software - IT,1,7112,atlassian.com,Chelsea Piers
+Jira Discovery,Software - IT,1,7112,atlassian.com,Chelsea Piers
+Jira Services Management,Software - IT,1,7112,atlassian.com,Chelsea Piers
+Jira Work Management,Software - IT,1,7112,atlassian.com,Chelsea Piers
+ConnectWise Automate,Software - IT,1,7112,connectwise_automate,Chelsea Piers
+ChatPRD,Software - IT,1,7112,chatprd,Chelsea Piers
+Figma Design,Software - IT,1,7112,figma.com,Chelsea Piers
+Figma FigJam,Software - IT,1,7112,figma.com,Chelsea Piers
+Loom,Software - IT,1,7112,loom,Chelsea Piers
+Heap,Software - IT,10,7112,heap,Chelsea Piers
+UserInterviews,Software - IT,1,7112,userinterviews,Chelsea Piers
+LogMeIn,Software - IT,1,7112,logmein,Chelsea Piers
+"TBD - Torii, Trelica, Lumos",Software - IT,1,7112,"tbd_-_torii,_trelica,_lumos",Chelsea Piers
+Postman,Software - IT,1,7112,postman,Chelsea Piers
+dbt,Software - IT,1,7112,dbt,Chelsea Piers
+Zoho Flow - Professional,Software - IT,1,7112,zoho_flow_-_professional,Chelsea Piers
+Zapier,Software - IT,1,7112,zapier.com,Chelsea Piers
+Veeam,Software - IT,1,7112,veeam.com,Chelsea Piers
+Shopify,Software - Operations,"100%, no allocation",6214,shopify.com,Chelsea Piers
+Toast,Software - Operations,Billed separate,6214,toast,Chelsea Piers
+Campsite,Software - Operations,"100%, no allocation",6214,campsite,Chelsea Piers
+Daysmart,Software - Operations,Billed separate,6214,daysmart,Chelsea Piers
+Bond,Software - Operations,"100%, no allocation",6214,bond,Chelsea Piers
+Bond,Software - Operations,11,6214,bond,Chelsea Piers
+Dockwa,Software - Operations,"100%, no allocation",6214,dockwa,Chelsea Piers
+Prospr,Software - Operations,13,6214,prospr,Chelsea Piers
+HUB Parking,Software - Operations,"100%, no allocation",6214,hub_parking,Chelsea Piers
+iPark,Software - Operations,"100%, no allocation",6214,ipark,Chelsea Piers
+Windcave,Software - Operations,"100%, no allocation",6214,windcave,Chelsea Piers
+Yardi,Software - Operations,"100%, no allocation",6214,yardi,Chelsea Piers
+League Athletics,Software - Operations,Billed separate,6214,league_athletics,Chelsea Piers
+SportsEngine,Software - Operations,"100%, no allocation",6214,sportsengine,Chelsea Piers
+TeamSnap,Software - Operations,26,6214,teamsnap,Chelsea Piers
+TeamUnify,Software - Operations,"100%, no allocation",6214,teamunify,Chelsea Piers
+InRange,Software - Operations,"100%, no allocation",6214,inrange,Chelsea Piers
+SevenRooms,Software - Operations,"100%, no allocation",6214,sevenrooms,Chelsea Piers
+Dell,Hardware - Individuals,Note Entity/Venue when submitting,6215,dell,Chelsea Piers
+Varies,Hardware - Individuals,"100%, no allocation",7110,varies,Chelsea Piers
+Varies,Hardware - Individuals,Note Entity/Venue when submitting,6215,varies,Chelsea Piers
+Dell,Hardware - Operations,Note Entity/Venue when submitting,6215,dell,Chelsea Piers
+Varies,Hardware - Operations,Note Entity/Venue when submitting,6215,varies,Chelsea Piers
+Tele-dynamics,Hardware - Operations,"100%, no allocation",6215,tele-dynamics,Chelsea Piers
+Reliable Office,Hardware - Operations,Note Entity/Venue when submitting,7110,reliable_office,Chelsea Piers
+Dara Av-Service Contract for CPF Chelsea,AV,"100%, no allocation",7110,dara_av-service_contract_for_cpf_chelsea,Chelsea Piers
+Dara Av-Service Contract FH Chelsea,AV,"100%, no allocation",7110,dara_av-service_contract_fh_chelsea,Chelsea Piers
+Dara Av-Service Contract GOLF,AV,"100%, no allocation",7110,dara_av-service_contract_golf,Chelsea Piers
+Dara Av-Service Contract Sunset Terrace SKY RINK,AV,"100%, no allocation",7110,dara_av-service_contract_sunset_terrace_sky_rink,Chelsea Piers
+CT Business Services,AV,"100%, no allocation",7111,ct_business_services,Chelsea Piers
+Dara or CT vendor,AV,"100%, no allocation",7110,dara_or_ct_vendor,Chelsea Piers
+Dara AV,AV,"100%, no allocation",7270,dara_av,Chelsea Piers
+REACH - Subscription,AV,Billed separate,7112,reach_-_subscription,Chelsea Piers
+REACH - Hardware,AV,"100%, no allocation",7110,reach_-_hardware,Chelsea Piers
+North Shore Neon,AV,"100%, no allocation",7272,north_shore_neon,Chelsea Piers
+Jared,AV,Billed separate,7110,jared,Chelsea Piers
+Gantner,Security,"100%, no allocation",7110,gantner,Chelsea Piers
+ExacqVision,Security,"100%, no allocation",7112,exacqvision,Chelsea Piers
+ExacqVision,Security,"100%, no allocation",7110,exacqvision,Chelsea Piers
+Spectrum Charter coax,Telecomm Providers,,6406,spectrum_charter_coax,Chelsea Piers
+Spectrum Fiber Internet LAN,Telecomm Providers,"100%, no allocation",6406,spectrum_fiber_internet_lan,Chelsea Piers
+FuboTV (Sky Rink tvs),Telecomm Providers,"100%, no allocation",6406,fubotv_(sky_rink_tvs),Chelsea Piers
+Hulu,Telecomm Providers,,6406,hulu,Chelsea Piers
+Sling TV,Telecomm Providers,,6406,sling_tv,Chelsea Piers
+BMI,Telecomm Providers,"100%, no allocation",6406,bmi,Chelsea Piers
+Jared,Telecomm Providers,,6406,jared,Chelsea Piers
+Spotify,Telecomm Providers,"100%, no allocation",6406,spotify,Chelsea Piers
+NuVisions,Telecomm Providers,Billed separate,6406,nuvisions,Chelsea Piers
+Dynalink,Telecomm Providers,Not allocated to venues in previous years,6406,dynalink,Chelsea Piers
+PGI/LoopUp,Telecomm Providers,"100%, no allocation",6406,pgi/loopup,Chelsea Piers
+FluentStream for CPNY,Telecomm Providers,21,6406,fluentstream_for_cpny,Chelsea Piers
+NuVisions,Telecomm Providers,"100%, no allocation",6406,nuvisions,Chelsea Piers
+Spectrum,Telecomm Providers,"100%, no allocation",6406,spectrum,Chelsea Piers
+Verizon,Telecomm Providers,"100%, no allocation",6406,verizon,Chelsea Piers
+Verizon Wireless,Telecomm Providers,"100%, no allocation",6406,verizon_wireless,Chelsea Piers
+Apple Developer,Mobile App,20,7112,apple_developer,Chelsea Piers
+Firebase,Mobile App,20,7112,firebase.google.com,Chelsea Piers
+Launch Darkly,Mobile App,20,7112,launch_darkly,Chelsea Piers
+New Relic,Mobile App,20,7112,new_relic,Chelsea Piers
+Sanity,Mobile App,10,7112,sanity,Chelsea Piers
+Expo,Mobile App,20,7112,expo,Chelsea Piers
+BrowserStack,Mobile App,20,7112,browserstack,Chelsea Piers
+Sentry,Mobile App,20,7112,sentry,Chelsea Piers
+Allyant 360,Websites,18,7110,allyant_360,Chelsea Piers
+Github,Websites,1,7112,github.com,Chelsea Piers
+GoDaddy,Websites,1,7112,godaddy.com,Chelsea Piers
+Microsoft Clarity,Websites,1,7112,microsoft_clarity,Chelsea Piers
+Mura,Websites,1,7112,mura,Chelsea Piers
+Squarespace,Websites,"100%, no allocation",7112,squarespace,Chelsea Piers
+Wordpress,Websites,1,7112,wordpress,Chelsea Piers
+Zoho Forms - Standard,Websites,1,7112,zoho_forms_-_standard,Chelsea Piers
+Zoho SalesIQ - Enterprise,Websites,1,7112,zoho_salesiq_-_enterprise,Chelsea Piers
+Hydrow,Connected Fitness,,6214,hydrow,Chelsea Piers
+ICG,Connected Fitness,,6214,icg,Chelsea Piers
+InBody,Connected Fitness,,6214,inbody,Chelsea Piers
+Mirror,Connected Fitness,,6214,mirror,Chelsea Piers
+Peloton,Connected Fitness,,6214,peloton,Chelsea Piers
+Varies,,19,7113,varies,Chelsea Piers
+Myriad360,Networks,22,1215,myriad360,Chelsea Piers
+Myriad360,Networks,23,1215,myriad360,Chelsea Piers
+Myriad360,Networks,24,1215,myriad360,Chelsea Piers
+Dell,Hardware - Individuals,Alex will provide Actual % allocations when purchases are made,1215,dell,Chelsea Piers
+Bond,Software - Operations,27,1331,bond,Chelsea Piers
+Daktronics,AV,100% no allocation,1215,daktronics,Chelsea Piers
+Gantner,Security,25,1215,gantner,Chelsea Piers
+ExacqVision,Security,100% no allocation,1215,exacqvision,Chelsea Piers
+Consultant,Mobile App,29,1331,consultant,Chelsea Piers
+Lagarsoft,Mobile App,29,1331,lagarsoft,Chelsea Piers
+Consultant,Websites,30,1331,consultant,Chelsea Piers
+Roboto,Websites,30,1331,roboto,Chelsea Piers
+Lagarsoft,Websites,30,1331,lagarsoft,Chelsea Piers

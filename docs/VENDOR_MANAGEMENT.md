@@ -53,7 +53,7 @@ The Invoice Agent processes invoices by matching sender email domains to vendors
 
 ### Step 1: Prepare Vendor CSV File
 
-Create `data/vendors.csv` with the following structure:
+Create `infrastructure/data/vendors.csv` with the following structure:
 
 ```csv
 vendor_name,email_domain,expense_dept,allocation_schedule,gl_code,billing_party,notes
@@ -140,7 +140,7 @@ print(f"✅ Added: {vendor['VendorName']}")
 
 ### Method 2: Batch Update (Multiple Vendors)
 
-1. Add new vendors to `data/vendors.csv`
+1. Add new vendors to `infrastructure/data/vendors.csv`
 2. Run the seed script again (it skips duplicates):
 
 ```bash
@@ -389,7 +389,7 @@ For each new vendor, collect:
 python3 add_single_vendor.py
 
 # Option B: Batch update
-# 1. Add rows to data/vendors.csv
+# 1. Add rows to infrastructure/data/vendors.csv
 # 2. Run: python3 infrastructure/scripts/seed_vendors.py "$CONNECTION_STRING"
 ```
 
