@@ -7,8 +7,8 @@ This module defines all data models used throughout the invoice processing pipel
 - Teams webhook message card format
 """
 
-from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, Dict, Literal
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from typing import Optional, Dict, Literal, Self
 
 
 # =============================================================================
@@ -36,15 +36,17 @@ class RawMail(BaseModel):
         None, description="Vendor name extracted from invoice (optional, for future PDF automation)"
     )
 
-    @validator("blob_url")
-    def validate_url(cls, v):
+    @field_validator("blob_url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
         """Ensure blob URL uses HTTPS protocol"""
         if not v.startswith("https://"):
             raise ValueError("blob_url must be HTTPS")
         return v
 
-    @validator("id")
-    def validate_id(cls, v):
+    @field_validator("id")
+    @classmethod
+    def validate_id(cls, v: str) -> str:
         """Ensure ID is not empty"""
         if not v or not v.strip():
             raise ValueError("id cannot be empty")
@@ -78,22 +80,25 @@ class EnrichedInvoice(BaseModel):
     due_date: Optional[str] = Field(default=None, description="Payment due date (ISO 8601 format)")
     payment_terms: Optional[str] = Field(default="Net 30", description="Payment terms (Net 30, Net 60, etc)")
 
-    @validator("gl_code")
-    def validate_gl_code(cls, v):
+    @field_validator("gl_code")
+    @classmethod
+    def validate_gl_code(cls, v: str) -> str:
         """Ensure GL code is 4 digits"""
         if not v.isdigit() or len(v) != 4:
             raise ValueError("gl_code must be exactly 4 digits")
         return v
 
-    @validator("vendor_name", "expense_dept", "billing_party")
-    def validate_not_empty(cls, v):
+    @field_validator("vendor_name", "expense_dept", "billing_party")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
         """Ensure critical fields are not empty"""
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
         return v
 
-    @validator("invoice_amount")
-    def validate_invoice_amount(cls, v):
+    @field_validator("invoice_amount")
+    @classmethod
+    def validate_invoice_amount(cls, v: Optional[float]) -> Optional[float]:
         """Ensure invoice amount is reasonable if provided"""
         if v is not None:
             if v <= 0:
@@ -102,8 +107,9 @@ class EnrichedInvoice(BaseModel):
                 raise ValueError("invoice_amount must be less than $10M")
         return v
 
-    @validator("currency")
-    def validate_currency(cls, v):
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, v: Optional[str]) -> Optional[str]:
         """Ensure currency is one of supported codes"""
         if v is not None:
             allowed = ["USD", "EUR", "CAD"]
@@ -125,17 +131,15 @@ class NotificationMessage(BaseModel):
     message: str = Field(..., description="Human-readable summary message")
     details: Dict[str, str] = Field(..., description="Additional context for notification")
 
-    @validator("details")
-    def validate_details(cls, v, values):
+    @model_validator(mode="after")
+    def validate_details(self) -> Self:
         """Ensure required detail fields are present based on type"""
-        if "type" in values:
-            msg_type = values["type"]
-            if msg_type in ["success", "unknown"] and "transaction_id" not in v:
-                raise ValueError("transaction_id required in details")
-        return v
+        if self.type in ["success", "unknown"] and "transaction_id" not in self.details:
+            raise ValueError("transaction_id required in details")
+        return self
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "type": "success",
                 "message": "Processed: Adobe Inc - GL 6100",
@@ -146,6 +150,7 @@ class NotificationMessage(BaseModel):
                 },
             }
         }
+    )
 
 
 # =============================================================================
@@ -176,22 +181,25 @@ class VendorMaster(BaseModel):
     Active: bool = Field(default=True, description="Soft delete flag")
     UpdatedAt: str = Field(..., description="ISO 8601 timestamp of last update")
 
-    @validator("GLCode")
-    def validate_gl_code(cls, v):
+    @field_validator("GLCode")
+    @classmethod
+    def validate_gl_code(cls, v: str) -> str:
         """Ensure GL code is exactly 4 digits"""
         if not v.isdigit() or len(v) != 4:
             raise ValueError("GLCode must be exactly 4 digits")
         return v
 
-    @validator("ProductCategory")
-    def validate_product_category(cls, v):
+    @field_validator("ProductCategory")
+    @classmethod
+    def validate_product_category(cls, v: str) -> str:
         """Ensure ProductCategory is Direct or Reseller"""
         if v not in ["Direct", "Reseller"]:
             raise ValueError("ProductCategory must be 'Direct' or 'Reseller'")
         return v
 
-    @validator("RowKey")
-    def validate_row_key(cls, v):
+    @field_validator("RowKey")
+    @classmethod
+    def validate_row_key(cls, v: str) -> str:
         """Ensure RowKey is normalized (lowercase, underscore-separated)"""
         if not v.islower() or " " in v:
             raise ValueError("RowKey must be lowercase with no spaces")
@@ -233,8 +241,9 @@ class InvoiceTransaction(BaseModel):
         default=None, description="MD5 hash for duplicate detection (vendor|sender|date)"
     )
 
-    @validator("PartitionKey")
-    def validate_partition_key(cls, v):
+    @field_validator("PartitionKey")
+    @classmethod
+    def validate_partition_key(cls, v: str) -> str:
         """Ensure PartitionKey is in YYYYMM format"""
         if not v.isdigit() or len(v) != 6:
             raise ValueError("PartitionKey must be YYYYMM format (6 digits)")
@@ -244,12 +253,12 @@ class InvoiceTransaction(BaseModel):
             raise ValueError("Invalid year or month in PartitionKey")
         return v
 
-    @validator("ErrorMessage", always=True)
-    def validate_error_message(cls, v, values):
+    @model_validator(mode="after")
+    def validate_error_message(self) -> Self:
         """Ensure ErrorMessage is present when Status is 'error'"""
-        if "Status" in values and values["Status"] == "error" and not v:
+        if self.Status == "error" and not self.ErrorMessage:
             raise ValueError("ErrorMessage required when Status is error")
-        return v
+        return self
 
 
 # =============================================================================
@@ -296,16 +305,17 @@ class TeamsMessageCard(BaseModel):
     text: str = Field(..., description="Card title/summary text")
     sections: list[MessageCardSection] = Field(..., description="Sections containing facts")
 
-    @validator("themeColor")
-    def validate_theme_color(cls, v):
+    @field_validator("themeColor")
+    @classmethod
+    def validate_theme_color(cls, v: str) -> str:
         """Ensure theme color is valid hex code"""
         if not v or len(v) != 6 or not all(c in "0123456789ABCDEFabcdef" for c in v):
             raise ValueError("themeColor must be 6-digit hex code")
         return v.upper()
 
-    class Config:
-        allow_population_by_field_name = True
-        schema_extra = {
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
             "example": {
                 "@type": "MessageCard",
                 "themeColor": "00FF00",
@@ -320,4 +330,5 @@ class TeamsMessageCard(BaseModel):
                     }
                 ],
             }
-        }
+        },
+    )
