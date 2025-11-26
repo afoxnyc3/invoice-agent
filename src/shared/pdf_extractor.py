@@ -14,8 +14,10 @@ Latency: ~500ms per PDF (extraction + API call)
 import os
 import logging
 import io
-from typing import Optional
+import re
+from typing import Optional, Dict
 from urllib.parse import unquote
+from datetime import datetime, timedelta
 import pdfplumber
 from openai import AzureOpenAI
 from azure.storage.blob import BlobServiceClient
@@ -208,3 +210,187 @@ def extract_vendor_from_pdf(blob_url: str) -> Optional[str]:
         logger.error(f"PDF vendor extraction failed for {blob_url}: {str(e)}")
         # Don't raise - gracefully degrade to email domain extraction
         return None
+
+
+def _extract_amount_from_text(text: str) -> Optional[float]:
+    """Extract invoice amount from text using regex patterns."""
+    if not text:
+        return None
+
+    patterns = [
+        r"(?:total|amount|due|balance)[:\s]+\$?\s*([\d,]+\.?\d*)",
+        r"\$\s*([\d,]+\.\d{2})",
+        r"(?:USD|EUR|CAD)\s*([\d,]+\.?\d*)",
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        if matches:
+            try:
+                amount_str = matches[0].replace(",", "")
+                amount = float(amount_str)
+                if 0 < amount < 10_000_000:
+                    return amount
+            except (ValueError, IndexError):
+                continue
+    return None
+
+
+def _extract_currency_from_text(text: str) -> str:
+    """Extract currency code from text."""
+    if not text:
+        return "USD"
+
+    # Try currency codes first
+    currency_match = re.search(r"\b(USD|EUR|CAD)\b", text, re.IGNORECASE)
+    if currency_match:
+        return currency_match.group(1).upper()
+
+    # Check for dollar sign (default to USD)
+    if "$" in text:
+        return "USD"
+
+    return "USD"
+
+
+def _parse_date_string(date_str: str) -> Optional[datetime]:
+    """Parse date string in various formats."""
+    date_formats = [
+        "%Y-%m-%d",
+        "%m/%d/%Y",
+        "%d/%m/%Y",
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%d %B %Y",
+        "%d %b %Y",
+    ]
+
+    for fmt in date_formats:
+        try:
+            return datetime.strptime(date_str.strip(), fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_due_date_from_text(text: str, fallback_date: str = None) -> Optional[str]:
+    """Extract due date from text or use fallback."""
+    if not text:
+        return _calculate_fallback_due_date(fallback_date)
+
+    patterns = [
+        r"(?:due date|payment due|due by)[:\s]+(\d{4}-\d{2}-\d{2})",
+        r"(?:due date|payment due|due by)[:\s]+(\d{1,2}/\d{1,2}/\d{4})",
+        r"(?:due date|payment due|due by)[:\s]+([A-Za-z]+\s+\d{1,2},?\s+\d{4})",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            parsed = _parse_date_string(match.group(1))
+            if parsed:
+                return parsed.isoformat()
+    return _calculate_fallback_due_date(fallback_date)
+
+
+def _calculate_fallback_due_date(received_date: str = None) -> Optional[str]:
+    """Calculate due date as received_date + 30 days."""
+    try:
+        if received_date:
+            base_date = datetime.fromisoformat(received_date.replace("Z", ""))
+        else:
+            base_date = datetime.now()
+        due_date = base_date + timedelta(days=30)
+        return due_date.isoformat()
+    except (ValueError, AttributeError):
+        return None
+
+
+def _extract_payment_terms_from_text(text: str) -> str:
+    """Extract payment terms from text."""
+    if not text:
+        return "Net 30"
+
+    patterns = [
+        r"\b(Net\s+\d+)\b",
+        r"\b(Due\s+on\s+receipt)\b",
+        r"\b(COD)\b",
+        r"\b(Prepaid)\b",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).title()
+    return "Net 30"
+
+
+def extract_invoice_fields_from_pdf(blob_url: str, received_at: str = None) -> Dict[str, any]:
+    """
+    Extract invoice fields from PDF (amount, currency, due date, payment terms).
+
+    This function extracts structured invoice fields using regex patterns on
+    the PDF text. Returns a dict with extracted values and confidence scores.
+
+    Args:
+        blob_url: Full URL to invoice PDF in blob storage
+        received_at: ISO 8601 timestamp of when email received (for fallback due date)
+
+    Returns:
+        dict: Extracted fields with confidence scores
+            {
+                'invoice_amount': float or None,
+                'currency': str,
+                'due_date': str (ISO 8601) or None,
+                'payment_terms': str,
+                'confidence': {'amount': float, 'due_date': float, 'payment_terms': float}
+            }
+    """
+    try:
+        logger.info(f"Starting invoice field extraction for {blob_url}")
+
+        pdf_bytes = _download_pdf_from_blob(blob_url)
+        pdf_text = _extract_text_from_pdf(pdf_bytes, max_chars=4000)
+
+        if not pdf_text:
+            logger.warning("No text extracted from PDF - using defaults")
+            return _default_invoice_fields(received_at)
+
+        amount = _extract_amount_from_text(pdf_text)
+        currency = _extract_currency_from_text(pdf_text)
+        due_date = _extract_due_date_from_text(pdf_text, received_at)
+        payment_terms = _extract_payment_terms_from_text(pdf_text)
+
+        confidence = {
+            "amount": 1.0 if amount else 0.0,
+            "due_date": 1.0 if "due date" in pdf_text.lower() else 0.5,
+            "payment_terms": 1.0 if re.search(r"\bnet\s+\d+\b", pdf_text, re.I) else 0.5,
+        }
+
+        logger.info(
+            f"Extracted fields - Amount: {amount}, Currency: {currency}, Due: {due_date}, Terms: {payment_terms}"
+        )
+        logger.debug(f"Extraction confidence: {confidence}")
+
+        return {
+            "invoice_amount": amount,
+            "currency": currency,
+            "due_date": due_date,
+            "payment_terms": payment_terms,
+            "confidence": confidence,
+        }
+
+    except Exception as e:
+        logger.error(f"Invoice field extraction failed: {str(e)}")
+        return _default_invoice_fields(received_at)
+
+
+def _default_invoice_fields(received_at: str = None) -> Dict[str, any]:
+    """Return default invoice fields when extraction fails."""
+    return {
+        "invoice_amount": None,
+        "currency": "USD",
+        "due_date": _calculate_fallback_due_date(received_at),
+        "payment_terms": "Net 30",
+        "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
+    }

@@ -19,6 +19,7 @@ from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
 from shared.email_parser import extract_domain
 from shared.deduplication import is_message_already_processed, generate_invoice_hash
+from shared.pdf_extractor import extract_invoice_fields_from_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,10 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             logger.info(f"Skipping duplicate message {raw_mail.id}")
             return
 
+        # Extract invoice fields from PDF (amount, currency, due date, payment terms)
+        invoice_fields = extract_invoice_fields_from_pdf(raw_mail.blob_url, raw_mail.received_at)
+        logger.info(f"Invoice field extraction confidence: {invoice_fields.get('confidence', {})}")
+
         table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
             "VendorMaster"
         )
@@ -194,6 +199,10 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 sender_email=raw_mail.sender,
                 received_at=raw_mail.received_at,
                 invoice_hash=invoice_hash,
+                invoice_amount=invoice_fields.get("invoice_amount"),
+                currency=invoice_fields.get("currency", "USD"),
+                due_date=invoice_fields.get("due_date"),
+                payment_terms=invoice_fields.get("payment_terms", "Net 30"),
             )
             toPost.set(enriched.model_dump_json())
             return
@@ -217,6 +226,10 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 sender_email=raw_mail.sender,
                 received_at=raw_mail.received_at,
                 invoice_hash=invoice_hash,
+                invoice_amount=invoice_fields.get("invoice_amount"),
+                currency=invoice_fields.get("currency", "USD"),
+                due_date=invoice_fields.get("due_date"),
+                payment_terms=invoice_fields.get("payment_terms", "Net 30"),
             )
             toPost.set(enriched.model_dump_json())
             return
@@ -236,6 +249,10 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             sender_email=raw_mail.sender,
             received_at=raw_mail.received_at,
             invoice_hash=invoice_hash,
+            invoice_amount=invoice_fields.get("invoice_amount"),
+            currency=invoice_fields.get("currency", "USD"),
+            due_date=invoice_fields.get("due_date"),
+            payment_terms=invoice_fields.get("payment_terms", "Net 30"),
         )
         toPost.set(enriched.model_dump_json())
         logger.info(f"Enriched: {raw_mail.id} - {vendor['VendorName']} (GL: {vendor['GLCode']})")

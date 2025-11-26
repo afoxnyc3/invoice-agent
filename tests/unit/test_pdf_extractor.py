@@ -6,12 +6,19 @@ and error handling with mocked dependencies.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch, mock_open
+from datetime import datetime, timedelta
+from unittest.mock import Mock, MagicMock, patch
 from shared.pdf_extractor import (
     extract_vendor_from_pdf,
     _download_pdf_from_blob,
     _extract_text_from_pdf,
     _extract_vendor_with_llm,
+    _extract_amount_from_text,
+    _extract_currency_from_text,
+    _extract_due_date_from_text,
+    _extract_payment_terms_from_text,
+    _parse_date_string,
+    extract_invoice_fields_from_pdf,
 )
 
 
@@ -260,9 +267,7 @@ class TestExtractVendorFromPDF:
     @patch("shared.pdf_extractor._extract_vendor_with_llm")
     @patch("shared.pdf_extractor._extract_text_from_pdf")
     @patch("shared.pdf_extractor._download_pdf_from_blob")
-    def test_end_to_end_success(
-        self, mock_download, mock_extract_text, mock_extract_llm, mock_environment
-    ):
+    def test_end_to_end_success(self, mock_download, mock_extract_text, mock_extract_llm, mock_environment):
         """Test successful end-to-end vendor extraction."""
         # Mock each step
         mock_download.return_value = b"%PDF-1.4"
@@ -279,9 +284,7 @@ class TestExtractVendorFromPDF:
 
     @patch("shared.pdf_extractor._extract_text_from_pdf")
     @patch("shared.pdf_extractor._download_pdf_from_blob")
-    def test_end_to_end_no_text_extracted(
-        self, mock_download, mock_extract_text, mock_environment
-    ):
+    def test_end_to_end_no_text_extracted(self, mock_download, mock_extract_text, mock_environment):
         """Test graceful handling when no text can be extracted."""
         mock_download.return_value = b"%PDF-1.4"
         mock_extract_text.return_value = None  # No text extracted
@@ -294,9 +297,7 @@ class TestExtractVendorFromPDF:
     @patch("shared.pdf_extractor._extract_vendor_with_llm")
     @patch("shared.pdf_extractor._extract_text_from_pdf")
     @patch("shared.pdf_extractor._download_pdf_from_blob")
-    def test_end_to_end_llm_fails(
-        self, mock_download, mock_extract_text, mock_extract_llm, mock_environment
-    ):
+    def test_end_to_end_llm_fails(self, mock_download, mock_extract_text, mock_extract_llm, mock_environment):
         """Test graceful handling when LLM extraction fails."""
         mock_download.return_value = b"%PDF-1.4"
         mock_extract_text.return_value = "Invoice text"
@@ -320,9 +321,7 @@ class TestExtractVendorFromPDF:
     @patch("shared.pdf_extractor._extract_vendor_with_llm")
     @patch("shared.pdf_extractor._extract_text_from_pdf")
     @patch("shared.pdf_extractor._download_pdf_from_blob")
-    def test_end_to_end_partial_failure(
-        self, mock_download, mock_extract_text, mock_extract_llm, mock_environment
-    ):
+    def test_end_to_end_partial_failure(self, mock_download, mock_extract_text, mock_extract_llm, mock_environment):
         """Test that partial failures don't crash the system."""
         mock_download.return_value = b"%PDF-1.4"
         mock_extract_text.side_effect = Exception("pdfplumber error")
@@ -334,3 +333,272 @@ class TestExtractVendorFromPDF:
         assert result is None
         # Should not call LLM since text extraction failed
         mock_extract_llm.assert_not_called()
+
+
+# =============================================================================
+# INVOICE AMOUNT EXTRACTION TESTS
+# =============================================================================
+
+
+class TestExtractAmountFromText:
+    """Test invoice amount extraction from text."""
+
+    def test_extract_amount_with_total_label(self):
+        """Test amount extraction with 'Total:' label."""
+        text = "Invoice Details\nTotal: $1,234.56\nThank you"
+        result = _extract_amount_from_text(text)
+        assert result == 1234.56
+
+    def test_extract_amount_with_amount_label(self):
+        """Test amount extraction with 'Amount:' label."""
+        text = "Amount: $999.99"
+        result = _extract_amount_from_text(text)
+        assert result == 999.99
+
+    def test_extract_amount_with_due_label(self):
+        """Test amount extraction with 'Due:' label."""
+        text = "Amount Due: 5000.00"
+        result = _extract_amount_from_text(text)
+        assert result == 5000.00
+
+    def test_extract_amount_with_currency_prefix(self):
+        """Test amount extraction with currency prefix."""
+        text = "Total Amount: USD 1500.50"
+        result = _extract_amount_from_text(text)
+        assert result == 1500.50
+
+    def test_extract_amount_no_decimals(self):
+        """Test amount extraction without decimal places."""
+        text = "Total: $1000"
+        result = _extract_amount_from_text(text)
+        assert result == 1000.0
+
+    def test_extract_amount_invalid_range(self):
+        """Test amount extraction rejects out-of-range values."""
+        text = "Total: $99999999999.99"
+        result = _extract_amount_from_text(text)
+        assert result is None
+
+    def test_extract_amount_empty_text(self):
+        """Test amount extraction with empty text."""
+        result = _extract_amount_from_text("")
+        assert result is None
+
+
+# =============================================================================
+# CURRENCY EXTRACTION TESTS
+# =============================================================================
+
+
+class TestExtractCurrencyFromText:
+    """Test currency extraction from text."""
+
+    def test_extract_currency_usd(self):
+        """Test USD currency extraction."""
+        text = "Total: USD 1000.00"
+        result = _extract_currency_from_text(text)
+        assert result == "USD"
+
+    def test_extract_currency_eur(self):
+        """Test EUR currency extraction."""
+        text = "Amount: EUR 500.00"
+        result = _extract_currency_from_text(text)
+        assert result == "EUR"
+
+    def test_extract_currency_cad(self):
+        """Test CAD currency extraction."""
+        text = "Total: CAD 750.00"
+        result = _extract_currency_from_text(text)
+        assert result == "CAD"
+
+    def test_extract_currency_dollar_sign(self):
+        """Test currency extraction with dollar sign defaults to USD."""
+        text = "Total: $1000.00"
+        result = _extract_currency_from_text(text)
+        assert result == "USD"
+
+    def test_extract_currency_default(self):
+        """Test currency extraction defaults to USD when not found."""
+        text = "Invoice total 1000"
+        result = _extract_currency_from_text(text)
+        assert result == "USD"
+
+
+# =============================================================================
+# DATE PARSING TESTS
+# =============================================================================
+
+
+class TestParseDateString:
+    """Test date string parsing."""
+
+    def test_parse_iso_date(self):
+        """Test parsing ISO 8601 date format."""
+        result = _parse_date_string("2024-01-15")
+        assert result == datetime(2024, 1, 15)
+
+    def test_parse_us_date_format(self):
+        """Test parsing US date format (MM/DD/YYYY)."""
+        result = _parse_date_string("01/15/2024")
+        assert result == datetime(2024, 1, 15)
+
+    def test_parse_long_month_name(self):
+        """Test parsing date with full month name."""
+        result = _parse_date_string("January 15, 2024")
+        assert result == datetime(2024, 1, 15)
+
+    def test_parse_short_month_name(self):
+        """Test parsing date with abbreviated month name."""
+        result = _parse_date_string("Jan 15, 2024")
+        assert result == datetime(2024, 1, 15)
+
+    def test_parse_invalid_date(self):
+        """Test parsing invalid date returns None."""
+        result = _parse_date_string("not a date")
+        assert result is None
+
+
+# =============================================================================
+# DUE DATE EXTRACTION TESTS
+# =============================================================================
+
+
+class TestExtractDueDateFromText:
+    """Test due date extraction from text."""
+
+    def test_extract_due_date_iso_format(self):
+        """Test due date extraction with ISO format."""
+        text = "Invoice\nDue Date: 2024-12-31\nThank you"
+        result = _extract_due_date_from_text(text)
+        assert result == "2024-12-31T00:00:00"
+
+    def test_extract_due_date_us_format(self):
+        """Test due date extraction with US format."""
+        text = "Payment Due: 12/31/2024"
+        result = _extract_due_date_from_text(text)
+        assert result == "2024-12-31T00:00:00"
+
+    def test_extract_due_date_long_format(self):
+        """Test due date extraction with long format."""
+        text = "Due by: December 31, 2024"
+        result = _extract_due_date_from_text(text)
+        assert result == "2024-12-31T00:00:00"
+
+    def test_extract_due_date_fallback(self):
+        """Test due date falls back to received_date + 30 days."""
+        text = "No due date in this text"
+        received = "2024-01-01T00:00:00Z"
+        result = _extract_due_date_from_text(text, received)
+        expected = (datetime(2024, 1, 1) + timedelta(days=30)).isoformat()
+        assert result == expected
+
+
+# =============================================================================
+# PAYMENT TERMS EXTRACTION TESTS
+# =============================================================================
+
+
+class TestExtractPaymentTermsFromText:
+    """Test payment terms extraction from text."""
+
+    def test_extract_payment_terms_net_30(self):
+        """Test extraction of Net 30 payment terms."""
+        text = "Payment Terms: Net 30"
+        result = _extract_payment_terms_from_text(text)
+        assert result == "Net 30"
+
+    def test_extract_payment_terms_net_60(self):
+        """Test extraction of Net 60 payment terms."""
+        text = "Terms: Net 60 days"
+        result = _extract_payment_terms_from_text(text)
+        assert result == "Net 60"
+
+    def test_extract_payment_terms_due_on_receipt(self):
+        """Test extraction of Due on receipt payment terms."""
+        text = "Payment: Due on receipt"
+        result = _extract_payment_terms_from_text(text)
+        assert result == "Due On Receipt"
+
+    def test_extract_payment_terms_cod(self):
+        """Test extraction of COD payment terms."""
+        text = "Terms: COD"
+        result = _extract_payment_terms_from_text(text)
+        assert result == "Cod"
+
+    def test_extract_payment_terms_default(self):
+        """Test default payment terms when not found."""
+        text = "No payment terms in this text"
+        result = _extract_payment_terms_from_text(text)
+        assert result == "Net 30"
+
+
+# =============================================================================
+# END-TO-END INVOICE FIELDS EXTRACTION TESTS
+# =============================================================================
+
+
+class TestExtractInvoiceFieldsFromPDF:
+    """Test complete invoice fields extraction flow."""
+
+    @patch("shared.pdf_extractor._extract_text_from_pdf")
+    @patch("shared.pdf_extractor._download_pdf_from_blob")
+    def test_extract_all_fields_success(self, mock_download, mock_extract_text, mock_environment):
+        """Test successful extraction of all invoice fields."""
+        mock_download.return_value = b"%PDF-1.4"
+        mock_extract_text.return_value = """
+        Invoice #12345
+        Adobe Inc
+        Total: $1,250.50
+        Due Date: 2024-12-31
+        Payment Terms: Net 30
+        """
+
+        blob_url = "https://storage.blob.core.windows.net/invoices/tx123/invoice.pdf"
+        result = extract_invoice_fields_from_pdf(blob_url)
+
+        assert result["invoice_amount"] == 1250.50
+        assert result["currency"] == "USD"
+        assert result["due_date"] == "2024-12-31T00:00:00"
+        assert result["payment_terms"] == "Net 30"
+        assert result["confidence"]["amount"] == 1.0
+
+    @patch("shared.pdf_extractor._extract_text_from_pdf")
+    @patch("shared.pdf_extractor._download_pdf_from_blob")
+    def test_extract_fields_with_eur_currency(self, mock_download, mock_extract_text, mock_environment):
+        """Test extraction with EUR currency."""
+        mock_download.return_value = b"%PDF-1.4"
+        mock_extract_text.return_value = "Total: EUR 500.00\nDue Date: 2024-12-31"
+
+        blob_url = "https://storage.blob.core.windows.net/invoices/tx123/invoice.pdf"
+        result = extract_invoice_fields_from_pdf(blob_url)
+
+        assert result["invoice_amount"] == 500.00
+        assert result["currency"] == "EUR"
+
+    @patch("shared.pdf_extractor._extract_text_from_pdf")
+    @patch("shared.pdf_extractor._download_pdf_from_blob")
+    def test_extract_fields_no_text_uses_defaults(self, mock_download, mock_extract_text, mock_environment):
+        """Test extraction uses defaults when no text extracted."""
+        mock_download.return_value = b"%PDF-1.4"
+        mock_extract_text.return_value = None
+
+        blob_url = "https://storage.blob.core.windows.net/invoices/tx123/invoice.pdf"
+        received = "2024-01-01T00:00:00Z"
+        result = extract_invoice_fields_from_pdf(blob_url, received)
+
+        assert result["invoice_amount"] is None
+        assert result["currency"] == "USD"
+        assert result["payment_terms"] == "Net 30"
+        assert result["confidence"]["amount"] == 0.0
+
+    @patch("shared.pdf_extractor._download_pdf_from_blob")
+    def test_extract_fields_exception_returns_defaults(self, mock_download, mock_environment):
+        """Test extraction returns defaults on exception."""
+        mock_download.side_effect = Exception("Blob not found")
+
+        blob_url = "https://storage.blob.core.windows.net/invoices/invalid/file.pdf"
+        result = extract_invoice_fields_from_pdf(blob_url)
+
+        assert result["invoice_amount"] is None
+        assert result["currency"] == "USD"
+        assert result["payment_terms"] == "Net 30"

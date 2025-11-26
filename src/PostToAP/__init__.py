@@ -49,6 +49,16 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
     """Compose email body for AP with invoice metadata."""
     subject = f"Invoice: {enriched.vendor_name} - GL {enriched.gl_code}"
     alloc_label = "Allocation Schedule"
+
+    # Format invoice amount if available
+    amount_display = "N/A"
+    if enriched.invoice_amount:
+        currency = enriched.currency or "USD"
+        amount_display = f"{currency} {enriched.invoice_amount:,.2f}"
+
+    # Format due date if available
+    due_date_display = enriched.due_date[:10] if enriched.due_date else "N/A"
+
     body = f"""
 <html>
 <body style="font-family: Arial, sans-serif;">
@@ -56,6 +66,9 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
     <table border="1" cellpadding="8" style="border-collapse: collapse;">
         <tr><td><strong>Transaction ID</strong></td><td>{enriched.id}</td></tr>
         <tr><td><strong>Vendor</strong></td><td>{enriched.vendor_name}</td></tr>
+        <tr><td><strong>Invoice Amount</strong></td><td>{amount_display}</td></tr>
+        <tr><td><strong>Due Date</strong></td><td>{due_date_display}</td></tr>
+        <tr><td><strong>Payment Terms</strong></td><td>{enriched.payment_terms or 'Net 30'}</td></tr>
         <tr><td><strong>GL Code</strong></td><td>{enriched.gl_code}</td></tr>
         <tr><td><strong>Department</strong></td><td>{enriched.expense_dept}</td></tr>
         <tr><td><strong>{alloc_label}</strong></td><td>{enriched.allocation_schedule}\
