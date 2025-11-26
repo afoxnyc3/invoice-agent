@@ -1,0 +1,235 @@
+Vendor,Expense_Dept,Allocation_Schedule,GL_Code
+Meraki Licensing,Networks,14,7110
+Meraki Licensing,Networks,14,7110
+Meraki Licensing,Networks,15,7110
+TBD,Networks,16,7110
+Netgear,Networks,17,7110
+AWS TGW,Networks,18,7110
+Cisco Remote Access,Networks,18,7110
+AWS,Cloud,1,7112
+AWS,Cloud,1,7112
+M365 Manager+ License,Cloud,1,7112
+M365 Manager+ Tech License,Cloud,1,7112
+M365 Manager+ Instance,Cloud,1,7112
+Dropbox,Cloud,1,7112
+Heroku,Cloud,1,7112
+Red Paladin,CyberSecurity,2,7111
+Red Paladin,CyberSecurity,2,7111
+Mimecast - M365,CyberSecurity,1,7112
+Mimecast - Awareness Training,CyberSecurity,1,7112
+Mimecast - Advanced Support,CyberSecurity,1,7112
+EasyDmarc,CyberSecurity,1,7112
+1Password,CyberSecurity,1,7112
+Prowler,CyberSecurity,1,7112
+AWS Security Hub,CyberSecurity,1,7112
+Wazuh,CyberSecurity,1,7112
+Cisco,CyberSecurity,1,7112
+FRSecure,CyberSecurity,1,7112
+Sentinel One,CyberSecurity,3,7112
+,,,
+Microsoft,M365 Suite,3,7112
+Microsoft,M365 Suite,3,7112
+Microsoft,M365 Suite,3,7112
+Microsoft,M365 Suite,3,7112
+Microsoft,M365 Suite,3,7112
+Red Paladin,M365 Suite,2,7111
+Intune,M365 Suite,3,7112
+,,,
+Adobe Standard DC,Software - Marketing,1,7112
+???,Software - Marketing,1,7112
+Creative Cloud All Apps,Software - Marketing,1,7112
+"Suitcase, etc.",Software - Marketing,1,7112
+Lytho,Software - Marketing,1,7112
+n24x7,Software - Marketing,2,7111
+BeeFree,Software - Marketing,1,7112
+Bouncify,Software - Marketing,1,7112
+Canva,Software - Marketing,1,7112
+Eventbrite,Software - Marketing,,7112
+Google Analytics 4,Software - Marketing,1,7112
+MXMetrics,Software - Marketing,4,7112
+Yext,Software - Marketing,1,7112
+Zoom,Software - Marketing,"100%, no allocation",7112
+ZeptoMail,Software - Marketing,1,7112
+Zoho Campaigns - Professional,Software - Marketing,"100%, no allocation",7112
+Zoho Social - Premium,Software - Marketing,1,7112
+Zoho Social - Premium Add-on,Software - Marketing,1,7112
+Zoho Survey - Enterprise Plan,Software - Marketing,1,7112
+Zoho Survey - Enterprise Users,Software - Marketing,1,7112
+Zoho Analytics - Enterprise,Software - Sales,1,7112
+Zoho Analytics - Enterprise,Software - Sales,1,7112
+Zoho Analytics - Enterprise,Software - Sales,1,7112
+Zoho Bookings - Premium,Software - Sales,4,7112
+Zoho Bookings - Premium Add-on,Software - Sales,4,7112
+Zoho CRM - Enterprise,Software - Sales,5,7112
+Zoho CRM - Enterprise Team,Software - Sales,5,7112
+Zoho Desk - Agents,Software - Sales,6,7112
+Zoho Desk - Lite agents,Software - Sales,6,7112
+Zoho Sign - Standard,Software - Sales,"100%, no allocation",7112
+Docusign,Software - Sales,"100%, no allocation",7112
+Zenatta,Software - Sales,1,7112
+Zoom,Software - Sales,"100%, no allocation",7112
+Adyen,Software - Finance,12,7112
+Netsuite,Software - Finance,7,7112
+Netsuite,Software - Finance,"100%, no allocation",7112
+Netsuite,Software - Finance,7,7112
+Netsuite,Software - Finance,8,7112
+Squareworks,Software - Finance,7,7112
+PowerBI,Software - Finance,1,7112
+Lagarsoft,Software - Finance,1,7112
+Sage,Software - Finance,"100%, no allocation",7112
+Zoom,Software - Finance,"100%, no allocation",7112
+Qualys,Software - Finance,"100%, no allocation",7112
+Myers Holum,Software - Finance,9,7111
+Cohn Reznick,Software - Finance,9,7111
+AlertMedia,Software - People Ops,1,7112
+Indeed,Software - People Ops,1,7112
+Homebase,Software - People Ops,4,6214
+Paycom,Software - People Ops,Allocated by HR CPLP/CPFH,7112
+Trinet,Software - People Ops,"100%, no allocation",7112
+MaintainX,Software - Facilities,"100%, no allocation",7112
+Rackspace,Software - Facilities,"100%, no allocation",7112
+KPA Services,Software - Facilities,1,7112
+Autocad,Software - Facilities,1,7112
+Confluence,Software - IT,1,7112
+Jira Software,Software - IT,1,7112
+Jira Discovery,Software - IT,1,7112
+Jira Services Management,Software - IT,1,7112
+Jira Work Management,Software - IT,1,7112
+ConnectWise Automate,Software - IT,1,7112
+ConnectWise Automate,Software - IT,1,7112
+ChatPRD,Software - IT,1,7112
+Figma Design,Software - IT,1,7112
+Figma FigJam,Software - IT,1,7112
+Loom,Software - IT,1,7112
+Heap,Software - IT,10,7112
+UserInterviews,Software - IT,1,7112
+LogMeIn,Software - IT,1,7112
+"TBD - Torii, Trelica, Lumos",Software - IT,1,7112
+Postman,Software - IT,1,7112
+dbt,Software - IT,1,7112
+Zoho Flow - Professional,Software - IT,1,7112
+Zapier,Software - IT,1,7112
+Veeam,Software - IT,1,7112
+Veeam,Software - IT,1,7112
+Shopify,Software - Operations,"100%, no allocation",6214
+Toast,Software - Operations,Billed separate,6214
+Campsite,Software - Operations,"100%, no allocation",6214
+Daysmart,Software - Operations,Billed separate,6214
+Bond,Software - Operations,"100%, no allocation",6214
+Bond,Software - Operations,11,6214
+Dockwa,Software - Operations,"100%, no allocation",6214
+Exerp,Software - Operations,"CPCT 100%, CPFC Sched 20",6214
+Exerp,Software - Operations,12,6214
+Exerp,Software - Operations,12,6214
+Exerp,Software - Operations,12,6214
+Exerp,Software - Operations,12,6214
+Exerp,Software - Operations,12,6214
+Prospr,Software - Operations,13,6214
+HUB Parking,Software - Operations,"100%, no allocation",6214
+iPark,Software - Operations,"100%, no allocation",6214
+Windcave,Software - Operations,"100%, no allocation",6214
+Yardi,Software - Operations,"100%, no allocation",6214
+League Athletics,Software - Operations,Billed separate,6214
+SportsEngine,Software - Operations,"100%, no allocation",6214
+TeamSnap,Software - Operations,26,6214
+TeamUnify,Software - Operations,"100%, no allocation",6214
+InRange,Software - Operations,"100%, no allocation",6214
+SevenRooms,Software - Operations,"100%, no allocation",6214
+Dell,Hardware - Individuals,Note Entity/Venue when submitting,6215
+Varies,Hardware - Individuals,"100%, no allocation",7110
+Varies,Hardware - Individuals,Note Entity/Venue when submitting,6215
+,,,
+Dell,Hardware - Operations,Note Entity/Venue when submitting,6215
+Dell,Hardware - Operations,Note Entity/Venue when submitting,6215
+Dell,Hardware - Operations,Note Entity/Venue when submitting,6215
+Varies,Hardware - Operations,Note Entity/Venue when submitting,6215
+Tele-dynamics,Hardware - Operations,"100%, no allocation",6215
+Reliable Office,Hardware - Operations,Note Entity/Venue when submitting,7110
+Dara Av-Service Contract for CPF Chelsea,AV,"100%, no allocation",7110
+Dara Av-Service Contract FH Chelsea,AV,"100%, no allocation",7110
+Dara Av-Service Contract GOLF,AV,"100%, no allocation",7110
+Dara Av-Service Contract Sunset Terrace SKY RINK,AV,"100%, no allocation",7110
+CT Business Services,AV,"100%, no allocation",7111
+Dara or CT vendor,AV,"100%, no allocation",7110
+Dara AV,AV,"100%, no allocation",7270
+REACH - Subscription,AV,Billed separate,7112
+REACH - Hardware,AV,"100%, no allocation",7110
+Dara AV,AV,"100%, no allocation",7270
+Dara AV,AV,"100%, no allocation",7270
+North Shore Neon,AV,"100%, no allocation",7272
+Jared,AV,Billed separate,7110
+Gantner,Security,"100%, no allocation",7110
+ExacqVision,Security,"100%, no allocation",7112
+ExacqVision,Security,"100%, no allocation",7110
+Spectrum Charter coax,Telecomm Providers,,6406
+Spectrum Fiber Internet LAN,Telecomm Providers,"100%, no allocation",6406
+FuboTV (Sky Rink tvs),Telecomm Providers,"100%, no allocation",6406
+Hulu,Telecomm Providers,,6406
+Sling TV,Telecomm Providers,,6406
+BMI,Telecomm Providers,"100%, no allocation",6406
+Jared,Telecomm Providers,,6406
+Spotify,Telecomm Providers,"100%, no allocation",6406
+Spotify,Telecomm Providers,"100%, no allocation",6406
+NuVisions,Telecomm Providers,Billed separate,6406
+Dynalink,Telecomm Providers,Not allocated to venues in previous years,6406
+PGI/LoopUp,Telecomm Providers,"100%, no allocation",6406
+FluentStream for CPNY,Telecomm Providers,21,6406
+NuVisions,Telecomm Providers,Billed separate,6406
+NuVisions,Telecomm Providers,"100%, no allocation",6406
+Spectrum,Telecomm Providers,"100%, no allocation",6406
+Verizon,Telecomm Providers,"100%, no allocation",6406
+Verizon Wireless,Telecomm Providers,"100%, no allocation",6406
+Apple Developer,Mobile App,20,7112
+Firebase,Mobile App,20,7112
+Launch Darkly,Mobile App,20,7112
+New Relic,Mobile App,20,7112
+Sanity,Mobile App,10,7112
+Expo,Mobile App,20,7112
+BrowserStack,Mobile App,20,7112
+Sentry,Mobile App,20,7112
+Allyant 360,Websites,18,7110
+Github,Websites,1,7112
+GoDaddy,Websites,1,7112
+Microsoft Clarity,Websites,1,7112
+Mura,Websites,1,7112
+Squarespace,Websites,"100%, no allocation",7112
+Wordpress,Websites,1,7112
+Zoho Forms - Standard,Websites,1,7112
+Zoho SalesIQ - Enterprise,Websites,1,7112
+Hydrow,Connected Fitness,,6214
+ICG,Connected Fitness,,6214
+InBody,Connected Fitness,,6214
+Mirror,Connected Fitness,,6214
+Peloton,Connected Fitness,,6214
+Varies,,19,7113
+Varies,,19,7113
+Varies,,19,7113
+Varies,,19,7113
+Provider:,Expense Department:,,GL:
+Myriad360,Networks,22,1215
+Myriad360,Networks,22,1215
+Myriad360,Networks,22,1215
+Myriad360,Networks,23,1215
+Myriad360,Networks,24,1215
+Dell,Hardware - Individuals,Alex will provide Actual % allocations when purchases are made,1215
+Bond,Software - Operations,27,1331
+Exerp,Software - Operations,28,1331
+Exerp,Software - Operations,100% no allocation,1331
+Exerp,Software - Operations,100% no allocation,1331
+Exerp,Software - Operations,100% no allocation,1331
+Exerp,Software - Operations,29,1331
+Exerp,Software - Operations,29,1331
+Exerp,Software - Operations,29,1331
+Exerp,Software - Operations,28,1331
+Daktronics,AV,100% no allocation,1215
+Gantner,Security,25,1215
+ExacqVision,Security,100% no allocation,1215
+ExacqVision,Security,100% no allocation,1215
+Consultant,Mobile App,29,1331
+Lagarsoft,Mobile App,29,1331
+Lagarsoft,Mobile App,29,1331
+Consultant,Websites,30,1331
+Roboto,Websites,30,1331
+Consultant,Websites,30,1331
+Lagarsoft,Websites,30,1331
+Lagarsoft,Websites,30,1331

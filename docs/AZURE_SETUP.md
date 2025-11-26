@@ -374,7 +374,7 @@ Load initial vendor data into the VendorMaster table.
 
 ### Step 7.1: Prepare Vendor Data
 
-Edit `data/vendors.csv` with your vendor information:
+Edit `infrastructure/data/vendors.csv` with your vendor information:
 
 ```csv
 vendor_domain,vendor_name,expense_dept,gl_code,allocation_schedule,billing_party
@@ -391,7 +391,7 @@ cd ../../infrastructure/scripts
 # Run seeding script
 python seed_vendors.py \
   --storage-account $STORAGE_ACCOUNT_NAME \
-  --csv-file ../../data/vendors.csv
+  --csv-file ../data/vendors.csv
 ```
 
 ### Step 7.3: Verify Data

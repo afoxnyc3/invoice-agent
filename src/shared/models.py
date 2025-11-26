@@ -70,6 +70,9 @@ class EnrichedInvoice(BaseModel):
         ..., description="Graph API message ID for deduplication (stable across re-ingestion)"
     )
     status: Literal["enriched", "unknown"] = Field(..., description="Processing status")
+    sender_email: Optional[EmailStr] = Field(default=None, description="Original sender email for dedup")
+    received_at: Optional[str] = Field(default=None, description="ISO 8601 timestamp for dedup")
+    invoice_hash: Optional[str] = Field(default=None, description="MD5 hash for duplicate detection")
 
     @validator("gl_code")
     def validate_gl_code(cls, v):
@@ -94,7 +97,7 @@ class NotificationMessage(BaseModel):
     with type-specific formatting for success, warning, or error messages.
     """
 
-    type: Literal["success", "unknown", "error"] = Field(..., description="Notification type")
+    type: Literal["success", "unknown", "error", "duplicate"] = Field(..., description="Notification type")
     message: str = Field(..., description="Human-readable summary message")
     details: Dict[str, str] = Field(..., description="Additional context for notification")
 
@@ -202,6 +205,9 @@ class InvoiceTransaction(BaseModel):
         default=None, description="Graph API message ID of invoice email (for dedup)"
     )
     LastEmailSentAt: Optional[str] = Field(default=None, description="ISO 8601 timestamp of last email")
+    InvoiceHash: Optional[str] = Field(
+        default=None, description="MD5 hash for duplicate detection (vendor|sender|date)"
+    )
 
     @validator("PartitionKey")
     def validate_partition_key(cls, v):

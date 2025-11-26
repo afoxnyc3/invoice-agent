@@ -157,7 +157,7 @@ EOF
 ### 2. Verify mark_as_read() Works
 ```bash
 # Send test email and verify it's marked as read
-python test-invoice.sh
+python scripts/send_test_emails.py
 
 # Check Application Insights for mark_as_read calls
 az monitor app-insights query \

@@ -19,7 +19,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.data.tables import TableServiceClient
 from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
-from shared.deduplication import is_message_already_processed
+from shared.deduplication import is_message_already_processed, check_duplicate_invoice
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
         PartitionKey=datetime.utcnow().strftime("%Y%m"),
         RowKey=enriched.id,
         VendorName=enriched.vendor_name,
-        SenderEmail="system@invoice-agent.com",
+        SenderEmail=enriched.sender_email or "system@invoice-agent.com",
         RecipientEmail=recipient_email,
         ExpenseDept=enriched.expense_dept,
         GLCode=enriched.gl_code,
@@ -88,6 +88,7 @@ def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
         EmailsSentCount=1,
         LastEmailSentAt=now,
         OriginalMessageId=enriched.original_message_id,
+        InvoiceHash=enriched.invoice_hash,
     )
     table_client.upsert_entity(transaction.model_dump())
 
@@ -101,6 +102,24 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
         if is_message_already_processed(enriched.original_message_id):
             logger.info(f"Skipping duplicate transaction {enriched.id}")
             return
+
+        # Check for duplicate invoice (same vendor + sender + date)
+        if enriched.invoice_hash:
+            existing = check_duplicate_invoice(enriched.invoice_hash)
+            if existing:
+                logger.warning(f"Duplicate invoice detected for {enriched.vendor_name} ({enriched.id})")
+                notification = NotificationMessage(
+                    type="duplicate",
+                    message=f"Duplicate Invoice: {enriched.vendor_name}",
+                    details={
+                        "vendor": enriched.vendor_name,
+                        "transaction_id": enriched.id,
+                        "original_transaction": existing.get("RowKey", "unknown"),
+                        "original_date": existing.get("ProcessedAt", "unknown"),
+                    },
+                )
+                notify.set(notification.model_dump_json())
+                return
 
         storage_conn = os.environ["AzureWebJobsStorage"]
         blob_service = BlobServiceClient.from_connection_string(storage_conn)

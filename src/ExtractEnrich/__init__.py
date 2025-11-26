@@ -18,7 +18,7 @@ from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
 from shared.email_parser import extract_domain
-from shared.deduplication import is_message_already_processed
+from shared.deduplication import is_message_already_processed, generate_invoice_hash
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +180,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
 
             # Queue with unknown status for downstream processing (always queue)
+            invoice_hash = generate_invoice_hash(vendor_name, raw_mail.sender, raw_mail.received_at)
             enriched = EnrichedInvoice(
                 id=raw_mail.id,
                 vendor_name=vendor_name,
@@ -190,6 +191,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 blob_url=raw_mail.blob_url,
                 original_message_id=raw_mail.original_message_id,
                 status="unknown",
+                sender_email=raw_mail.sender,
+                received_at=raw_mail.received_at,
+                invoice_hash=invoice_hash,
             )
             toPost.set(enriched.model_dump_json())
             return
@@ -199,6 +203,7 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             logger.warning(
                 f"Reseller vendor detected: {vendor['VendorName']} ({raw_mail.id}) - flagging for manual review"
             )
+            invoice_hash = generate_invoice_hash(vendor["VendorName"], raw_mail.sender, raw_mail.received_at)
             enriched = EnrichedInvoice(
                 id=raw_mail.id,
                 vendor_name=vendor["VendorName"],
@@ -209,11 +214,15 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 blob_url=raw_mail.blob_url,
                 original_message_id=raw_mail.original_message_id,
                 status="unknown",
+                sender_email=raw_mail.sender,
+                received_at=raw_mail.received_at,
+                invoice_hash=invoice_hash,
             )
             toPost.set(enriched.model_dump_json())
             return
 
         # Vendor found - enrich with GL codes and metadata
+        invoice_hash = generate_invoice_hash(vendor["VendorName"], raw_mail.sender, raw_mail.received_at)
         enriched = EnrichedInvoice(
             id=raw_mail.id,
             vendor_name=vendor["VendorName"],
@@ -224,6 +233,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             blob_url=raw_mail.blob_url,
             original_message_id=raw_mail.original_message_id,
             status="enriched",
+            sender_email=raw_mail.sender,
+            received_at=raw_mail.received_at,
+            invoice_hash=invoice_hash,
         )
         toPost.set(enriched.model_dump_json())
         logger.info(f"Enriched: {raw_mail.id} - {vendor['VendorName']} (GL: {vendor['GLCode']})")

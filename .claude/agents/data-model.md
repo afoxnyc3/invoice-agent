@@ -246,7 +246,7 @@ def seed_vendors(csv_path: str):
         print(f"Loaded {len(vendors)} vendors")
 
 if __name__ == "__main__":
-    seed_vendors("data/vendors.csv")
+    seed_vendors("infrastructure/data/vendors.csv")
 ```
 
 ## Sample Vendor Data (CSV)

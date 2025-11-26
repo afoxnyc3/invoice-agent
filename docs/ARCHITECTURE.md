@@ -1321,7 +1321,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 **Activation Status** ✅:
 - **VendorMaster table seeded**: Production ready with vendor data loaded
   - Script executed: `infrastructure/scripts/seed_vendors.py`
-  - Seed data applied: `data/vendors.csv`
+  - Seed data applied: `infrastructure/data/vendors.csv`
   - Status: Operational and ready for invoice processing
 
 **Activation Checklist**:

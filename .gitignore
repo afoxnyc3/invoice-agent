@@ -88,3 +88,8 @@ misc/
 Screenshot*.png
 .session-summary*.md
 *.session-*
+*-plan.md
+
+# Archived directories (keep tracked archived content)
+!docs/archive/
+!scripts/archived/

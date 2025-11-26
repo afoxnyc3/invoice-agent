@@ -1,0 +1,546 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.38.33.27573",
+      "templateHash": "10054129860349251128"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "defaultValue": "prod",
+      "metadata": {
+        "description": "Environment name"
+      }
+    },
+    "projectPrefix": {
+      "type": "string",
+      "defaultValue": "invoice-agent",
+      "metadata": {
+        "description": "Project prefix"
+      }
+    },
+    "alertEmailAddresses": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Action Group email addresses"
+      }
+    },
+    "teamsWebhookUrl": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Teams webhook URL for critical alerts"
+      }
+    },
+    "enableSmsAlerts": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable SMS alerts (optional)"
+      }
+    },
+    "smsPhoneNumber": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "SMS phone number in E.164 format (+1XXXXXXXXXX)"
+      }
+    }
+  },
+  "variables": {
+    "namingPrefix": "[format('{0}-{1}', parameters('projectPrefix'), parameters('environment'))]",
+    "functionAppName": "[format('func-{0}', variables('namingPrefix'))]",
+    "storageAccountName": "[replace(format('st{0}{1}', parameters('projectPrefix'), parameters('environment')), '-', '')]",
+    "appInsightsName": "[format('ai-{0}', variables('namingPrefix'))]",
+    "actionGroupName": "[format('ag-{0}-ops', variables('namingPrefix'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-09-01-preview",
+      "name": "[variables('actionGroupName')]",
+      "location": "global",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]"
+      },
+      "properties": {
+        "copy": [
+          {
+            "name": "emailReceivers",
+            "count": "[length(parameters('alertEmailAddresses'))]",
+            "input": {
+              "name": "[format('Email-{0}', copyIndex('emailReceivers'))]",
+              "emailAddress": "[parameters('alertEmailAddresses')[copyIndex('emailReceivers')]]",
+              "useCommonAlertSchema": true
+            }
+          }
+        ],
+        "groupShortName": "InvAgentOps",
+        "enabled": true,
+        "smsReceivers": "[if(and(parameters('enableSmsAlerts'), not(empty(parameters('smsPhoneNumber')))), createArray(createObject('name', 'SMS-Critical', 'countryCode', '1', 'phoneNumber', substring(parameters('smsPhoneNumber'), 2))), createArray())]",
+        "webhookReceivers": "[if(not(empty(parameters('teamsWebhookUrl'))), createArray(createObject('name', 'Teams-Webhook', 'serviceUri', parameters('teamsWebhookUrl'), 'useCommonAlertSchema', true())), createArray())]"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-{0}-high-error-rate', variables('namingPrefix'))]",
+      "location": "global",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P1"
+      },
+      "properties": {
+        "description": "Triggers when function error rate exceeds 1% over 5 minutes",
+        "severity": 1,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "ErrorRateThreshold",
+              "metricName": "requests/failed",
+              "metricNamespace": "microsoft.insights/components",
+              "operator": "GreaterThan",
+              "threshold": 1,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-function-failures', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P1"
+      },
+      "properties": {
+        "description": "Triggers when more than 5 function executions fail in 5 minutes",
+        "severity": 1,
+        "enabled": true,
+        "evaluationFrequency": "PT5M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            requests\n            | where success == false\n            | where cloud_RoleName startswith \"func-invoice-agent\"\n            | summarize FailureCount = count() by operation_Name, resultCode\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 5,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-{0}-high-queue-depth', variables('namingPrefix'))]",
+      "location": "global",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P2"
+      },
+      "properties": {
+        "description": "Triggers when any queue has more than 100 messages for over 10 minutes",
+        "severity": 2,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT10M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "QueueDepthThreshold",
+              "metricName": "QueueMessageCount",
+              "metricNamespace": "microsoft.storage/storageaccounts/queueservices",
+              "operator": "GreaterThan",
+              "threshold": 100,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-slow-processing', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P2"
+      },
+      "properties": {
+        "description": "Triggers when invoice processing takes longer than 60 seconds end-to-end",
+        "severity": 2,
+        "enabled": true,
+        "evaluationFrequency": "PT5M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT15M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            requests\n            | where cloud_RoleName startswith \"func-invoice-agent\"\n            | where duration > 60000\n            | summarize SlowRequests = count(), AvgDuration = avg(duration) by operation_Name\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 5,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-poison-queue', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P0"
+      },
+      "properties": {
+        "description": "CRITICAL: Messages in poison queues indicate repeated processing failures",
+        "severity": 0,
+        "enabled": true,
+        "evaluationFrequency": "PT5M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            traces\n            | where message contains \"poison\" or message contains \"dead-letter\"\n            | summarize PoisonMessages = count()\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 0,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-high-unknown-vendors', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P2"
+      },
+      "properties": {
+        "description": "Triggers when unknown vendor rate exceeds 20% (indicates VendorMaster may need updates)",
+        "severity": 2,
+        "enabled": true,
+        "evaluationFrequency": "PT15M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT1H",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            traces\n            | where message contains \"Unknown vendor\" or message contains \"vendor not found\"\n            | summarize UnknownCount = count()\n            | extend Threshold = 10\n            | where UnknownCount > Threshold\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 0,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-{0}-low-availability', variables('namingPrefix'))]",
+      "location": "global",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P0"
+      },
+      "properties": {
+        "description": "CRITICAL: Function App availability drops below 95%",
+        "severity": 0,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+        ],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "AvailabilityThreshold",
+              "metricName": "HealthCheckStatus",
+              "metricNamespace": "microsoft.web/sites",
+              "operator": "LessThan",
+              "threshold": 95,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-{0}-storage-throttling', variables('namingPrefix'))]",
+      "location": "global",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P1"
+      },
+      "properties": {
+        "description": "Storage account is being throttled (too many requests)",
+        "severity": 1,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "ThrottlingThreshold",
+              "metricName": "SuccessServerLatency",
+              "metricNamespace": "microsoft.storage/storageaccounts",
+              "operator": "GreaterThan",
+              "threshold": 1000,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-duplicate-processing', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P2"
+      },
+      "properties": {
+        "description": "Triggers when more than 5 duplicate invoices are detected in 1 hour (indicates potential webhook/fallback overlap)",
+        "severity": 2,
+        "enabled": true,
+        "evaluationFrequency": "PT15M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT1H",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            traces\n            | where message contains \"Skipping duplicate\"\n            | summarize DuplicateCount = count()\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 5,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2023-12-01-preview",
+      "name": "[format('alert-{0}-high-duplicate-rate', variables('namingPrefix'))]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "Project": "InvoiceAgent",
+        "Environment": "[parameters('environment')]",
+        "Severity": "P1"
+      },
+      "properties": {
+        "description": "CRITICAL: High duplicate rate indicates deduplication logic may be failing or webhook/fallback overlap is excessive",
+        "severity": 1,
+        "enabled": true,
+        "evaluationFrequency": "PT30M",
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+        ],
+        "windowSize": "PT6H",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "            let total = traces\n            | where operation_Name == \"ExtractEnrich\"\n            | where message contains \"Processing\" or message contains \"Skipping duplicate\"\n            | count;\n            let duplicates = traces\n            | where operation_Name == \"ExtractEnrich\"\n            | where message contains \"Skipping duplicate\"\n            | count;\n            let rate = toscalar(duplicates) * 100.0 / toscalar(total);\n            print DuplicateRate = rate\n            | where DuplicateRate > 10\n          ",
+              "timeAggregation": "Count",
+              "operator": "GreaterThan",
+              "threshold": 0,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 1,
+                "minFailingPeriodsToAlert": 1
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "actionGroupId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+    },
+    "actionGroupName": {
+      "type": "string",
+      "value": "[variables('actionGroupName')]"
+    },
+    "alertsCreated": {
+      "type": "array",
+      "value": [
+        "[format('alert-{0}-high-error-rate', variables('namingPrefix'))]",
+        "[format('alert-{0}-function-failures', variables('namingPrefix'))]",
+        "[format('alert-{0}-high-queue-depth', variables('namingPrefix'))]",
+        "[format('alert-{0}-slow-processing', variables('namingPrefix'))]",
+        "[format('alert-{0}-poison-queue', variables('namingPrefix'))]",
+        "[format('alert-{0}-high-unknown-vendors', variables('namingPrefix'))]",
+        "[format('alert-{0}-low-availability', variables('namingPrefix'))]",
+        "[format('alert-{0}-storage-throttling', variables('namingPrefix'))]",
+        "[format('alert-{0}-duplicate-processing', variables('namingPrefix'))]",
+        "[format('alert-{0}-high-duplicate-rate', variables('namingPrefix'))]"
+      ]
+    }
+  }
+}

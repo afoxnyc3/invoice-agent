@@ -148,8 +148,8 @@ def create_default_vendors():
     ]
 
     # Create CSV file
-    csv_path = "data/vendors.csv"
-    os.makedirs("data", exist_ok=True)
+    csv_path = "infrastructure/data/vendors.csv"
+    os.makedirs("infrastructure/data", exist_ok=True)
 
     with open(csv_path, "w", newline="") as f:
         fieldnames = [
@@ -302,7 +302,9 @@ def main():
         print("\nAll seeded vendors:")
         for vendor in vendors:
             venue_str = " (Venue Required)" if vendor.get("VenueRequired") else ""
-            print(f"  - {vendor['VendorName']:<30} | Dept: {vendor['ExpenseDept']:<25} | GL: {vendor['GLCode']} | Sched: {vendor['AllocationSchedule']:<2}{venue_str}")
+            print(
+                f"  - {vendor['VendorName']:<30} | Dept: {vendor['ExpenseDept']:<25} | GL: {vendor['GLCode']} | Sched: {vendor['AllocationSchedule']:<2}{venue_str}"
+            )
     except Exception as e:
         print(f"⚠️ Error verifying vendors: {e}")
 
