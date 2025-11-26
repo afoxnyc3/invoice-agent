@@ -111,13 +111,14 @@ def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict 
         filter_query = f"InvoiceHash eq '{invoice_hash}'"
         results = list(table_client.query_entities(filter_query))
 
-        # Filter by date range (partition key is YYYYMM)
+        # Filter by date range using actual ProcessedAt timestamp
         for result in results:
-            partition_key = result.get("PartitionKey", "")
-            if len(partition_key) == 6:
-                year_month = f"{partition_key[:4]}-{partition_key[4:]}-01"
+            processed_at = result.get("ProcessedAt", "")
+            if processed_at:
                 try:
-                    record_date = datetime.fromisoformat(year_month)
+                    # Handle ISO format with Z suffix
+                    processed_at_clean = processed_at.replace("Z", "+00:00")
+                    record_date = datetime.fromisoformat(processed_at_clean).replace(tzinfo=None)
                     if start_date <= record_date <= end_date:
                         logger.warning(
                             f"Duplicate invoice detected: hash={invoice_hash[:8]}... "

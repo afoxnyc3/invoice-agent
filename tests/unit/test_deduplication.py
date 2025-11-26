@@ -252,13 +252,13 @@ class TestCheckDuplicateInvoice:
         mock_table_client = MagicMock()
         mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
-        # Use current month's partition key so date filtering passes
-        current_partition = datetime.utcnow().strftime("%Y%m")
+        # Use dynamic ProcessedAt within lookback period (now uses ProcessedAt, not partition key)
+        recent_date = datetime.utcnow().isoformat() + "Z"
         existing_tx = {
-            "PartitionKey": current_partition,
+            "PartitionKey": datetime.utcnow().strftime("%Y%m"),
             "RowKey": "01JCK3Q7H8",
             "InvoiceHash": "abc123",
-            "ProcessedAt": "2025-11-24T10:05:00Z",
+            "ProcessedAt": recent_date,
         }
         mock_table_client.query_entities.return_value = [existing_tx]
 
@@ -266,6 +266,68 @@ class TestCheckDuplicateInvoice:
 
         assert result is not None
         assert result["RowKey"] == "01JCK3Q7H8"
+
+    @patch.dict(
+        "os.environ",
+        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
+    )
+    @patch("shared.deduplication.TableServiceClient")
+    def test_filters_by_processed_at_not_partition_key(self, mock_table_service):
+        """Test that date filtering uses ProcessedAt timestamp, not partition key.
+
+        Regression test for P1 bug: Records in partial months at lookback
+        boundary were incorrectly excluded when using partition key.
+        """
+        from shared.deduplication import check_duplicate_invoice
+        from datetime import datetime, timedelta
+
+        mock_table_client = MagicMock()
+        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+
+        # Create record with ProcessedAt 30 days ago (within 90-day lookback)
+        # but partition key that might be at month boundary
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        existing_tx = {
+            "PartitionKey": thirty_days_ago.strftime("%Y%m"),
+            "RowKey": "01BOUNDARY",
+            "InvoiceHash": "boundary-hash",
+            "ProcessedAt": thirty_days_ago.isoformat() + "Z",
+        }
+        mock_table_client.query_entities.return_value = [existing_tx]
+
+        result = check_duplicate_invoice("boundary-hash")
+
+        # Should find duplicate based on ProcessedAt, not partition key
+        assert result is not None
+        assert result["RowKey"] == "01BOUNDARY"
+
+    @patch.dict(
+        "os.environ",
+        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
+    )
+    @patch("shared.deduplication.TableServiceClient")
+    def test_excludes_records_outside_lookback_period(self, mock_table_service):
+        """Test that records outside lookback period are excluded."""
+        from shared.deduplication import check_duplicate_invoice
+        from datetime import datetime, timedelta
+
+        mock_table_client = MagicMock()
+        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+
+        # Create record with ProcessedAt 100 days ago (outside 90-day lookback)
+        old_date = datetime.utcnow() - timedelta(days=100)
+        old_tx = {
+            "PartitionKey": old_date.strftime("%Y%m"),
+            "RowKey": "01OLD",
+            "InvoiceHash": "old-hash",
+            "ProcessedAt": old_date.isoformat() + "Z",
+        }
+        mock_table_client.query_entities.return_value = [old_tx]
+
+        result = check_duplicate_invoice("old-hash")
+
+        # Should NOT find duplicate - outside lookback period
+        assert result is None
 
     @patch.dict(
         "os.environ",
