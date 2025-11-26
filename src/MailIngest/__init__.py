@@ -48,19 +48,16 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
             skip, reason = should_skip_email(email, mailbox)
             if skip:
                 logger.info(f"Skipping email {email['id']}: {reason}")
-                # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
-                # graph.mark_as_read(mailbox, email["id"])
+                graph.mark_as_read(mailbox, email["id"])
                 continue
 
             if not email.get("hasAttachments"):
                 logger.warning(f"Skipping email {email['id']} - no attachments")
-                # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
-                # graph.mark_as_read(mailbox, email["id"])
+                graph.mark_as_read(mailbox, email["id"])
                 continue
 
             process_email_attachments(email, graph, mailbox, blob_container, outQueueItem)
-            # NOTE: Temporarily disabled to avoid Mail.ReadWrite requirement
-            # graph.mark_as_read(mailbox, email["id"])
+            graph.mark_as_read(mailbox, email["id"])
 
         logger.info(f"MailIngest completed successfully - processed {len(emails)} emails")
 
