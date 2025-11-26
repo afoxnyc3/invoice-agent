@@ -73,6 +73,10 @@ class EnrichedInvoice(BaseModel):
     sender_email: Optional[EmailStr] = Field(default=None, description="Original sender email for dedup")
     received_at: Optional[str] = Field(default=None, description="ISO 8601 timestamp for dedup")
     invoice_hash: Optional[str] = Field(default=None, description="MD5 hash for duplicate detection")
+    invoice_amount: Optional[float] = Field(default=None, description="Invoice amount extracted from PDF")
+    currency: Optional[str] = Field(default="USD", description="Currency code (USD, EUR, CAD)")
+    due_date: Optional[str] = Field(default=None, description="Payment due date (ISO 8601 format)")
+    payment_terms: Optional[str] = Field(default="Net 30", description="Payment terms (Net 30, Net 60, etc)")
 
     @validator("gl_code")
     def validate_gl_code(cls, v):
@@ -86,6 +90,26 @@ class EnrichedInvoice(BaseModel):
         """Ensure critical fields are not empty"""
         if not v or not v.strip():
             raise ValueError("Field cannot be empty")
+        return v
+
+    @validator("invoice_amount")
+    def validate_invoice_amount(cls, v):
+        """Ensure invoice amount is reasonable if provided"""
+        if v is not None:
+            if v <= 0:
+                raise ValueError("invoice_amount must be greater than 0")
+            if v > 10_000_000:
+                raise ValueError("invoice_amount must be less than $10M")
+        return v
+
+    @validator("currency")
+    def validate_currency(cls, v):
+        """Ensure currency is one of supported codes"""
+        if v is not None:
+            allowed = ["USD", "EUR", "CAD"]
+            if v.upper() not in allowed:
+                raise ValueError(f"currency must be one of {allowed}")
+            return v.upper()
         return v
 
 
