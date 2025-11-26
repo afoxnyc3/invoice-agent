@@ -125,9 +125,9 @@ Write-Host ""
 Write-Host "Testing access to $InvoiceMailbox..." -ForegroundColor Gray
 $testInvoice = Test-ApplicationAccessPolicy -Identity $InvoiceMailbox -AppId $AppId
 if ($testInvoice.AccessCheckResult -eq "Granted") {
-    Write-Host "Access to $InvoiceMailbox: GRANTED" -ForegroundColor Green
+    Write-Host "Access to ${InvoiceMailbox}: GRANTED" -ForegroundColor Green
 } else {
-    Write-Host "Access to $InvoiceMailbox: $($testInvoice.AccessCheckResult)" -ForegroundColor Red
+    Write-Host "Access to ${InvoiceMailbox}: $($testInvoice.AccessCheckResult)" -ForegroundColor Red
     Write-Host "WARNING: Policy may not be configured correctly!" -ForegroundColor Red
 }
 
