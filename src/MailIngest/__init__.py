@@ -20,8 +20,40 @@ from shared.email_processor import should_skip_email, process_email_attachments
 logger = logging.getLogger(__name__)
 
 
+def _is_disabled_via_flag() -> bool:
+    """Return True if MAIL_INGEST_ENABLED explicitly disables the timer."""
+
+    flag = os.getenv("MAIL_INGEST_ENABLED", "true").lower()
+    return flag in {"0", "false", "no"}
+
+
+def _missing_required_settings() -> list[str]:
+    """List required settings that are not configured."""
+
+    required_settings = [
+        "INVOICE_MAILBOX",
+        "AzureWebJobsStorage",
+        "GRAPH_TENANT_ID",
+        "GRAPH_CLIENT_ID",
+        "GRAPH_CLIENT_SECRET",
+    ]
+    return [key for key in required_settings if not os.getenv(key)]
+
+
 def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
     """Poll mailbox and queue unread emails with attachments."""
+    if _is_disabled_via_flag():
+        logger.info("MailIngest disabled via MAIL_INGEST_ENABLED flag - skipping execution")
+        return
+
+    missing_settings = _missing_required_settings()
+    if missing_settings:
+        logger.warning(
+            "MailIngest skipped - missing required settings: %s",
+            ", ".join(sorted(missing_settings)),
+        )
+        return
+
     try:
         # Startup diagnostics
         mailbox = os.environ["INVOICE_MAILBOX"]
