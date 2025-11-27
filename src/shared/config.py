@@ -62,27 +62,21 @@ class Config:
     def table_service(self) -> TableServiceClient:
         """Lazy-loaded Table Service client with connection pooling."""
         if self._table_service is None:
-            self._table_service = TableServiceClient.from_connection_string(
-                self.storage_connection_string
-            )
+            self._table_service = TableServiceClient.from_connection_string(self.storage_connection_string)
         return self._table_service
 
     @property
     def blob_service(self) -> BlobServiceClient:
         """Lazy-loaded Blob Service client with connection pooling."""
         if self._blob_service is None:
-            self._blob_service = BlobServiceClient.from_connection_string(
-                self.storage_connection_string
-            )
+            self._blob_service = BlobServiceClient.from_connection_string(self.storage_connection_string)
         return self._blob_service
 
     @property
     def queue_service(self) -> QueueServiceClient:
         """Lazy-loaded Queue Service client with connection pooling."""
         if self._queue_service is None:
-            self._queue_service = QueueServiceClient.from_connection_string(
-                self.storage_connection_string
-            )
+            self._queue_service = QueueServiceClient.from_connection_string(self.storage_connection_string)
         return self._queue_service
 
     def get_table_client(self, table_name: str) -> TableClient:
@@ -188,9 +182,7 @@ class Config:
     @property
     def function_app_url(self) -> str:
         """Function App base URL for API calls."""
-        return os.environ.get(
-            "FUNCTION_APP_URL", "https://func-invoice-agent.azurewebsites.net"
-        )
+        return os.environ.get("FUNCTION_APP_URL", "https://func-invoice-agent.azurewebsites.net")
 
     # =========================================================================
     # ENVIRONMENT
