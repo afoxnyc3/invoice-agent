@@ -8,16 +8,21 @@ import azure.functions as func
 from AddVendor import main
 
 
+def _setup_config_mock(mock_config):
+    """Helper to set up config mock with common properties."""
+    mock_table_client = MagicMock()
+    mock_config.get_table_client.return_value = mock_table_client
+    return mock_table_client
+
+
 class TestAddVendor:
     """Test suite for AddVendor function."""
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_success(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_success(self, mock_config):
         """Test successful vendor creation."""
-        # Mock table client
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client = _setup_config_mock(mock_config)
 
         # Create request with valid vendor data
         req_body = {
@@ -46,9 +51,11 @@ class TestAddVendor:
         assert call_args["PartitionKey"] == "Vendor"
         assert call_args["VendorName"] == "Adobe"
 
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_invalid_gl_code(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_invalid_gl_code(self, mock_config):
         """Test validation fails with invalid GL code."""
+        _setup_config_mock(mock_config)
+
         req_body = {
             "vendor_name": "Test Corp",
             "expense_dept": "IT",
@@ -64,9 +71,11 @@ class TestAddVendor:
         response_data = json.loads(response.get_body())
         assert "error" in response_data
 
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_missing_required_field(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_missing_required_field(self, mock_config):
         """Test validation fails with missing required field."""
+        _setup_config_mock(mock_config)
+
         req_body = {
             "vendor_name": "Test Corp",
             # Missing expense_dept
@@ -83,14 +92,13 @@ class TestAddVendor:
         assert "error" in response_data
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_duplicate_update(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_duplicate_update(self, mock_config):
         """Test creating duplicate vendor (should fail with 400)."""
-        mock_table_client = MagicMock()
+        mock_table_client = _setup_config_mock(mock_config)
         from azure.core.exceptions import ResourceExistsError
 
         mock_table_client.create_entity.side_effect = ResourceExistsError("Entity already exists")
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
         req_body = {
             "vendor_name": "Adobe",
@@ -106,12 +114,11 @@ class TestAddVendor:
         assert response.status_code == 400
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_table_error(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_table_error(self, mock_config):
         """Test handling of table storage errors."""
-        mock_table_client = MagicMock()
+        mock_table_client = _setup_config_mock(mock_config)
         mock_table_client.create_entity.side_effect = Exception("Table storage error")
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
         req_body = {
             "vendor_name": "Test Corp",
@@ -129,11 +136,10 @@ class TestAddVendor:
         assert "error" in response_data
 
     @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
-    @patch("AddVendor.TableServiceClient")
-    def test_add_vendor_name_normalization(self, mock_table_service):
+    @patch("AddVendor.config")
+    def test_add_vendor_name_normalization(self, mock_config):
         """Test vendor name normalization with various formats."""
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client = _setup_config_mock(mock_config)
 
         test_cases = [
             ("Adobe Inc", "adobe_inc"),

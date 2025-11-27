@@ -3,14 +3,13 @@ AddVendor HTTP function - Register new vendors in VendorMaster table.
 """
 
 import json
-import os
 import logging
 from datetime import datetime
 import azure.functions as func
-from azure.data.tables import TableServiceClient
 from azure.core.exceptions import ResourceExistsError
 from pydantic import ValidationError
 from shared.models import VendorMaster
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +35,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         }
         vendor = VendorMaster(**vendor_data)
 
-        table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
-            "VendorMaster"
-        )
+        table_client = config.get_table_client("VendorMaster")
 
         table_client.create_entity(vendor.model_dump())
         logger.info(f"Added vendor: {vendor.VendorName} ({vendor.RowKey})")

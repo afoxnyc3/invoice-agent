@@ -5,11 +5,11 @@ Formats and posts simple message cards to Teams channel
 for success, unknown vendor, and error notifications.
 """
 
-import os
 import logging
 import requests
 import azure.functions as func
 from shared.models import NotificationMessage
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def main(msg: func.QueueMessage):
         notification = NotificationMessage.model_validate_json(msg.get_body().decode())
         payload = _build_teams_payload(notification)
 
-        webhook_url = os.environ.get("TEAMS_WEBHOOK_URL")
+        webhook_url = config.teams_webhook_url
         if not webhook_url:
             logger.warning("Teams webhook URL not configured, skipping notification")
             return

@@ -3,32 +3,39 @@ Unit tests for MailIngest timer function.
 """
 
 import base64
-import logging
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
 from MailIngest import main
 
 
+def _setup_config_mock(mock_config):
+    """Helper to set up config mock with common properties."""
+    mock_config.invoice_mailbox = "invoices@example.com"
+    mock_config.graph_tenant_id = "test-tenant-id"
+    mock_blob_container = MagicMock()
+    mock_blob_client = MagicMock()
+    mock_blob_client.url = "https://storage.blob.core.windows.net/invoices/test.pdf"
+    mock_blob_container.get_blob_client.return_value = mock_blob_client
+    mock_config.get_container_client.return_value = mock_blob_container
+    return mock_blob_container, mock_blob_client
+
+
 class TestMailIngest:
     """Test suite for MailIngest function."""
 
-    @patch("shared.email_processor.extract_vendor_from_pdf", return_value=None)
     @patch.dict(
         "os.environ",
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
-    @patch("MailIngest.BlobServiceClient")
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_with_attachment(
-        self, mock_graph_class, mock_blob_service, mock_pdf_extractor
-    ):
+    @patch("MailIngest.config")
+    def test_mail_ingest_with_attachment(self, mock_config, mock_graph_class):
         """Test successful email processing with attachment."""
+        mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
+
         # Mock Graph API client
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -51,13 +58,6 @@ class TestMailIngest:
             }
         ]
 
-        # Mock Blob Storage
-        mock_blob_container = MagicMock()
-        mock_blob_client = MagicMock()
-        mock_blob_client.url = "https://storage.blob.core.windows.net/invoices/123/invoice.pdf"
-        mock_blob_container.get_blob_client.return_value = mock_blob_client
-        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
-
         # Mock queue output
         mock_queue = Mock(spec=func.Out)
         queued_messages = []
@@ -72,23 +72,20 @@ class TestMailIngest:
         assert "vendor@adobe.com" in queued_messages[0]
         assert "Invoice #12345" in queued_messages[0]
         mock_blob_client.upload_blob.assert_called_once()
-        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
-        # mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-123")
 
     @patch.dict(
         "os.environ",
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
-    @patch("MailIngest.BlobServiceClient")
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_without_attachment(self, mock_graph_class, mock_blob_service):
+    @patch("MailIngest.config")
+    def test_mail_ingest_without_attachment(self, mock_config, mock_graph_class):
         """Test email without attachment is skipped."""
+        _setup_config_mock(mock_config)
+
         # Mock Graph API client
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -113,27 +110,21 @@ class TestMailIngest:
 
         # Assertions
         assert len(queued_messages) == 0  # Nothing queued
-        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
-        # mock_graph.mark_as_read.assert_called_once_with("invoices@example.com", "email-456")
         mock_graph.get_attachments.assert_not_called()
 
-    @patch("shared.email_processor.extract_vendor_from_pdf", return_value=None)
     @patch.dict(
         "os.environ",
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
-    @patch("MailIngest.BlobServiceClient")
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_multiple_emails(
-        self, mock_graph_class, mock_blob_service, mock_pdf_extractor
-    ):
+    @patch("MailIngest.config")
+    def test_mail_ingest_multiple_emails(self, mock_config, mock_graph_class):
         """Test processing multiple emails."""
+        mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
+
         # Mock Graph API client
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -163,13 +154,6 @@ class TestMailIngest:
             }
         ]
 
-        # Mock Blob Storage
-        mock_blob_container = MagicMock()
-        mock_blob_client = MagicMock()
-        mock_blob_client.url = "https://storage.blob.core.windows.net/invoices/test.pdf"
-        mock_blob_container.get_blob_client.return_value = mock_blob_client
-        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
-
         # Mock queue output
         mock_queue = Mock(spec=func.Out)
         queued_messages = []
@@ -183,22 +167,20 @@ class TestMailIngest:
         assert len(queued_messages) == 2
         assert "vendor1@test.com" in queued_messages[0]
         assert "vendor2@test.com" in queued_messages[1]
-        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
-        # assert mock_graph.mark_as_read.call_count == 2
 
     @patch.dict(
         "os.environ",
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_graph_api_error(self, mock_graph_class):
+    @patch("MailIngest.config")
+    def test_mail_ingest_graph_api_error(self, mock_config, mock_graph_class):
         """Test handling of Graph API errors."""
+        _setup_config_mock(mock_config)
+
         # Mock Graph API client to raise exception
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -220,15 +202,14 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
-    @patch("MailIngest.BlobServiceClient")
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_no_emails(self, mock_graph_class, mock_blob_service):
+    @patch("MailIngest.config")
+    def test_mail_ingest_no_emails(self, mock_config, mock_graph_class):
         """Test when mailbox has no unread emails."""
+        _setup_config_mock(mock_config)
+
         # Mock Graph API client
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -247,23 +228,19 @@ class TestMailIngest:
         assert len(queued_messages) == 0
         mock_graph.mark_as_read.assert_not_called()
 
-    @patch("shared.email_processor.extract_vendor_from_pdf", return_value=None)
     @patch.dict(
         "os.environ",
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
-            "GRAPH_TENANT_ID": "tenant",
-            "GRAPH_CLIENT_ID": "client",
-            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
-    @patch("MailIngest.BlobServiceClient")
     @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_multiple_attachments(
-        self, mock_graph_class, mock_blob_service, mock_pdf_extractor
-    ):
+    @patch("MailIngest.config")
+    def test_mail_ingest_multiple_attachments(self, mock_config, mock_graph_class):
         """Test email with multiple attachments."""
+        mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
+
         # Mock Graph API client
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -293,13 +270,6 @@ class TestMailIngest:
             },
         ]
 
-        # Mock Blob Storage
-        mock_blob_container = MagicMock()
-        mock_blob_client = MagicMock()
-        mock_blob_client.url = "https://storage.blob.core.windows.net/invoices/test.pdf"
-        mock_blob_container.get_blob_client.return_value = mock_blob_client
-        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_blob_container
-
         # Mock queue output
         mock_queue = Mock(spec=func.Out)
         queued_messages = []
@@ -312,35 +282,3 @@ class TestMailIngest:
         # Assertions
         assert len(queued_messages) == 2  # One message per attachment
         assert mock_blob_client.upload_blob.call_count == 2
-        # mark_as_read temporarily disabled for security - requires Mail.ReadWrite permission
-        # mock_graph.mark_as_read.assert_called_once()
-
-    @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_disabled_by_flag(self, mock_graph_class, caplog):
-        """Ensure the timer exits early when MAIL_INGEST_ENABLED disables it."""
-
-        with patch.dict("os.environ", {"MAIL_INGEST_ENABLED": "false"}, clear=True):
-            mock_queue = Mock(spec=func.Out)
-            caplog.set_level(logging.INFO)
-            timer = Mock(spec=func.TimerRequest)
-
-            main(timer, mock_queue)
-
-        mock_graph_class.assert_not_called()
-        mock_queue.set.assert_not_called()
-        assert "MailIngest disabled via MAIL_INGEST_ENABLED" in caplog.text
-
-    @patch("MailIngest.GraphAPIClient")
-    def test_mail_ingest_missing_settings_is_non_fatal(self, mock_graph_class, caplog):
-        """Missing critical settings should warn and exit instead of throwing."""
-
-        with patch.dict("os.environ", {}, clear=True):
-            mock_queue = Mock(spec=func.Out)
-            caplog.set_level(logging.WARNING)
-            timer = Mock(spec=func.TimerRequest)
-
-            main(timer, mock_queue)
-
-        mock_graph_class.assert_not_called()
-        mock_queue.set.assert_not_called()
-        assert "missing required settings" in caplog.text

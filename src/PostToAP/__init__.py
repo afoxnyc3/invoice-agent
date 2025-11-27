@@ -10,13 +10,11 @@ Implements email loop prevention by:
 - Tracking email sent count and timestamp
 """
 
-import os
 import logging
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
-from azure.data.tables import TableServiceClient
+from shared.config import config
 from shared.models import EnrichedInvoice, NotificationMessage, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.deduplication import is_message_already_processed, check_duplicate_invoice
@@ -24,23 +22,21 @@ from shared.deduplication import is_message_already_processed, check_duplicate_i
 logger = logging.getLogger(__name__)
 
 
-def _validate_recipient(recipient: str, invoice_mailbox: str) -> None:
+def _validate_recipient(recipient: str) -> None:
     """
     Validate that recipient is safe for email delivery (loop prevention).
 
     Raises ValueError if recipient is invalid for email delivery.
     """
     # Validate recipient is not the ingest mailbox (critical loop prevention)
-    if recipient.lower() == invoice_mailbox.lower():
+    if recipient.lower() == config.invoice_mailbox.lower():
         raise ValueError(f"Cannot send to INVOICE_MAILBOX ({recipient}) - would create email loop")
 
     # Validate recipient is in allowed list (if configured)
-    allowed_recipients = os.environ.get("ALLOWED_AP_EMAILS", "").strip()
-    if allowed_recipients:
-        allowed_list = [email.strip().lower() for email in allowed_recipients.split(",")]
-        if recipient.lower() not in allowed_list:
-            msg = f"Recipient {recipient} not in allowed AP email list (ALLOWED_AP_EMAILS)"
-            raise ValueError(msg)
+    allowed_list = config.allowed_ap_emails
+    if allowed_list and recipient.lower() not in allowed_list:
+        msg = f"Recipient {recipient} not in allowed AP email list (ALLOWED_AP_EMAILS)"
+        raise ValueError(msg)
 
     logger.info(f"Recipient validation passed: {recipient}")
 
@@ -84,11 +80,10 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 
 def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
     """Log transaction to InvoiceTransactions table with email tracking."""
-    storage_conn = os.environ["AzureWebJobsStorage"]
-    table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
-    now = datetime.utcnow().isoformat() + "Z"
+    table_client = config.get_table_client("InvoiceTransactions")
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     transaction = InvoiceTransaction(
-        PartitionKey=datetime.utcnow().strftime("%Y%m"),
+        PartitionKey=datetime.now(timezone.utc).strftime("%Y%m"),
         RowKey=enriched.id,
         VendorName=enriched.vendor_name,
         SenderEmail=enriched.sender_email or "system@invoice-agent.com",
@@ -134,22 +129,20 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
                 notify.set(notification.model_dump_json())
                 return
 
-        storage_conn = os.environ["AzureWebJobsStorage"]
-        blob_service = BlobServiceClient.from_connection_string(storage_conn)
+        # Download invoice PDF from blob storage
         blob_name = enriched.blob_url.split("/invoices/")[-1]
-        blob_client = blob_service.get_blob_client(container="invoices", blob=blob_name)
+        blob_client = config.blob_service.get_blob_client(container="invoices", blob=blob_name)
         pdf_content = blob_client.download_blob().readall()
         subject, body = _compose_ap_email(enriched)
 
-        graph = GraphAPIClient()
-        ap_email = os.environ["AP_EMAIL_ADDRESS"]
-        invoice_mailbox = os.environ["INVOICE_MAILBOX"]
-
         # Validate recipient before sending (loop prevention)
-        _validate_recipient(ap_email, invoice_mailbox)
+        ap_email = config.ap_email_address
+        _validate_recipient(ap_email)
 
+        # Send email to AP with invoice attachment
+        graph = GraphAPIClient()
         graph.send_email(
-            from_address=os.environ["INVOICE_MAILBOX"],
+            from_address=config.invoice_mailbox,
             to_address=ap_email,
             subject=subject,
             body=body,

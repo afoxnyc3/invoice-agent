@@ -8,6 +8,19 @@ import azure.functions as func
 from PostToAP import main
 
 
+def _setup_config_mock(mock_config):
+    """Helper to set up config mock with common properties."""
+    mock_config.invoice_mailbox = "invoices@example.com"
+    mock_config.ap_email_address = "ap@example.com"
+    mock_config.allowed_ap_emails = []
+    mock_table_client = MagicMock()
+    mock_config.get_table_client.return_value = mock_table_client
+    mock_blob_client = MagicMock()
+    mock_blob_client.download_blob.return_value.readall.return_value = b"PDF content"
+    mock_config.blob_service.get_blob_client.return_value = mock_blob_client
+    return mock_table_client, mock_blob_client
+
+
 class TestPostToAP:
     """Test suite for PostToAP function."""
 
@@ -20,18 +33,10 @@ class TestPostToAP:
         },
     )
     @patch("PostToAP.GraphAPIClient")
-    @patch("PostToAP.TableServiceClient")
-    @patch("PostToAP.BlobServiceClient")
-    def test_post_to_ap_success(self, mock_blob_service, mock_table_service, mock_graph_class):
+    @patch("PostToAP.config")
+    def test_post_to_ap_success(self, mock_config, mock_graph_class):
         """Test successful AP posting with all components."""
-        # Mock blob client
-        mock_blob_client = MagicMock()
-        mock_blob_client.download_blob.return_value.readall.return_value = b"PDF content"
-        mock_blob_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
-
-        # Mock table client
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API client
         mock_graph = MagicMock()
@@ -88,18 +93,10 @@ class TestPostToAP:
         },
     )
     @patch("PostToAP.GraphAPIClient")
-    @patch("PostToAP.TableServiceClient")
-    @patch("PostToAP.BlobServiceClient")
-    def test_post_to_ap_email_content(self, mock_blob_service, mock_table_service, mock_graph_class):
+    @patch("PostToAP.config")
+    def test_post_to_ap_email_content(self, mock_config, mock_graph_class):
         """Test AP email contains all required metadata."""
-        # Mock blob client
-        mock_blob_client = MagicMock()
-        mock_blob_client.download_blob.return_value.readall.return_value = b"PDF"
-        mock_blob_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
-
-        # Mock table client
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API
         mock_graph = MagicMock()
@@ -147,19 +144,13 @@ class TestPostToAP:
         },
     )
     @patch("PostToAP.GraphAPIClient")
-    @patch("PostToAP.TableServiceClient")
-    @patch("PostToAP.BlobServiceClient")
-    def test_post_to_ap_attachment_format(self, mock_blob_service, mock_table_service, mock_graph_class):
+    @patch("PostToAP.config")
+    def test_post_to_ap_attachment_format(self, mock_config, mock_graph_class):
         """Test PDF attachment is properly encoded."""
         # Mock blob client with specific content
         test_pdf = b"%PDF-1.4 test content"
-        mock_blob_client = MagicMock()
+        mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
         mock_blob_client.download_blob.return_value.readall.return_value = test_pdf
-        mock_blob_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
-
-        # Mock table client
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
         # Mock Graph API
         mock_graph = MagicMock()
@@ -204,21 +195,16 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
-    @patch("PostToAP.TableServiceClient")
-    @patch("PostToAP.BlobServiceClient")
-    def test_post_to_ap_blob_download_error(self, mock_blob_service, mock_table_service):
+    @patch("PostToAP.config")
+    def test_post_to_ap_blob_download_error(self, mock_config):
         """Test handling of blob download errors."""
-        # Mock table client for deduplication check (returns not found)
         from azure.core.exceptions import ResourceNotFoundError
 
-        mock_table_client = MagicMock()
+        mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
         mock_table_client.get_entity.side_effect = ResourceNotFoundError("Not found")
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
 
         # Mock blob client to raise exception
-        mock_blob_client = MagicMock()
         mock_blob_client.download_blob.side_effect = Exception("Blob not found")
-        mock_blob_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
 
         enriched_json = """
         {
@@ -254,18 +240,10 @@ class TestPostToAP:
         },
     )
     @patch("PostToAP.GraphAPIClient")
-    @patch("PostToAP.TableServiceClient")
-    @patch("PostToAP.BlobServiceClient")
-    def test_post_to_ap_transaction_logging(self, mock_blob_service, mock_table_service, mock_graph_class):
+    @patch("PostToAP.config")
+    def test_post_to_ap_transaction_logging(self, mock_config, mock_graph_class):
         """Test transaction is logged with correct partition key format."""
-        # Mock blob client
-        mock_blob_client = MagicMock()
-        mock_blob_client.download_blob.return_value.readall.return_value = b"PDF"
-        mock_blob_service.from_connection_string.return_value.get_blob_client.return_value = mock_blob_client
-
-        # Mock table client
-        mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API
         mock_graph = MagicMock()

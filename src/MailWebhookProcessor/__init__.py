@@ -9,18 +9,17 @@ This completes the webhook flow:
 MailWebhook → webhook-notifications → MailWebhookProcessor → raw-mail → ExtractEnrich
 """
 
-import os
 import logging
 import json
 import traceback
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
 from shared.graph_client import GraphAPIClient
 from shared.email_processor import (
     parse_webhook_resource,
     process_email_attachments,
     should_skip_email,
 )
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
             return
 
         # Check email loop prevention
-        invoice_mailbox = os.environ["INVOICE_MAILBOX"]
+        invoice_mailbox = config.invoice_mailbox
         should_skip, reason = should_skip_email(email, invoice_mailbox)
         if should_skip:
             logger.info(f"Skipping email {message_id}: {reason}")
@@ -64,9 +63,8 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
             graph.mark_as_read(mailbox, message_id)
             return
 
-        # Initialize blob storage
-        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
-        blob_container = blob_service.get_container_client("invoices")
+        # Initialize blob storage (uses connection pooling via config)
+        blob_container = config.get_container_client("invoices")
 
         # Process attachments and queue
         count = process_email_attachments(email, graph, mailbox, blob_container, outQueueItem)

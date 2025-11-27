@@ -9,13 +9,13 @@ Uses shared email_processor module for consistent processing logic
 with MailWebhookProcessor.
 """
 
-import os
 import logging
+import os
 import traceback
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
 from shared.graph_client import GraphAPIClient
 from shared.email_processor import should_skip_email, process_email_attachments
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +56,9 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
 
     try:
         # Startup diagnostics
-        mailbox = os.environ["INVOICE_MAILBOX"]
-        tenant_id = os.environ.get("GRAPH_TENANT_ID", "not-set")
-        tenant_display = f"{tenant_id[:8]}..." if tenant_id != "not-set" else "not-set"
+        mailbox = config.invoice_mailbox
+        tenant_id = config.graph_tenant_id
+        tenant_display = f"{tenant_id[:8]}..." if tenant_id else "not-set"
 
         logger.info(f"MailIngest starting - polling mailbox: {mailbox}")
         logger.debug(f"Graph API tenant: {tenant_display}")
@@ -67,9 +67,8 @@ def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
         graph = GraphAPIClient()
         logger.debug("Graph API client initialized successfully")
 
-        # Initialize blob storage
-        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
-        blob_container = blob_service.get_container_client("invoices")
+        # Initialize blob storage (uses connection pooling via config)
+        blob_container = config.get_container_client("invoices")
 
         # Retrieve unread emails
         emails = graph.get_unread_emails(mailbox, max_results=50)
