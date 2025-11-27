@@ -8,12 +8,11 @@ Looks up vendor in VendorMaster table by vendor name. Implements:
 - Unknown vendor handling with registration email
 """
 
-import os
 import logging
 from datetime import datetime
 import azure.functions as func
-from azure.data.tables import TableServiceClient
 from azure.core.exceptions import ResourceExistsError
+from shared.config import config
 from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
 from shared.email_composer import compose_unknown_vendor_email
@@ -55,11 +54,10 @@ def _find_vendor_by_name(vendor_name: str, table_client) -> dict | None:
 
 def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sender: str):
     """Send vendor registration instructions to requestor."""
-    api_url = os.environ.get("FUNCTION_APP_URL", "https://func-invoice-agent.azurewebsites.net")
-    subject, body = compose_unknown_vendor_email(vendor_name, transaction_id, api_url)
+    subject, body = compose_unknown_vendor_email(vendor_name, transaction_id, config.function_app_url)
     graph = GraphAPIClient()
     graph.send_email(
-        from_address=os.environ["INVOICE_MAILBOX"],
+        from_address=config.invoice_mailbox,
         to_address=sender,
         subject=subject,
         body=body,
@@ -122,6 +120,37 @@ def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client) ->
         return False  # Another instance already claimed - don't send duplicate email
 
 
+def _create_enriched_invoice(
+    raw_mail: RawMail,
+    vendor_name: str,
+    expense_dept: str,
+    gl_code: str,
+    allocation_schedule: str,
+    status: str,
+    invoice_fields: dict,
+) -> EnrichedInvoice:
+    """Create EnrichedInvoice with common fields populated."""
+    invoice_hash = generate_invoice_hash(vendor_name, raw_mail.sender, raw_mail.received_at)
+    return EnrichedInvoice(
+        id=raw_mail.id,
+        vendor_name=vendor_name,
+        expense_dept=expense_dept,
+        gl_code=gl_code,
+        allocation_schedule=allocation_schedule,
+        billing_party=config.default_billing_party,
+        blob_url=raw_mail.blob_url,
+        original_message_id=raw_mail.original_message_id,
+        status=status,
+        sender_email=raw_mail.sender,
+        received_at=raw_mail.received_at,
+        invoice_hash=invoice_hash,
+        invoice_amount=invoice_fields.get("invoice_amount"),
+        currency=invoice_fields.get("currency", "USD"),
+        due_date=invoice_fields.get("due_date"),
+        payment_terms=invoice_fields.get("payment_terms", "Net 30"),
+    )
+
+
 def main(msg: func.QueueMessage, toPost: func.Out[str]):
     """Extract vendor and enrich invoice data."""
     try:
@@ -136,14 +165,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
         invoice_fields = extract_invoice_fields_from_pdf(raw_mail.blob_url, raw_mail.received_at)
         logger.info(f"Invoice field extraction confidence: {invoice_fields.get('confidence', {})}")
 
-        table_client = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
-            "VendorMaster"
-        )
-
-        # Deduplicate by original message ID to avoid repeat notification loops
-        tx_table = TableServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"]).get_table_client(
-            "InvoiceTransactions"
-        )
+        # Use centralized config for table clients (connection pooling)
+        table_client = config.get_table_client("VendorMaster")
+        tx_table = config.get_table_client("InvoiceTransactions")
         existing_tx = _get_existing_transaction(raw_mail.original_message_id, tx_table)
         if existing_tx:
             logger.info(
@@ -185,24 +209,8 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
                 _send_vendor_registration_email(vendor_name, raw_mail.id, raw_mail.sender)
 
             # Queue with unknown status for downstream processing (always queue)
-            invoice_hash = generate_invoice_hash(vendor_name, raw_mail.sender, raw_mail.received_at)
-            enriched = EnrichedInvoice(
-                id=raw_mail.id,
-                vendor_name=vendor_name,
-                expense_dept="Unknown",
-                gl_code="0000",
-                allocation_schedule="Unknown",
-                billing_party="Chelsea Piers",
-                blob_url=raw_mail.blob_url,
-                original_message_id=raw_mail.original_message_id,
-                status="unknown",
-                sender_email=raw_mail.sender,
-                received_at=raw_mail.received_at,
-                invoice_hash=invoice_hash,
-                invoice_amount=invoice_fields.get("invoice_amount"),
-                currency=invoice_fields.get("currency", "USD"),
-                due_date=invoice_fields.get("due_date"),
-                payment_terms=invoice_fields.get("payment_terms", "Net 30"),
+            enriched = _create_enriched_invoice(
+                raw_mail, vendor_name, "Unknown", "0000", "Unknown", "unknown", invoice_fields
             )
             toPost.set(enriched.model_dump_json())
             return
@@ -212,47 +220,21 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]):
             logger.warning(
                 f"Reseller vendor detected: {vendor['VendorName']} ({raw_mail.id}) - flagging for manual review"
             )
-            invoice_hash = generate_invoice_hash(vendor["VendorName"], raw_mail.sender, raw_mail.received_at)
-            enriched = EnrichedInvoice(
-                id=raw_mail.id,
-                vendor_name=vendor["VendorName"],
-                expense_dept="Unknown",
-                gl_code="0000",
-                allocation_schedule="Unknown",
-                billing_party="Chelsea Piers",
-                blob_url=raw_mail.blob_url,
-                original_message_id=raw_mail.original_message_id,
-                status="unknown",
-                sender_email=raw_mail.sender,
-                received_at=raw_mail.received_at,
-                invoice_hash=invoice_hash,
-                invoice_amount=invoice_fields.get("invoice_amount"),
-                currency=invoice_fields.get("currency", "USD"),
-                due_date=invoice_fields.get("due_date"),
-                payment_terms=invoice_fields.get("payment_terms", "Net 30"),
+            enriched = _create_enriched_invoice(
+                raw_mail, vendor["VendorName"], "Unknown", "0000", "Unknown", "unknown", invoice_fields
             )
             toPost.set(enriched.model_dump_json())
             return
 
         # Vendor found - enrich with GL codes and metadata
-        invoice_hash = generate_invoice_hash(vendor["VendorName"], raw_mail.sender, raw_mail.received_at)
-        enriched = EnrichedInvoice(
-            id=raw_mail.id,
-            vendor_name=vendor["VendorName"],
-            expense_dept=vendor["ExpenseDept"],
-            gl_code=vendor["GLCode"],
-            allocation_schedule=vendor["AllocationSchedule"],
-            billing_party="Chelsea Piers",
-            blob_url=raw_mail.blob_url,
-            original_message_id=raw_mail.original_message_id,
-            status="enriched",
-            sender_email=raw_mail.sender,
-            received_at=raw_mail.received_at,
-            invoice_hash=invoice_hash,
-            invoice_amount=invoice_fields.get("invoice_amount"),
-            currency=invoice_fields.get("currency", "USD"),
-            due_date=invoice_fields.get("due_date"),
-            payment_terms=invoice_fields.get("payment_terms", "Net 30"),
+        enriched = _create_enriched_invoice(
+            raw_mail,
+            vendor["VendorName"],
+            vendor["ExpenseDept"],
+            vendor["GLCode"],
+            vendor["AllocationSchedule"],
+            "enriched",
+            invoice_fields,
         )
         toPost.set(enriched.model_dump_json())
         logger.info(f"Enriched: {raw_mail.id} - {vendor['VendorName']} (GL: {vendor['GLCode']})")

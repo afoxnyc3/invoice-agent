@@ -18,12 +18,15 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_extract_enrich_known_vendor(self, mock_table_service):
+    @patch("ExtractEnrich.config")
+    def test_extract_enrich_known_vendor(self, mock_config):
         """Test successful enrichment with known vendor."""
         # Mock table client with query_entities for vendor lookup
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_config.invoice_mailbox = "invoices@example.com"
+        mock_config.function_app_url = "https://test-func.azurewebsites.net"
+        mock_config.default_billing_party = "Chelsea Piers"
         mock_table_client.query_entities.return_value = [
             {
                 "PartitionKey": "Vendor",
@@ -78,12 +81,15 @@ class TestExtractEnrich:
         },
     )
     @patch("ExtractEnrich.GraphAPIClient")
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_extract_enrich_unknown_vendor(self, mock_table_service, mock_graph_class):
+    @patch("ExtractEnrich.config")
+    def test_extract_enrich_unknown_vendor(self, mock_config, mock_graph_class):
         """Test unknown vendor triggers registration email."""
         # Mock table client to return empty list (vendor not found)
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_config.invoice_mailbox = "invoices@example.com"
+        mock_config.function_app_url = "https://test-func.azurewebsites.net"
+        mock_config.default_billing_party = "Chelsea Piers"
         mock_table_client.query_entities.return_value = []
 
         # Mock Graph API client
@@ -135,8 +141,8 @@ class TestExtractEnrich:
         },
     )
     @patch("ExtractEnrich.GraphAPIClient")
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_extract_enrich_reseller_vendor(self, mock_table_service, mock_graph_class):
+    @patch("ExtractEnrich.config")
+    def test_extract_enrich_reseller_vendor(self, mock_config, mock_graph_class):
         """Test reseller vendor is flagged for manual review."""
         # Mock GraphAPIClient
         mock_graph = MagicMock()
@@ -144,7 +150,10 @@ class TestExtractEnrich:
 
         # Mock table client to return a reseller vendor
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_config.invoice_mailbox = "invoices@example.com"
+        mock_config.function_app_url = "https://test-func.azurewebsites.net"
+        mock_config.default_billing_party = "Chelsea Piers"
         mock_table_client.query_entities.return_value = [
             {
                 "VendorName": "Myriad360",
@@ -218,12 +227,15 @@ class TestExtractEnrich:
             "FUNCTION_APP_URL": "https://test-func.azurewebsites.net",
         },
     )
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_extract_enrich_case_insensitive_matching(self, mock_table_service):
+    @patch("ExtractEnrich.config")
+    def test_extract_enrich_case_insensitive_matching(self, mock_config):
         """Test vendor name matching is case-insensitive."""
         # Mock table client
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_config.invoice_mailbox = "invoices@example.com"
+        mock_config.function_app_url = "https://test-func.azurewebsites.net"
+        mock_config.default_billing_party = "Chelsea Piers"
         mock_table_client.query_entities.return_value = [
             {
                 "RowKey": "microsoft",
@@ -274,8 +286,8 @@ class TestExtractEnrich:
     )
     @patch("ExtractEnrich.is_message_already_processed")
     @patch("ExtractEnrich.GraphAPIClient")
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_skips_duplicate_message(self, mock_table_service, mock_graph_class, mock_dedup):
+    @patch("ExtractEnrich.config")
+    def test_skips_duplicate_message(self, mock_config, mock_graph_class, mock_dedup):
         """Test duplicate messages are skipped without processing."""
         mock_dedup.return_value = True  # Message already processed
 
@@ -299,7 +311,7 @@ class TestExtractEnrich:
         main(msg, to_post_queue)
 
         # Should NOT process - no vendor lookup, no emails, no queue output
-        mock_table_service.from_connection_string.assert_not_called()
+        mock_config.get_table_client.assert_not_called()
         mock_graph_class.return_value.send_email.assert_not_called()
         assert len(queued_messages) == 0
 
@@ -313,14 +325,17 @@ class TestExtractEnrich:
     )
     @patch("ExtractEnrich.is_message_already_processed")
     @patch("ExtractEnrich.GraphAPIClient")
-    @patch("ExtractEnrich.TableServiceClient")
-    def test_processes_new_message(self, mock_table_service, mock_graph_class, mock_dedup):
+    @patch("ExtractEnrich.config")
+    def test_processes_new_message(self, mock_config, mock_graph_class, mock_dedup):
         """Test new messages are processed normally."""
         mock_dedup.return_value = False  # Message NOT already processed
 
         # Mock table client to return empty (unknown vendor)
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_config.invoice_mailbox = "invoices@example.com"
+        mock_config.function_app_url = "https://test-func.azurewebsites.net"
+        mock_config.default_billing_party = "Chelsea Piers"
         mock_table_client.query_entities.return_value = []
 
         # Mock Graph API client
@@ -347,6 +362,6 @@ class TestExtractEnrich:
         main(msg, to_post_queue)
 
         # Should process - vendor lookup happens, email sent for unknown vendor
-        mock_table_service.from_connection_string.assert_called()
+        mock_config.get_table_client.assert_called()
         mock_graph.send_email.assert_called_once()  # Registration email
         assert len(queued_messages) == 1

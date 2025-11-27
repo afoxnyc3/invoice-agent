@@ -18,6 +18,25 @@ from azure.data.tables import TableServiceClient
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_odata_string(value: str | None) -> str:
+    """
+    Sanitize a string value for use in OData filter queries.
+
+    Escapes single quotes to prevent OData injection attacks.
+    Azure Table Storage OData filter syntax requires single quotes
+    to be escaped by doubling them.
+
+    Args:
+        value: String value to sanitize
+
+    Returns:
+        Sanitized string safe for OData queries
+    """
+    if not value:
+        return ""
+    return value.replace("'", "''")
+
+
 def is_message_already_processed(original_message_id: str | None) -> bool:
     """
     Check if an email has already been processed (deduplication by message ID).
@@ -41,7 +60,8 @@ def is_message_already_processed(original_message_id: str | None) -> bool:
 
         # Query for ANY existing transaction with this message ID
         # (not just 'processed' - unknown vendor invoices have status='unknown')
-        filter_query = f"OriginalMessageId eq '{original_message_id}'"
+        safe_message_id = _sanitize_odata_string(original_message_id)
+        filter_query = f"OriginalMessageId eq '{safe_message_id}'"
         results = list(table_client.query_entities(filter_query))
 
         if results:
@@ -63,7 +83,7 @@ def is_message_already_processed(original_message_id: str | None) -> bool:
 
 def generate_invoice_hash(vendor_name: str, sender_email: str, received_at: str) -> str:
     """
-    Generate MD5 hash for invoice duplicate detection.
+    Generate SHA-256 hash for invoice duplicate detection.
 
     Uses vendor name (normalized) + sender email (normalized) + date portion
     of received_at timestamp. This detects if same vendor sends same invoice
@@ -75,14 +95,15 @@ def generate_invoice_hash(vendor_name: str, sender_email: str, received_at: str)
         received_at: ISO 8601 timestamp (only date portion used)
 
     Returns:
-        32-character MD5 hash string
+        32-character SHA-256 hash string (truncated for storage efficiency)
     """
     vendor_normalized = vendor_name.lower().strip().replace(" ", "_")
     sender_normalized = sender_email.lower().strip()
     date_portion = received_at[:10]  # Extract YYYY-MM-DD from ISO timestamp
 
     hash_input = f"{vendor_normalized}|{sender_normalized}|{date_portion}"
-    return hashlib.md5(hash_input.encode()).hexdigest()
+    # Use SHA-256 (cryptographically secure) instead of MD5, truncate to 32 chars
+    return hashlib.sha256(hash_input.encode()).hexdigest()[:32]
 
 
 def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict | None:
@@ -108,7 +129,8 @@ def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict 
         start_date = end_date - timedelta(days=lookback_days)
 
         # Query for matching hash (partition key filtering for efficiency)
-        filter_query = f"InvoiceHash eq '{invoice_hash}'"
+        safe_hash = _sanitize_odata_string(invoice_hash)
+        filter_query = f"InvoiceHash eq '{safe_hash}'"
         results = list(table_client.query_entities(filter_query))
 
         # Filter by date range using actual ProcessedAt timestamp

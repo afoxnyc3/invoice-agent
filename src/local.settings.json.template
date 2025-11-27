@@ -17,6 +17,7 @@
     "INVOICE_MAILBOX": "dev-invoices@chelseapiers.com",
     "AP_EMAIL_ADDRESS": "dev-ap@chelseapiers.com",
     "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
+    "DEFAULT_BILLING_PARTY": "Chelsea Piers",
 
     "STORAGE_ACCOUNT_NAME": "stinvoiceagentdev",
     "STORAGE_ACCOUNT_KEY": "your-storage-key",
