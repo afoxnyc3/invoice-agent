@@ -164,10 +164,10 @@ resource stagingSlot 'Microsoft.Web/sites/slots@2023-01-01' = {
   properties: {
     serverFarmId: appServicePlan.id
     reserved: true
-    // ⚠️ IMPORTANT: siteConfig copies at deployment time, but app settings do NOT auto-sync
+    // ⚠️ IMPORTANT: App settings do NOT auto-sync from production to staging.
     // You MUST manually sync app settings from production to staging slot.
     // See: docs/DEPLOYMENT_GUIDE.md "Step 2.5: Configure Staging Slot App Settings"
-    siteConfig: functionApp.properties.siteConfig
+    // Note: siteConfig is inherited from parent Function App at swap time.
   }
 }
 
