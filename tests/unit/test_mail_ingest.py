@@ -28,6 +28,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
@@ -78,6 +81,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
@@ -117,6 +123,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
@@ -173,6 +182,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
@@ -202,6 +214,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
@@ -233,6 +248,9 @@ class TestMailIngest:
         {
             "INVOICE_MAILBOX": "invoices@example.com",
             "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+            "GRAPH_TENANT_ID": "tenant",
+            "GRAPH_CLIENT_ID": "client",
+            "GRAPH_CLIENT_SECRET": "secret",
         },
     )
     @patch("MailIngest.GraphAPIClient")
