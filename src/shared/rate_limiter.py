@@ -90,11 +90,13 @@ def rate_limit_response(retry_after: int = 60) -> func.HttpResponse:
     import json
 
     return func.HttpResponse(
-        json.dumps({
-            "error": "Too Many Requests",
-            "message": "Rate limit exceeded. Please try again later.",
-            "retry_after": retry_after,
-        }),
+        json.dumps(
+            {
+                "error": "Too Many Requests",
+                "message": "Rate limit exceeded. Please try again later.",
+                "retry_after": retry_after,
+            }
+        ),
         status_code=429,
         mimetype="application/json",
         headers={"Retry-After": str(retry_after)},
@@ -114,6 +116,7 @@ def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
         def main(req: func.HttpRequest) -> func.HttpResponse:
             ...
     """
+
     def decorator(func_handler: Callable) -> Callable:
         @wraps(func_handler)
         def wrapper(req: func.HttpRequest, *args, **kwargs) -> func.HttpResponse:
@@ -128,21 +131,13 @@ def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
                 client_ip = get_client_ip(req)
                 table_client = config.get_table_client(table_name)
 
-                is_allowed, count = check_rate_limit(
-                    table_client, client_ip, max_requests
-                )
+                is_allowed, count = check_rate_limit(table_client, client_ip, max_requests)
 
                 if not is_allowed:
-                    logger.warning(
-                        f"Rate limit exceeded for IP {client_ip}: "
-                        f"{count}/{max_requests} requests"
-                    )
+                    logger.warning(f"Rate limit exceeded for IP {client_ip}: " f"{count}/{max_requests} requests")
                     return rate_limit_response()
 
-                logger.debug(
-                    f"Rate limit check passed for {client_ip}: "
-                    f"{count}/{max_requests}"
-                )
+                logger.debug(f"Rate limit check passed for {client_ip}: " f"{count}/{max_requests}")
 
             except Exception as e:
                 # On error, allow request but log warning
@@ -152,6 +147,7 @@ def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
             return func_handler(req, *args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
