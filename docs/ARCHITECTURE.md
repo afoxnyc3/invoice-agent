@@ -47,7 +47,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Auto-routing Rate**: >80% (known vendors)
 - **Unknown Vendor Rate**: <10%
 - **Error Rate**: <1%
-- **Test Coverage**: >60% (currently at 96%)
+- **Test Coverage**: >60% (CI threshold met)
 
 ---
 
@@ -72,25 +72,36 @@ Automated Azure serverless system that extracts vendor information from email, a
                │ HTTP POST (<10 sec)         │
                ↓                             │ Subscription Management
 ┌─────────────────────────────────────────┐  │
-│        MailWebhook Function (NEW)       │  │
-│  - HTTP trigger receives notification  │  │
-│  - Validates client state (security)   │  │
-│  - Saves attachments to Blob Storage   │  │
-│  - Queues for processing                │  │
+│        MailWebhook Function (HTTP)      │  │
+│  - HTTP trigger receives notification   │  │
+│  - Validates client state (security)    │  │
+│  - Queues notification for processing   │  │
+│  - Returns 202 quickly (<3 sec)         │  │
 └──────────────┬──────────────────────────┘  │
                │ Queue: webhook-notifications│
                ↓                             │
 ┌─────────────────────────────────────────┐  │
-│     ExtractEnrich Function              │  │
-│  - Extract vendor from PDF (AI)         │  │
-│  - Fallback to email domain if needed   │  │
+│   MailWebhookProcessor Function (Queue) │  │
+│  - Fetches email details via Graph API  │  │
+│  - Downloads attachments to Blob        │  │
+│  - Extracts vendor from PDF (AI)        │  │
+│  - Creates RawMail queue message        │  │
+│  - Marks email as read                  │  │
+└──────────────┬──────────────────────────┘  │
+               │ Queue: raw-mail             │
+               ↓                             │
+┌─────────────────────────────────────────┐  │
+│     ExtractEnrich Function (Queue)      │  │
+│  - Extracts invoice fields from PDF     │  │
+│  - Uses AI-extracted vendor name        │  │
 │  - Lookup in VendorMaster table         │  │
 │  - Apply GL codes and metadata          │  │
+│  - Deduplication check (skip processed) │  │
 └──────────────┬──────────────────────────┘  │
                │ Queue: to-post              │
                ↓                             │
 ┌─────────────────────────────────────────┐  │
-│        PostToAP Function                │  │
+│        PostToAP Function (Queue)        │  │
 │  - Compose standardized email           │  │
 │  - Send to AP mailbox via Graph         │  │
 │  - Log to InvoiceTransactions           │  │
@@ -98,14 +109,14 @@ Automated Azure serverless system that extracts vendor information from email, a
                │ Queue: notify               │
                ↓                             │
 ┌─────────────────────────────────────────┐  │
-│         Notify Function                 │  │
+│         Notify Function (Queue)         │  │
 │  - Format Teams message                 │  │
 │  - Post to webhook                      │  │
 │  - Non-critical (no retry)              │  │
 └─────────────────────────────────────────┘  │
                                              │
 ┌─────────────────────────────────────────┐  │
-│  SubscriptionManager Function (NEW)    │◄─┘
+│  SubscriptionManager Function (Timer)   │◄─┘
 │  - Timer: Every 6 days                  │
 │  - Renews Graph API subscription        │
 │  - Stores state in GraphSubscriptions   │
@@ -113,10 +124,16 @@ Automated Azure serverless system that extracts vendor information from email, a
 └─────────────────────────────────────────┘
 
 ┌────────────────────────── FALLBACK ──────────────────────────────┐
-│  MailIngest Function (MODIFIED - Hourly Safety Net)              │
-│  - Timer: Every hour (was 5 minutes)                             │
+│  MailIngest Function (Timer - Hourly Safety Net)                 │
+│  - Timer: Every hour                                             │
 │  - Polls for any missed emails                                   │
-│  - Queues to raw-mail for processing                             │
+│  - Downloads attachments, extracts vendor from PDF               │
+│  - Queues to raw-mail for ExtractEnrich processing               │
+└──────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────── UTILITIES ─────────────────────────────┐
+│  AddVendor Function (HTTP) - POST /api/AddVendor                 │
+│  Health Function (HTTP) - GET /api/Health                        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -124,7 +141,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Primary Path**: Event-driven webhooks (<10 sec latency, 95% of emails)
 - **Fallback Path**: Hourly polling (safety net, 5% of emails)
 - **Cost Reduction**: 70% savings ($0.60/month vs $2.00/month)
-- **Function Count**: 7 (was 5) - Added MailWebhook + SubscriptionManager
+- **Function Count**: 9 - Includes MailWebhook, MailWebhookProcessor, SubscriptionManager, Health
 - **New Queue**: `webhook-notifications` for webhook-based ingestion
 - **New Table**: `GraphSubscriptions` for subscription state management
 
@@ -1229,7 +1246,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 ```
 
 **Pipeline Stages**:
-1. **Test**: Run pytest (98 tests, 96% coverage)
+1. **Test**: Run pytest (269 tests, 60%+ coverage)
 2. **Lint**: Black, Flake8, mypy, bandit
 3. **Build**: Package Python functions
 4. **Deploy Staging**: Deploy to staging slot
@@ -1281,16 +1298,20 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 - Managed Identity (system-assigned)
 - Staging Slot (configured)
 
-**Functions Deployed** ✅:
-- MailIngest: Email polling (timer trigger) - **ACTIVE**
-- ExtractEnrich: Vendor lookup (queue trigger) - **ACTIVE**
+**Functions Deployed** ✅ (9 total):
+- MailWebhook: Webhook receiver (HTTP trigger) - **ACTIVE**
+- MailWebhookProcessor: Email processing (queue trigger) - **ACTIVE**
+- SubscriptionManager: Subscription renewal (timer trigger) - **ACTIVE**
+- MailIngest: Fallback polling (timer trigger) - **ACTIVE**
+- ExtractEnrich: Vendor lookup + PDF extraction (queue trigger) - **ACTIVE**
 - PostToAP: Email routing (queue trigger) - **ACTIVE**
 - Notify: Teams notifications (queue trigger) - **ACTIVE**
 - AddVendor: Vendor management (HTTP trigger) - **ACTIVE**
+- Health: Health check endpoint (HTTP trigger) - **ACTIVE**
 
 **CI/CD Pipeline** ✅:
 - GitHub Actions workflow configured
-- 98 tests passing (96% coverage)
+- 269 tests passing (60%+ coverage)
 - Quality gates: Black, Flake8, mypy, bandit
 - Staging deployment automated
 - Production approval gate
@@ -1449,8 +1470,8 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 
 ---
 
-**Version:** 2.1 (Production Ready - Vendor Data Seeded)
-**Last Updated:** 2025-11-24
+**Version:** 2.2 (All P0/P1 Issues Resolved)
+**Last Updated:** 2025-11-28
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

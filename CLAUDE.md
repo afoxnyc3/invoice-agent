@@ -223,7 +223,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 89% coverage maintained (142 tests)
+- Unit tests: 60%+ coverage maintained (269 tests)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -653,19 +653,23 @@ When working with this codebase, Claude should:
 Migrated from timer-based polling to event-driven webhooks using Microsoft Graph Change Notifications. System now processes emails in real-time (<10 seconds) with 70% cost savings.
 
 **Current State:**
-- ✅ All 8 functions deployed and active
-  - **New:** MailWebhook (HTTP) - Receives Graph API notifications
-  - **New:** MailWebhookProcessor (Queue) - Processes webhook notifications with **PDF extraction**
-  - **New:** SubscriptionManager (Timer) - Auto-renews subscriptions every 6 days
-  - **Modified:** MailIngest - Now hourly fallback/safety net (was 5-min primary)
-  - **Modified:** ExtractEnrich - Uses AI-extracted vendor names, falls back to email domain
-  - Existing: PostToAP, Notify, AddVendor
+- ✅ All 9 functions deployed and active
+  - **MailWebhook** (HTTP) - Receives Graph API notifications
+  - **MailWebhookProcessor** (Queue) - Processes webhook notifications with **PDF extraction**
+  - **SubscriptionManager** (Timer) - Auto-renews subscriptions every 6 days
+  - **MailIngest** (Timer) - Hourly fallback/safety net
+  - **ExtractEnrich** (Queue) - Uses AI-extracted vendor names, falls back to email domain
+  - **PostToAP** (Queue) - Routes enriched invoices to AP
+  - **Notify** (Queue) - Teams webhook notifications
+  - **AddVendor** (HTTP) - Vendor management API
+  - **Health** (HTTP) - Health check endpoint
 - ✅ **PDF Vendor Extraction** (Nov 24, 2024)
   - Intelligent vendor extraction from PDF invoices using pdfplumber + Azure OpenAI
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
   - No breaking changes - optional feature with degradation path
-- ✅ CI/CD pipeline operational (142 tests passing, 89% coverage)
+- ✅ CI/CD pipeline operational (269 tests, 60%+ coverage)
+- ✅ All P0 and P1 issues resolved (Nov 28, 2025)
 - ✅ Infrastructure ready (staging + production slots)
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational
@@ -681,7 +685,7 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 1. End-to-end production testing with webhook flow
 2. Performance measurement and monitoring (actual metrics vs targets)
 3. Monitor processing in Application Insights
-4. Phase 2 planning: PDF extraction and AI vendor matching
+4. Address P2 issues in next sprint
 
 ---
 
@@ -704,6 +708,6 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
-**Version:** 2.1 (Production Ready - Vendor Data Seeded)
-**Last Updated:** 2025-11-24
+**Version:** 2.2 (All P0/P1 Issues Resolved)
+**Last Updated:** 2025-11-28
 **Maintained By:** Engineering Team
