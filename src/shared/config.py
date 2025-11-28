@@ -9,7 +9,6 @@ Provides:
 
 import os
 import logging
-from functools import lru_cache
 from typing import Optional
 from azure.data.tables import TableServiceClient, TableClient
 from azure.storage.blob import BlobServiceClient, ContainerClient
@@ -233,9 +232,3 @@ class Config:
 
 # Global singleton instance
 config = Config()
-
-
-@lru_cache(maxsize=1)
-def get_config() -> Config:
-    """Get the global config instance (for dependency injection patterns)."""
-    return config
