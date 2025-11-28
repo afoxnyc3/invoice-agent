@@ -41,7 +41,25 @@ def _validate_recipient(recipient: str) -> None:
     logger.info(f"Recipient validation passed: {recipient}")
 
 
-def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
+def _download_invoice_blob(blob_url: str) -> tuple[bytes | None, str | None]:
+    """
+    Download invoice PDF from blob storage with error handling.
+
+    Returns:
+        tuple: (pdf_content, error_message) - pdf_content is None if download failed
+    """
+    try:
+        blob_name = blob_url.split("/invoices/")[-1]
+        blob_client = config.blob_service.get_blob_client(container="invoices", blob=blob_name)
+        pdf_content = blob_client.download_blob().readall()
+        return pdf_content, None
+    except Exception as e:
+        error_msg = f"Failed to download invoice blob: {e}"
+        logger.error(f"{error_msg} (blob_url={blob_url})")
+        return None, error_msg
+
+
+def _compose_ap_email(enriched: EnrichedInvoice, attachment_error: str | None = None) -> tuple[str, str]:
     """Compose email body for AP with invoice metadata."""
     subject = f"Invoice: {enriched.vendor_name} - GL {enriched.gl_code}"
     alloc_label = "Allocation Schedule"
@@ -54,6 +72,13 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 
     # Format due date if available
     due_date_display = enriched.due_date[:10] if enriched.due_date else "N/A"
+
+    # Determine attachment status message
+    if attachment_error:
+        attachment_msg = f'<p style="color: red;"><strong>Warning:</strong> {attachment_error}</p>'
+        attachment_msg += f"<p>Original blob URL: {enriched.blob_url}</p>"
+    else:
+        attachment_msg = "<p>Invoice attachment included.</p>"
 
     body = f"""
 <html>
@@ -71,7 +96,7 @@ def _compose_ap_email(enriched: EnrichedInvoice) -> tuple[str, str]:
 </td></tr>
         <tr><td><strong>Billing Party</strong></td><td>{enriched.billing_party}</td></tr>
     </table>
-    <p>Invoice attachment included.</p>
+    {attachment_msg}
 </body>
 </html>
 """
@@ -129,17 +154,26 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
                 notify.set(notification.model_dump_json())
                 return
 
-        # Download invoice PDF from blob storage
-        blob_name = enriched.blob_url.split("/invoices/")[-1]
-        blob_client = config.blob_service.get_blob_client(container="invoices", blob=blob_name)
-        pdf_content = blob_client.download_blob().readall()
-        subject, body = _compose_ap_email(enriched)
+        # Download invoice PDF from blob storage (with graceful degradation)
+        pdf_content, blob_error = _download_invoice_blob(enriched.blob_url)
+        subject, body = _compose_ap_email(enriched, attachment_error=blob_error)
 
         # Validate recipient before sending (loop prevention)
         ap_email = config.ap_email_address
         _validate_recipient(ap_email)
 
-        # Send email to AP with invoice attachment
+        # Prepare attachment if blob download succeeded
+        attachments = []
+        if pdf_content:
+            attachments.append(
+                {
+                    "name": f"invoice_{enriched.id}.pdf",
+                    "contentBytes": base64.b64encode(pdf_content).decode(),
+                    "contentType": "application/pdf",
+                }
+            )
+
+        # Send email to AP (with or without attachment)
         graph = GraphAPIClient()
         graph.send_email(
             from_address=config.invoice_mailbox,
@@ -147,13 +181,7 @@ def main(msg: func.QueueMessage, notify: func.Out[str]):
             subject=subject,
             body=body,
             is_html=True,
-            attachments=[
-                {
-                    "name": f"invoice_{enriched.id}.pdf",
-                    "contentBytes": base64.b64encode(pdf_content).decode(),
-                    "contentType": "application/pdf",
-                }
-            ],
+            attachments=attachments,
         )
         _log_transaction(enriched, ap_email)
 
