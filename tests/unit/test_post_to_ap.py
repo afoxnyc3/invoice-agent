@@ -6,6 +6,7 @@ import base64
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
 from PostToAP import main
+from shared.models import NotificationMessage
 
 
 def _setup_config_mock(mock_config):
@@ -81,8 +82,9 @@ class TestPostToAP:
 
         # Assertions - Notification queued
         assert len(notifications) == 1
-        assert "success" in notifications[0]
-        assert "Adobe Inc" in notifications[0]
+        notification = NotificationMessage.model_validate_json(notifications[0])
+        assert notification.type == "success"
+        assert notification.details["vendor"] == "Adobe Inc"
 
     @patch.dict(
         "os.environ",
@@ -249,7 +251,8 @@ class TestPostToAP:
 
         # Verify success notification was sent
         assert len(notifications) == 1
-        assert "success" in notifications[0]
+        notification = NotificationMessage.model_validate_json(notifications[0])
+        assert notification.type == "success"
 
     @patch.dict(
         "os.environ",

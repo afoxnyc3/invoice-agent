@@ -6,6 +6,7 @@ import base64
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
 from MailIngest import main
+from shared.models import RawMail
 
 
 def _setup_config_mock(mock_config):
@@ -72,8 +73,9 @@ class TestMailIngest:
 
         # Assertions
         assert len(queued_messages) == 1
-        assert "vendor@adobe.com" in queued_messages[0]
-        assert "Invoice #12345" in queued_messages[0]
+        raw_mail = RawMail.model_validate_json(queued_messages[0])
+        assert raw_mail.sender == "vendor@adobe.com"
+        assert raw_mail.subject == "Invoice #12345"
         mock_blob_client.upload_blob.assert_called_once()
 
     @patch.dict(
@@ -174,8 +176,10 @@ class TestMailIngest:
 
         # Assertions
         assert len(queued_messages) == 2
-        assert "vendor1@test.com" in queued_messages[0]
-        assert "vendor2@test.com" in queued_messages[1]
+        raw_mail_1 = RawMail.model_validate_json(queued_messages[0])
+        raw_mail_2 = RawMail.model_validate_json(queued_messages[1])
+        assert raw_mail_1.sender == "vendor1@test.com"
+        assert raw_mail_2.sender == "vendor2@test.com"
 
     @patch.dict(
         "os.environ",

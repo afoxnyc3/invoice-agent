@@ -5,6 +5,7 @@ Unit tests for ExtractEnrich queue function.
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
 from ExtractEnrich import main
+from shared.models import EnrichedInvoice
 
 
 class TestExtractEnrich:
@@ -66,11 +67,11 @@ class TestExtractEnrich:
 
         # Assertions
         assert len(queued_messages) == 1
-        enriched_data = queued_messages[0]
-        assert "Adobe" in enriched_data
-        assert "6100" in enriched_data
-        assert "IT" in enriched_data
-        assert "enriched" in enriched_data
+        enriched = EnrichedInvoice.model_validate_json(queued_messages[0])
+        assert enriched.vendor_name == "Adobe"
+        assert enriched.gl_code == "6100"
+        assert enriched.expense_dept == "IT"
+        assert enriched.status == "enriched"
 
     @patch.dict(
         "os.environ",
@@ -122,8 +123,8 @@ class TestExtractEnrich:
 
         # Assertions
         assert len(queued_messages) == 1  # Message should be queued with unknown status
-        enriched_data = queued_messages[0]
-        assert "unknown" in enriched_data
+        enriched = EnrichedInvoice.model_validate_json(queued_messages[0])
+        assert enriched.status == "unknown"
         mock_graph.send_email.assert_called_once()
         call_args = mock_graph.send_email.call_args
         assert call_args.kwargs["to_address"] == "billing@example.com"
@@ -190,8 +191,8 @@ class TestExtractEnrich:
 
         # Assertions - reseller should be flagged as unknown for manual review
         assert len(queued_messages) == 1
-        enriched_data = queued_messages[0]
-        assert "unknown" in enriched_data
+        enriched = EnrichedInvoice.model_validate_json(queued_messages[0])
+        assert enriched.status == "unknown"
 
     @patch.dict(
         "os.environ",
@@ -272,9 +273,9 @@ class TestExtractEnrich:
 
         # Should match despite case difference
         assert len(queued_messages) == 1
-        enriched_data = queued_messages[0]
-        assert "Microsoft" in enriched_data
-        assert "enriched" in enriched_data
+        enriched = EnrichedInvoice.model_validate_json(queued_messages[0])
+        assert enriched.vendor_name == "Microsoft"
+        assert enriched.status == "enriched"
 
     @patch.dict(
         "os.environ",
