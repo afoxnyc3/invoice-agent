@@ -195,9 +195,10 @@ class TestPostToAP:
             "AP_EMAIL_ADDRESS": "ap@example.com",
         },
     )
+    @patch("PostToAP.GraphAPIClient")
     @patch("PostToAP.config")
-    def test_post_to_ap_blob_download_error(self, mock_config):
-        """Test handling of blob download errors."""
+    def test_post_to_ap_blob_download_error_graceful_degradation(self, mock_config, mock_graph_class):
+        """Test graceful degradation when blob download fails - email sent without attachment."""
         from azure.core.exceptions import ResourceNotFoundError
 
         mock_table_client, mock_blob_client = _setup_config_mock(mock_config)
@@ -205,6 +206,10 @@ class TestPostToAP:
 
         # Mock blob client to raise exception
         mock_blob_client.download_blob.side_effect = Exception("Blob not found")
+
+        # Mock Graph API
+        mock_graph = MagicMock()
+        mock_graph_class.return_value = mock_graph
 
         enriched_json = """
         {
@@ -222,14 +227,29 @@ class TestPostToAP:
         msg = Mock(spec=func.QueueMessage)
         msg.get_body.return_value = enriched_json.encode()
 
+        notifications = []
         mock_queue = Mock(spec=func.Out)
+        mock_queue.set = lambda m: notifications.append(m)
 
-        # Execute function - should raise exception
-        try:
-            main(msg, mock_queue)
-            assert False, "Expected exception to be raised"
-        except Exception as e:
-            assert "Blob not found" in str(e)
+        # Execute function - should NOT raise exception (graceful degradation)
+        main(msg, mock_queue)
+
+        # Verify email was sent WITHOUT attachment
+        mock_graph.send_email.assert_called_once()
+        call_args = mock_graph.send_email.call_args
+        assert call_args.kwargs["attachments"] == []  # No attachment
+
+        # Verify email body contains error message
+        body = call_args.kwargs["body"]
+        assert "Failed to download invoice blob" in body
+        assert "missing.pdf" in body  # Original blob URL shown
+
+        # Verify transaction was still logged
+        mock_table_client.upsert_entity.assert_called_once()
+
+        # Verify success notification was sent
+        assert len(notifications) == 1
+        assert "success" in notifications[0]
 
     @patch.dict(
         "os.environ",
