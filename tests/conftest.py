@@ -178,19 +178,69 @@ def notify_message() -> str:
 
 @pytest.fixture
 def mock_environment(monkeypatch):
-    """Mock environment variables for testing."""
+    """
+    Mock environment variables for testing.
+
+    This fixture provides a complete set of environment variables needed by
+    most functions in the invoice processing pipeline. Use this instead of
+    @patch.dict("os.environ", {...}) decorators for cleaner tests.
+
+    Usage:
+        def test_something(mock_environment):
+            # Environment is already configured
+            ...
+
+    To override specific variables in a test:
+        def test_something(mock_environment, monkeypatch):
+            monkeypatch.setenv("SPECIFIC_VAR", "override_value")
+            ...
+    """
     env_vars = {
-        "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;",
+        # Azure Storage (required for config.py)
+        "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net",
+        # Microsoft Graph API
         "GRAPH_TENANT_ID": "test-tenant-id",
         "GRAPH_CLIENT_ID": "test-client-id",
         "GRAPH_CLIENT_SECRET": "test-client-secret",
-        "AP_EMAIL_ADDRESS": "accountspayable@test.com",
+        "GRAPH_CLIENT_STATE": "test-client-state",
+        # Email configuration (required for PostToAP, ExtractEnrich)
+        "INVOICE_MAILBOX": "invoices@test.com",
+        "AP_EMAIL_ADDRESS": "ap@test.com",
+        "ALLOWED_AP_EMAILS": "ap@test.com,ap2@test.com",
+        # Notifications
         "TEAMS_WEBHOOK_URL": "https://test.webhook.url",
+        # Azure Key Vault
         "KEY_VAULT_URL": "https://test-keyvault.vault.azure.net/",
+        # Azure OpenAI (for PDF extraction)
         "AZURE_OPENAI_ENDPOINT": "https://test-openai.openai.azure.com/",
         "AZURE_OPENAI_API_KEY": "test-openai-key",
         "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
         "AZURE_OPENAI_API_VERSION": "2024-02-01",
+        # Business configuration
+        "DEFAULT_BILLING_PARTY": "Test Corp",
+        "FUNCTION_APP_URL": "https://func-test.azurewebsites.net",
+        "ENVIRONMENT": "test",
+        "LOG_LEVEL": "DEBUG",
+    }
+
+    for key, value in env_vars.items():
+        monkeypatch.setenv(key, value)
+
+    return env_vars
+
+
+@pytest.fixture
+def mock_env_minimal(monkeypatch):
+    """
+    Minimal environment for testing config validation.
+
+    Only sets the absolute minimum required variables. Use this to test
+    validation of missing required configuration.
+    """
+    env_vars = {
+        "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=test;EndpointSuffix=core.windows.net",
+        "INVOICE_MAILBOX": "invoices@test.com",
+        "AP_EMAIL_ADDRESS": "ap@test.com",
     }
 
     for key, value in env_vars.items():

@@ -18,9 +18,8 @@ def _setup_config_mock(mock_config):
 class TestAddVendor:
     """Test suite for AddVendor function."""
 
-    @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
     @patch("AddVendor.config")
-    def test_add_vendor_success(self, mock_config):
+    def test_add_vendor_success(self, mock_config, mock_environment):
         """Test successful vendor creation."""
         mock_table_client = _setup_config_mock(mock_config)
 
@@ -52,7 +51,7 @@ class TestAddVendor:
         assert call_args["VendorName"] == "Adobe"
 
     @patch("AddVendor.config")
-    def test_add_vendor_invalid_gl_code(self, mock_config):
+    def test_add_vendor_invalid_gl_code(self, mock_config, mock_environment):
         """Test validation fails with invalid GL code."""
         _setup_config_mock(mock_config)
 
@@ -72,7 +71,7 @@ class TestAddVendor:
         assert "error" in response_data
 
     @patch("AddVendor.config")
-    def test_add_vendor_missing_required_field(self, mock_config):
+    def test_add_vendor_missing_required_field(self, mock_config, mock_environment):
         """Test validation fails with missing required field."""
         _setup_config_mock(mock_config)
 
@@ -91,9 +90,8 @@ class TestAddVendor:
         response_data = json.loads(response.get_body())
         assert "error" in response_data
 
-    @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
     @patch("AddVendor.config")
-    def test_add_vendor_duplicate_update(self, mock_config):
+    def test_add_vendor_duplicate_update(self, mock_config, mock_environment):
         """Test creating duplicate vendor (should fail with 400)."""
         mock_table_client = _setup_config_mock(mock_config)
         from azure.core.exceptions import ResourceExistsError
@@ -113,9 +111,8 @@ class TestAddVendor:
 
         assert response.status_code == 400
 
-    @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
     @patch("AddVendor.config")
-    def test_add_vendor_table_error(self, mock_config):
+    def test_add_vendor_table_error(self, mock_config, mock_environment):
         """Test handling of table storage errors."""
         mock_table_client = _setup_config_mock(mock_config)
         mock_table_client.create_entity.side_effect = Exception("Table storage error")
@@ -135,9 +132,8 @@ class TestAddVendor:
         response_data = json.loads(response.get_body())
         assert "error" in response_data
 
-    @patch.dict("os.environ", {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"})
     @patch("AddVendor.config")
-    def test_add_vendor_name_normalization(self, mock_config):
+    def test_add_vendor_name_normalization(self, mock_config, mock_environment):
         """Test vendor name normalization with various formats."""
         mock_table_client = _setup_config_mock(mock_config)
 
