@@ -4,7 +4,6 @@ Pydantic models for queue messages and Azure Table entities.
 This module defines all data models used throughout the invoice processing pipeline:
 - Queue message schemas for inter-function communication
 - Azure Table Storage entity schemas
-- Teams webhook message card format
 """
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -259,76 +258,3 @@ class InvoiceTransaction(BaseModel):
         if self.Status == "error" and not self.ErrorMessage:
             raise ValueError("ErrorMessage required when Status is error")
         return self
-
-
-# =============================================================================
-# TEAMS WEBHOOK MESSAGE CARD MODELS
-# =============================================================================
-
-
-class MessageCardFact(BaseModel):
-    """
-    Individual name-value pair in a Teams message card.
-
-    Used to display structured information in Teams notifications.
-    """
-
-    name: str = Field(..., description="Fact label")
-    value: str = Field(..., description="Fact value")
-
-
-class MessageCardSection(BaseModel):
-    """
-    Section containing facts in a Teams message card.
-
-    Groups related facts together in the notification display.
-    """
-
-    facts: list[MessageCardFact] = Field(..., description="List of facts to display")
-
-
-class TeamsMessageCard(BaseModel):
-    """
-    Teams webhook message card format (Office 365 Connector Card).
-
-    This model represents the JSON structure expected by Teams incoming webhooks
-    for displaying formatted notifications with color-coded themes.
-
-    Theme Colors:
-    - Green (00FF00): Success messages
-    - Orange (FFA500): Warning messages (unknown vendors)
-    - Red (FF0000): Error messages
-    """
-
-    type: str = Field(default="MessageCard", alias="@type")
-    themeColor: str = Field(..., description="Hex color code (e.g., '00FF00')")
-    text: str = Field(..., description="Card title/summary text")
-    sections: list[MessageCardSection] = Field(..., description="Sections containing facts")
-
-    @field_validator("themeColor")
-    @classmethod
-    def validate_theme_color(cls, v: str) -> str:
-        """Ensure theme color is valid hex code"""
-        if not v or len(v) != 6 or not all(c in "0123456789ABCDEFabcdef" for c in v):
-            raise ValueError("themeColor must be 6-digit hex code")
-        return v.upper()
-
-    model_config = ConfigDict(
-        populate_by_name=True,
-        json_schema_extra={
-            "example": {
-                "@type": "MessageCard",
-                "themeColor": "00FF00",
-                "text": "✅ Invoice Processed",
-                "sections": [
-                    {
-                        "facts": [
-                            {"name": "Vendor", "value": "Adobe Inc"},
-                            {"name": "GL Code", "value": "6100"},
-                            {"name": "Department", "value": "IT"},
-                        ]
-                    }
-                ],
-            }
-        },
-    )

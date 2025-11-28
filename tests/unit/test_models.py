@@ -1,8 +1,8 @@
 """
 Unit tests for shared data models.
 
-Tests all queue message models, Azure Table Storage entity models,
-and Teams webhook message card models for validation and serialization.
+Tests all queue message models and Azure Table Storage entity models
+for validation and serialization.
 """
 
 import pytest
@@ -14,9 +14,6 @@ from shared.models import (
     NotificationMessage,
     VendorMaster,
     InvoiceTransaction,
-    MessageCardFact,
-    MessageCardSection,
-    TeamsMessageCard,
 )
 
 
@@ -437,66 +434,3 @@ class TestInvoiceTransactionModel:
                 # Missing ErrorMessage
             )
         assert "ErrorMessage required when Status is error" in str(exc_info.value)
-
-
-# =============================================================================
-# TEAMS WEBHOOK MESSAGE CARD MODEL TESTS
-# =============================================================================
-
-
-class TestTeamsMessageCardModels:
-    """Test Teams webhook message card models."""
-
-    def test_create_message_card_fact(self):
-        """Test creating a MessageCardFact."""
-        fact = MessageCardFact(name="Vendor", value="Adobe Inc")
-
-        assert fact.name == "Vendor"
-        assert fact.value == "Adobe Inc"
-
-    def test_create_message_card_section(self):
-        """Test creating a MessageCardSection."""
-        section = MessageCardSection(
-            facts=[MessageCardFact(name="Vendor", value="Adobe Inc"), MessageCardFact(name="GL Code", value="6100")]
-        )
-
-        assert len(section.facts) == 2
-        assert section.facts[0].name == "Vendor"
-
-    def test_create_success_teams_card(self):
-        """Test creating a success Teams message card."""
-        card = TeamsMessageCard(
-            themeColor="00FF00",
-            text="✅ Invoice Processed",
-            sections=[
-                MessageCardSection(
-                    facts=[
-                        MessageCardFact(name="Vendor", value="Adobe Inc"),
-                        MessageCardFact(name="GL Code", value="6100"),
-                        MessageCardFact(name="Department", value="IT"),
-                    ]
-                )
-            ],
-        )
-
-        assert card.type == "MessageCard"
-        assert card.themeColor == "00FF00"
-        assert card.text == "✅ Invoice Processed"
-        assert len(card.sections) == 1
-        assert len(card.sections[0].facts) == 3
-
-    def test_teams_card_invalid_color(self):
-        """Test TeamsMessageCard validation rejects invalid color."""
-        with pytest.raises(ValidationError) as exc_info:
-            TeamsMessageCard(themeColor="green", text="Test", sections=[])  # Not hex code
-        assert "themeColor must be 6-digit hex code" in str(exc_info.value)
-
-    def test_teams_card_json_serialization(self):
-        """Test TeamsMessageCard JSON serialization with @type alias."""
-        card = TeamsMessageCard(themeColor="00FF00", text="Test Message", sections=[MessageCardSection(facts=[])])
-
-        json_data = json.loads(card.model_dump_json(by_alias=True))
-
-        assert json_data["@type"] == "MessageCard"
-        assert json_data["themeColor"] == "00FF00"
-        assert "sections" in json_data
