@@ -110,6 +110,7 @@ resource tables 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-01-
 // Outputs
 output storageAccountName string = storageAccount.name
 output storageAccountId string = storageAccount.id
+@secure()
 output connectionString string = 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${az.environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
 output blobEndpoint string = storageAccount.properties.primaryEndpoints.blob
 output queueEndpoint string = storageAccount.properties.primaryEndpoints.queue
