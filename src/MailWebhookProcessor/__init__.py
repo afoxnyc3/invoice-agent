@@ -35,7 +35,7 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         resource = notification.get("resource")
         if not resource:
             logger.error("Notification missing resource field")
-            return
+            raise ValueError("Notification missing resource field")
 
         mailbox, message_id = parse_webhook_resource(resource)
         logger.info(f"Fetching email {message_id} from {mailbox}")
@@ -47,7 +47,7 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         email = graph.get_email(mailbox, message_id)
         if not email:
             logger.error(f"Email {message_id} not found")
-            return
+            raise ValueError(f"Email {message_id} not found")
 
         # Check email loop prevention
         invoice_mailbox = config.invoice_mailbox
@@ -55,13 +55,13 @@ def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
         if should_skip:
             logger.info(f"Skipping email {message_id}: {reason}")
             graph.mark_as_read(mailbox, message_id)
-            return
+            raise ValueError(f"Skipping email {message_id}: {reason}")
 
         # Check for attachments
         if not email.get("hasAttachments"):
             logger.warning(f"Email {message_id} has no attachments - skipping")
             graph.mark_as_read(mailbox, message_id)
-            return
+            raise ValueError(f"Email {message_id} has no attachments")
 
         # Initialize blob storage (uses connection pooling via config)
         blob_container = config.get_container_client("invoices")
