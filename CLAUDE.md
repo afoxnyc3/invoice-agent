@@ -200,6 +200,8 @@ Closes #14
 - [ ] Feature branch created from `main`
 - [ ] All acceptance criteria met
 - [ ] Code follows project constraints (25-line functions, import structure, etc.)
+- [ ] **Code formatted with black** (`black src/ tests/`)
+- [ ] **Linting passes** (`flake8 src/ tests/`)
 - [ ] Tests pass locally
 - [ ] Type checking passes (mypy)
 - [ ] Security scan passes (bandit)
