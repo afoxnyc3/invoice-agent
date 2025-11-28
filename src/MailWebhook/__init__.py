@@ -15,8 +15,12 @@ import json
 import urllib.parse
 import azure.functions as func
 from shared.ulid_generator import generate_ulid
+from shared.rate_limiter import get_client_ip, check_rate_limit, rate_limit_response
 
 logger = logging.getLogger(__name__)
+
+# Rate limit: 100 requests/minute for Graph API notifications
+RATE_LIMIT_MAX_REQUESTS = 100
 
 
 def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpResponse:
@@ -28,6 +32,24 @@ def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpRespons
     2. Notification: Graph sends notification payload, queue for processing
     """
     try:
+        # Apply rate limiting (inline for functions with output bindings)
+        if not os.environ.get("RATE_LIMIT_DISABLED", "").lower() == "true":
+            try:
+                from shared.config import config
+
+                client_ip = get_client_ip(req)
+                table_client = config.get_table_client("RateLimits")
+                is_allowed, count = check_rate_limit(
+                    table_client, client_ip, RATE_LIMIT_MAX_REQUESTS
+                )
+                if not is_allowed:
+                    logger.warning(
+                        f"Rate limit exceeded for MailWebhook IP {client_ip}: "
+                        f"{count}/{RATE_LIMIT_MAX_REQUESTS}"
+                    )
+                    return rate_limit_response()
+            except Exception as e:
+                logger.warning(f"Rate limit check failed, allowing request: {e}")
         # MODE 1: VALIDATION HANDSHAKE
         # Graph sends this during subscription creation to verify endpoint
         validation_token = req.params.get("validationToken")

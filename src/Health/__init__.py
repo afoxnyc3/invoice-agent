@@ -12,6 +12,7 @@ import logging
 from datetime import datetime, timezone
 import azure.functions as func
 from shared.config import config
+from shared.rate_limiter import rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def _check_config() -> dict:
     return {"status": "healthy"}
 
 
+@rate_limit(max_requests=60)  # Monitoring endpoint: 60 requests/minute
 def main(req: func.HttpRequest) -> func.HttpResponse:
     """
     Health check endpoint.

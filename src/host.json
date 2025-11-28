@@ -47,13 +47,13 @@
   "extensions": {
     "queues": {
       "maxPollingInterval": "00:00:02",
-      "visibilityTimeout": "00:05:00",
+      "visibilityTimeout": "00:06:00",
       "batchSize": 16,
       "maxDequeueCount": 3,
       "newBatchThreshold": 8
     }
   },
-  "functionTimeout": "00:05:00",
+  "functionTimeout": "00:04:30",
   "healthMonitor": {
     "enabled": true,
     "healthCheckInterval": "00:00:10",

@@ -10,10 +10,12 @@ from azure.core.exceptions import ResourceExistsError
 from pydantic import ValidationError
 from shared.models import VendorMaster
 from shared.config import config
+from shared.rate_limiter import rate_limit
 
 logger = logging.getLogger(__name__)
 
 
+@rate_limit(max_requests=10)  # Administrative endpoint: 10 requests/minute
 def main(req: func.HttpRequest) -> func.HttpResponse:
     """Add vendor to VendorMaster table via HTTP POST."""
     try:
