@@ -213,9 +213,18 @@ az keyvault secret set --vault-name $KV_NAME --name "ApEmailAddress" --value "$A
 
 **Note:** The Bicep template automatically configures Function App settings to reference Key Vault.
 
-### Step 2.5: Configure Staging Slot App Settings (CRITICAL)
+### Step 2.5: Configure Staging Slot App Settings (AUTOMATED)
 
-**⚠️ IMPORTANT**: The staging slot is created by Bicep but **does NOT automatically inherit app settings from production**. This must be done manually or deployments to staging will fail with error: `"undefined.blob.core.windows.net"`.
+> **Note:** As of issue #49, app settings sync is now **automated** in the CI/CD pipeline. The `deploy-staging` job automatically syncs production app settings to the staging slot after each deployment. Manual configuration is only needed for initial setup or troubleshooting.
+
+**Background**: The staging slot is created by Bicep but does NOT automatically inherit app settings from production. Without syncing, deployments fail with error: `"undefined.blob.core.windows.net"`.
+
+**What's Automated:**
+- Production app settings are synced to staging slot during each CI/CD deployment
+- Slot-specific settings (`WEBSITE_CONTENTAZUREFILECONNECTIONSTRING`, `WEBSITE_CONTENTSHARE`) are excluded
+- This happens after code deployment, before smoke tests
+
+**Manual Configuration (for initial setup or troubleshooting):**
 
 **Configure staging slot settings:**
 

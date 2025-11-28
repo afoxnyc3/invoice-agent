@@ -40,6 +40,108 @@ docs/issue-XX-descriptive-name
 
 ---
 
+## Issue-Driven Development Workflow
+
+### The Process
+All work items are tracked as GitHub Issues and follow this workflow:
+
+```
+Issue Created → Prioritized → Branch Created → Implementation → PR → Review → Merge → Issue Closed
+```
+
+### Issue Prioritization
+
+| Priority | Label | Timeline | Criteria |
+|----------|-------|----------|----------|
+| P0 | `priority:critical` | This Week | Blocking production, security vulnerability, data loss risk |
+| P1 | `priority:high` | This Sprint | Significant quality/reliability impact |
+| P2 | `priority:medium` | Next Sprint | Improvement, non-blocking |
+| P3 | `priority:low` | Backlog | Nice-to-have, future enhancement |
+
+### Issue Labels
+
+**Priority:**
+- `priority:critical` - Must fix immediately
+- `priority:high` - Fix this sprint
+- `priority:medium` - Fix next sprint
+- `priority:low` - Backlog
+
+**Type:**
+- `type:bug` - Something is broken
+- `type:feature` - New functionality
+- `type:test` - Test coverage
+- `type:docs` - Documentation
+- `type:infra` - Infrastructure/CI/CD
+- `type:cleanup` - Tech debt, refactoring
+
+### Branch Naming from Issues
+
+```
+{type}/issue-{number}-{brief-description}
+
+Examples:
+- bugfix/issue-5-fix-message-loss
+- test/issue-1-mail-webhook-tests
+- infra/issue-4-staging-settings-sync
+- cleanup/issue-7-remove-dead-code
+```
+
+### Linking Issues to PRs
+
+Always reference the issue in:
+1. Branch name: `bugfix/issue-5-fix-message-loss`
+2. PR title: `fix: resolve message loss in MailWebhookProcessor (closes #5)`
+3. PR description: `Closes #5`
+
+### GitHub Projects Integration
+
+We use GitHub Projects for sprint tracking with the "Invoice Agent Roadmap" project board.
+
+**Board Columns:**
+- **Backlog** - P3 items not yet scheduled
+- **Next Sprint** - P2 items for upcoming sprint
+- **Current Sprint** - P0/P1 items for this 2-week sprint
+- **In Progress** - Actively being worked on
+- **In Review** - PR submitted, awaiting review
+- **Done** - Completed and merged
+
+**Sprint Cadence:** 2 weeks
+- P0 (Critical): Fix this week
+- P1 (High): Fix this sprint (2 weeks)
+- P2 (Medium): Fix next sprint
+- P3 (Low): Backlog
+
+**Sprint Commands:**
+```bash
+# View project board
+gh project view "Invoice Agent Roadmap" --owner @me
+
+# Add issue to project
+gh project item-add "Invoice Agent Roadmap" --owner @me --url <issue-url>
+
+# View current sprint items
+gh issue list --label "priority:critical,priority:high" --state open
+
+# View all issues by priority
+gh issue list --state open --json number,title,labels --jq 'sort_by(.labels[0].name)'
+```
+
+### Audit-Driven Issues
+
+Periodic codebase audits generate issues tagged with `audit:YYYY-MM`. This allows:
+- Tracking technical debt over time
+- Measuring remediation velocity
+- Prioritizing based on audit findings
+
+**Running an Audit:**
+1. Use `/prime` to onboard with project context
+2. Request comprehensive codebase audit
+3. Review findings and create issues
+4. Add `audit:YYYY-MM` label to all generated issues
+5. Prioritize and add to project board
+
+---
+
 ## Commit Message Standards
 
 ### Format
