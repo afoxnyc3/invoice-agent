@@ -267,12 +267,13 @@ jobs:
           # Convert to key=value format for az functionapp config appsettings set
           SETTINGS=$(cat /tmp/prod-settings.json | jq -r '.[] | "\(.name)=\(.value)"' | tr '\n' ' ')
 
-          # Apply to staging slot
+          # Apply to staging slot (suppress output to avoid logging secrets)
           az functionapp config appsettings set \
             --name "${FUNC_NAME}" \
             --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
             --slot staging \
-            --settings $SETTINGS
+            --settings $SETTINGS \
+            --output none
 
           echo "App settings synced successfully"
 
