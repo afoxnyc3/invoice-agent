@@ -282,6 +282,49 @@ jobs:
           echo "Waiting 30 seconds for staging slot to initialize..."
           sleep 30
 
+      - name: Validate required app settings
+        run: |
+          echo "Validating required app settings in staging slot..."
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+
+          # Get all app setting names from staging slot
+          SETTINGS=$(az functionapp config appsettings list \
+            --name "${FUNC_NAME}" \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --slot staging \
+            --query "[].name" -o tsv)
+
+          # Required settings (based on src/shared/config.py)
+          REQUIRED_SETTINGS=(
+            "GRAPH_TENANT_ID"
+            "GRAPH_CLIENT_ID"
+            "GRAPH_CLIENT_SECRET"
+            "AZURE_OPENAI_ENDPOINT"
+            "AZURE_OPENAI_API_KEY"
+            "INVOICE_MAILBOX"
+            "AP_EMAIL_ADDRESS"
+          )
+
+          MISSING=()
+          for var in "${REQUIRED_SETTINGS[@]}"; do
+            if ! echo "$SETTINGS" | grep -q "^${var}$"; then
+              MISSING+=("$var")
+            fi
+          done
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "ERROR: Missing required app settings:"
+            for m in "${MISSING[@]}"; do
+              echo "  - $m"
+            done
+            echo ""
+            echo "Ensure all required settings are configured in production"
+            echo "and sync will propagate them to staging."
+            exit 1
+          fi
+
+          echo "PASS: All ${#REQUIRED_SETTINGS[@]} required app settings present"
+
       - name: Run smoke tests against staging
         run: |
           echo "Running smoke tests against staging slot..."
