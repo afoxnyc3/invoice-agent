@@ -47,7 +47,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Auto-routing Rate**: >80% (known vendors)
 - **Unknown Vendor Rate**: <10%
 - **Error Rate**: <1%
-- **Test Coverage**: >60% (CI threshold met)
+- **Test Coverage**: >85% (CI threshold met)
 
 ---
 
@@ -302,6 +302,15 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Cold Start**: ~2-4 seconds
 - **Timeout**: 5 minutes default (configurable)
 - **Region**: Single region for dev, geo-redundant for prod
+
+### AI Layer
+**Azure OpenAI** (oai-invoice-agent-prod)
+- **Model**: gpt-4o-mini (Standard tier)
+- **Purpose**: Intelligent vendor extraction from PDF invoices
+- **Endpoint**: East US region
+- **Capacity**: 10K tokens per minute
+- **Cost**: ~$0.001 per invoice (~$1.50/month at 50 invoices/day)
+- **Latency**: ~500ms per extraction
 
 ### Storage Layer
 **Storage Account** (Standard_LRS for dev, Standard_GRS for prod)
@@ -1242,7 +1251,9 @@ User: [PDF text, first 2000 chars]
 ### CI/CD Pipeline
 
 ```
-GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Swap Slots → Production
+GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings → Smoke Tests → Swap Slots → Production
+                                                                                              ↓ (on failure)
+                                                                                        Auto Rollback
 ```
 
 **Pipeline Stages**:
@@ -1250,10 +1261,12 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 2. **Lint**: Black, Flake8, mypy, bandit
 3. **Build**: Package Python functions
 4. **Deploy Staging**: Deploy to staging slot
-5. **Smoke Tests**: Verify basic functionality
-6. **Approval**: Manual approval gate
-7. **Swap**: Blue-green deployment via slot swap
-8. **Production**: Active in production
+5. **Validate Settings**: Verify required app settings present (GRAPH_*, AZURE_OPENAI_*, etc.)
+6. **Smoke Tests**: Verify basic functionality
+7. **Approval**: Manual approval gate
+8. **Swap**: Blue-green deployment via slot swap
+9. **Production Health Check**: Verify production is healthy
+10. **Auto Rollback** (on failure): Swap slots back automatically, notify Teams
 
 **Deployment Pattern**: Blue-Green via Staging Slots
 - Zero-downtime deployments
@@ -1470,8 +1483,8 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 
 ---
 
-**Version:** 2.2 (All P0/P1 Issues Resolved)
-**Last Updated:** 2025-11-28
+**Version:** 2.4 (Azure OpenAI + Auto Rollback)
+**Last Updated:** 2025-11-29
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

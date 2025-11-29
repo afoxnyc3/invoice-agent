@@ -153,9 +153,9 @@ graph LR
 - ✅ **MailWebhook function** - HTTP endpoint receives Graph API notifications
 - ✅ **SubscriptionManager function** - Automatic subscription renewal every 6 days
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
-- ✅ Full CI/CD pipeline with staging/production slot pattern
+- ✅ Full CI/CD pipeline with staging/production slot pattern, automated rollback, and secrets validation
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
-- ✅ **9 Azure Functions** implemented and tested (269 tests, 60%+ coverage)
+- ✅ **9 Azure Functions** implemented and tested (314 tests, 85%+ coverage)
 - ✅ Comprehensive monitoring and logging
 - ✅ Managed Identity-based authentication (no secrets in code)
 
@@ -180,12 +180,12 @@ graph LR
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Test Coverage | 60%+ | **60%+** ✅ |
-| Tests Passing | 100% | **269/269** ✅ |
+| Test Coverage | 85%+ | **85%+** ✅ |
+| Tests Passing | 100% | **314/314** ✅ |
 | CI/CD Pipeline | Stable | **Passing** ✅ |
 | Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
 | Infrastructure | Deployed | **Production Ready** ✅ |
-| Deployment Pattern | Blue/Green | **Staging Slot** ✅ |
+| Deployment Pattern | Blue/Green | **Staging Slot + Auto Rollback** ✅ |
 | P0/P1 Issues | Resolved | **All Complete** ✅ |
 
 **Performance Metrics (Not Yet Tested in Production):**
@@ -234,8 +234,8 @@ pytest tests/unit/test_models.py -v
 pytest tests/integration -m integration
 
 # Current test results:
-# ✅ 269 tests passing
-# ✅ 60%+ code coverage (CI threshold met)
+# ✅ 314 tests passing
+# ✅ 85%+ code coverage (CI threshold met)
 # ✅ All critical paths tested
 ```
 
@@ -247,6 +247,8 @@ pytest tests/integration -m integration
 - `GRAPH_CLIENT_SECRET` - App secret
 - `AP_EMAIL_ADDRESS` - Accounts payable mailbox
 - `TEAMS_WEBHOOK_URL` - Teams channel webhook
+- `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
+- `AZURE_OPENAI_API_KEY` - Azure OpenAI API key
 
 ### Key Vault Secrets
 All sensitive configuration is stored in Azure Key Vault and accessed via Managed Identity.
@@ -276,7 +278,7 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 
 1. Create feature branch from `main`
 2. Follow 25-line function limit
-3. Add tests (60% coverage minimum)
+3. Add tests (85% coverage minimum)
 4. Update documentation
 5. Submit PR with description
 
@@ -293,4 +295,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.2 | **Last Updated:** 2025-11-28
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.4 | **Last Updated:** 2025-11-29
