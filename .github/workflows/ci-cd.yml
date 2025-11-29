@@ -1,4 +1,6 @@
 name: CI/CD Pipeline
+permissions:
+  contents: read
 
 # Trigger on push to main branch and on pull requests
 on:
