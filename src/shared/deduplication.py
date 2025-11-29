@@ -13,6 +13,7 @@ import os
 import logging
 import hashlib
 from datetime import datetime, timedelta
+from typing import Any
 from azure.data.tables import TableServiceClient
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ def generate_invoice_hash(vendor_name: str, sender_email: str, received_at: str)
     return hashlib.sha256(hash_input.encode()).hexdigest()[:32]
 
 
-def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict | None:
+def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict[str, Any] | None:
     """
     Check if an invoice with matching hash exists in the last N days.
 

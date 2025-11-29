@@ -10,6 +10,7 @@ Returns system status including:
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Any
 import azure.functions as func
 from shared.config import config
 from shared.rate_limiter import rate_limit
@@ -17,7 +18,7 @@ from shared.rate_limiter import rate_limit
 logger = logging.getLogger(__name__)
 
 
-def _check_storage_connectivity() -> dict:
+def _check_storage_connectivity() -> dict[str, Any]:
     """Check Azure Storage connectivity."""
     try:
         # Attempt to list tables (lightweight operation)
@@ -34,7 +35,7 @@ def _check_storage_connectivity() -> dict:
         }
 
 
-def _check_config() -> dict:
+def _check_config() -> dict[str, Any]:
     """Validate required configuration."""
     missing = config.validate_required()
     if missing:
@@ -58,10 +59,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         config_check = _check_config()
 
         # Determine overall status
-        checks_healthy = all(
-            check.get("status") == "healthy"
-            for check in [storage_check, config_check]
-        )
+        checks_healthy = all(check.get("status") == "healthy" for check in [storage_check, config_check])
 
         response = {
             "status": "healthy" if checks_healthy else "degraded",
@@ -83,11 +81,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return func.HttpResponse(
-            json.dumps({
-                "status": "unhealthy",
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }),
+            json.dumps(
+                {
+                    "status": "unhealthy",
+                    "error": str(e),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            ),
             status_code=503,
             mimetype="application/json",
         )

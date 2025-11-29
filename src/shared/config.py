@@ -28,6 +28,7 @@ class Config:
     """
 
     _instance: Optional["Config"] = None
+    _initialized: bool = False
 
     def __new__(cls) -> "Config":
         """Singleton pattern - only one Config instance per process."""

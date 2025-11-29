@@ -9,21 +9,27 @@ import logging
 import os
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Callable, Optional
+from typing import Any, Callable, ParamSpec, TypeVar
 import azure.functions as func
 from azure.core.exceptions import ResourceNotFoundError
+from azure.data.tables import TableClient, TableServiceClient, UpdateMode
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def get_client_ip(req: func.HttpRequest) -> str:
     """Extract client IP from request headers."""
     # X-Forwarded-For may contain multiple IPs, take the first (original client)
-    forwarded = req.headers.get("X-Forwarded-For", "")
+    forwarded: str = req.headers.get("X-Forwarded-For", "") or ""
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        ip = forwarded.split(",")[0].strip()
+        return ip if ip else "unknown"
     # Fallback to direct connection (rare in Azure Functions)
-    return req.headers.get("X-Real-IP", "unknown")
+    real_ip: str = req.headers.get("X-Real-IP", "") or ""
+    return real_ip if real_ip else "unknown"
 
 
 def get_rate_limit_key(client_ip: str) -> tuple[str, str]:
@@ -41,7 +47,7 @@ def get_rate_limit_key(client_ip: str) -> tuple[str, str]:
 
 
 def check_rate_limit(
-    table_client,
+    table_client: TableClient,
     client_ip: str,
     max_requests: int,
 ) -> tuple[bool, int]:
@@ -60,7 +66,7 @@ def check_rate_limit(
 
     try:
         entity = table_client.get_entity(partition_key, row_key)
-        current_count = entity.get("RequestCount", 0)
+        current_count: int = entity.get("RequestCount", 0)
 
         if current_count >= max_requests:
             return False, current_count
@@ -68,12 +74,12 @@ def check_rate_limit(
         # Increment count
         entity["RequestCount"] = current_count + 1
         entity["LastRequest"] = datetime.now(timezone.utc).isoformat()
-        table_client.update_entity(entity, mode="merge")
+        table_client.update_entity(entity, mode=UpdateMode.MERGE)
         return True, current_count + 1
 
     except ResourceNotFoundError:
         # First request in this minute window - create entity
-        entity = {
+        entity_dict: dict[str, Any] = {
             "PartitionKey": partition_key,
             "RowKey": row_key,
             "RequestCount": 1,
@@ -81,7 +87,7 @@ def check_rate_limit(
             "FirstRequest": datetime.now(timezone.utc).isoformat(),
             "LastRequest": datetime.now(timezone.utc).isoformat(),
         }
-        table_client.create_entity(entity)
+        table_client.create_entity(entity_dict)
         return True, 1
 
 
@@ -103,7 +109,9 @@ def rate_limit_response(retry_after: int = 60) -> func.HttpResponse:
     )
 
 
-def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
+def rate_limit(
+    max_requests: int = 60, table_name: str = "RateLimits"
+) -> Callable[[Callable[..., func.HttpResponse]], Callable[..., func.HttpResponse]]:
     """
     Decorator to add rate limiting to an Azure Function HTTP handler.
 
@@ -117,12 +125,13 @@ def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
             ...
     """
 
-    def decorator(func_handler: Callable) -> Callable:
+    def decorator(func_handler: Callable[..., func.HttpResponse]) -> Callable[..., func.HttpResponse]:
         @wraps(func_handler)
-        def wrapper(req: func.HttpRequest, *args, **kwargs) -> func.HttpResponse:
+        def wrapper(req: func.HttpRequest, *args: Any, **kwargs: Any) -> func.HttpResponse:
             # Skip rate limiting if disabled via environment
             if os.environ.get("RATE_LIMIT_DISABLED", "").lower() == "true":
-                return func_handler(req, *args, **kwargs)
+                result = func_handler(req, *args, **kwargs)
+                return result
 
             try:
                 # Lazy import to avoid circular imports
@@ -144,14 +153,15 @@ def rate_limit(max_requests: int = 60, table_name: str = "RateLimits"):
                 # Fail open to avoid blocking legitimate traffic
                 logger.warning(f"Rate limit check failed, allowing request: {e}")
 
-            return func_handler(req, *args, **kwargs)
+            result = func_handler(req, *args, **kwargs)
+            return result
 
         return wrapper
 
     return decorator
 
 
-def create_rate_limit_table(table_service) -> None:
+def create_rate_limit_table(table_service: TableServiceClient) -> None:
     """
     Create RateLimits table if it doesn't exist.
 

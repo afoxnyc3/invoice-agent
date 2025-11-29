@@ -10,8 +10,10 @@ Looks up vendor in VendorMaster table by vendor name. Implements:
 
 import logging
 from datetime import datetime
+from typing import Any, Literal
 import azure.functions as func
 from azure.core.exceptions import ResourceExistsError
+from azure.data.tables import TableClient
 from shared.config import config
 from shared.models import RawMail, EnrichedInvoice, InvoiceTransaction
 from shared.graph_client import GraphAPIClient
@@ -23,7 +25,7 @@ from shared.pdf_extractor import extract_invoice_fields_from_pdf
 logger = logging.getLogger(__name__)
 
 
-def _find_vendor_by_name(vendor_name: str, table_client) -> dict | None:
+def _find_vendor_by_name(vendor_name: str, table_client: TableClient) -> dict[str, Any] | None:
     """
     Find vendor in VendorMaster table using case-insensitive contains matching.
 
@@ -52,7 +54,7 @@ def _find_vendor_by_name(vendor_name: str, table_client) -> dict | None:
         return None
 
 
-def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sender: str):
+def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sender: str) -> None:
     """Send vendor registration instructions to requestor."""
     subject, body = compose_unknown_vendor_email(vendor_name, transaction_id, config.function_app_url)
     graph = GraphAPIClient()
@@ -66,7 +68,7 @@ def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sende
     logger.warning(f"Unknown vendor: {vendor_name} - sent registration email to {sender}")
 
 
-def _get_existing_transaction(original_message_id: str | None, table_client):
+def _get_existing_transaction(original_message_id: str | None, table_client: TableClient) -> dict[str, Any] | None:
     """Return existing unknown vendor transaction for the original message if present."""
     if not original_message_id:
         return None
@@ -84,7 +86,7 @@ def _get_existing_transaction(original_message_id: str | None, table_client):
         return None
 
 
-def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client) -> bool:
+def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client: TableClient) -> bool:
     """
     Attempt to claim a transaction by inserting it atomically.
 
@@ -126,8 +128,8 @@ def _create_enriched_invoice(
     expense_dept: str,
     gl_code: str,
     allocation_schedule: str,
-    status: str,
-    invoice_fields: dict,
+    status: Literal["enriched", "unknown"],
+    invoice_fields: dict[str, Any],
 ) -> EnrichedInvoice:
     """Create EnrichedInvoice with common fields populated."""
     invoice_hash = generate_invoice_hash(vendor_name, raw_mail.sender, raw_mail.received_at)
@@ -151,7 +153,7 @@ def _create_enriched_invoice(
     )
 
 
-def main(msg: func.QueueMessage, toPost: func.Out[str]):
+def main(msg: func.QueueMessage, toPost: func.Out[str]) -> None:
     """Extract vendor and enrich invoice data."""
     try:
         raw_mail = RawMail.model_validate_json(msg.get_body().decode())

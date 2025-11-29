@@ -39,13 +39,10 @@ def main(req: func.HttpRequest, outQueueItem: func.Out[str]) -> func.HttpRespons
 
                 client_ip = get_client_ip(req)
                 table_client = config.get_table_client("RateLimits")
-                is_allowed, count = check_rate_limit(
-                    table_client, client_ip, RATE_LIMIT_MAX_REQUESTS
-                )
+                is_allowed, count = check_rate_limit(table_client, client_ip, RATE_LIMIT_MAX_REQUESTS)
                 if not is_allowed:
                     logger.warning(
-                        f"Rate limit exceeded for MailWebhook IP {client_ip}: "
-                        f"{count}/{RATE_LIMIT_MAX_REQUESTS}"
+                        f"Rate limit exceeded for MailWebhook IP {client_ip}: " f"{count}/{RATE_LIMIT_MAX_REQUESTS}"
                     )
                     return rate_limit_response()
             except Exception as e:
