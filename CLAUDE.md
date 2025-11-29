@@ -225,7 +225,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 60%+ coverage maintained (269 tests)
+- Unit tests: 85%+ coverage maintained (288 tests)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -246,7 +246,7 @@ Closes #XX
 - ✅ Black formatting check passes
 - ✅ Flake8 linting passes
 - ✅ mypy type checking passes
-- ✅ 60% test coverage minimum
+- ✅ 85% test coverage minimum
 
 ### Testing
 - ✅ Unit tests: 100% passing
@@ -301,7 +301,7 @@ Closes #XX
 - All Pydantic models use strict validation
 
 ### Testing Requirements
-- **60% coverage minimum** for MVP
+- **85% coverage minimum** (enforced by pytest)
 - **Unit tests** for business logic
 - **Integration tests** for queue flow
 - **Fixtures** for queue messages
@@ -405,7 +405,7 @@ bandit -r src/functions src/shared
 
 **Before pushing to main:**
 - [ ] All tests passing locally (`pytest`)
-- [ ] Coverage ≥60% (`pytest --cov`)
+- [ ] Coverage ≥85% (`pytest --cov`)
 - [ ] Code formatted (`black --check`)
 - [ ] Linting passes (`flake8`)
 - [ ] Type checking passes (`mypy`)
@@ -486,7 +486,7 @@ Track these across all work:
 
 | Metric | Target | Check |
 |--------|--------|-------|
-| Test Coverage | ≥60% | `pytest --cov` |
+| Test Coverage | ≥85% | `pytest --cov` |
 | Code Duplication | <5% | Code review |
 | Function Complexity | ≤10 | Code review (cyclomatic) |
 | Comment Ratio | >10% | Code review |
@@ -670,7 +670,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
   - No breaking changes - optional feature with degradation path
-- ✅ CI/CD pipeline operational (269 tests, 60%+ coverage)
+- ✅ CI/CD pipeline operational (288 tests, 85%+ coverage)
 - ✅ All P0 and P1 issues resolved (Nov 28, 2025)
 - ✅ Infrastructure ready (staging + production slots)
 - ✅ Webhook subscription active and tested
@@ -710,6 +710,6 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
-**Version:** 2.2 (All P0/P1 Issues Resolved)
-**Last Updated:** 2025-11-28
+**Version:** 2.3 (Strict Type Checking + 85% Coverage)
+**Last Updated:** 2025-11-29
 **Maintained By:** Engineering Team
