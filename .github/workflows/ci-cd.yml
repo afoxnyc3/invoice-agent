@@ -594,6 +594,8 @@ jobs:
     environment:
       name: development
       url: https://func-invoice-agent-dev.azurewebsites.net
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
