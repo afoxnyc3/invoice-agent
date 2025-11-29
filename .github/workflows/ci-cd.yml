@@ -478,6 +478,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if deploy-production job failed
     if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    permissions: {}
 
     steps:
       - name: Azure Login
