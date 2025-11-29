@@ -40,7 +40,7 @@ def _missing_required_settings() -> list[str]:
     return [key for key in required_settings if not os.getenv(key)]
 
 
-def main(timer: func.TimerRequest, outQueueItem: func.Out[str]):
+def main(timer: func.TimerRequest, outQueueItem: func.Out[str]) -> None:
     """Poll mailbox and queue unread emails with attachments."""
     if _is_disabled_via_flag():
         logger.info("MailIngest disabled via MAIL_INGEST_ENABLED flag - skipping execution")

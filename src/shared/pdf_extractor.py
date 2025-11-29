@@ -15,7 +15,7 @@ import os
 import logging
 import io
 import re
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from urllib.parse import unquote
 from datetime import datetime, timedelta
 import pdfplumber
@@ -142,7 +142,11 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
             temperature=0,  # Deterministic output
         )
 
-        vendor_name = response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        if not content:
+            logger.warning("LLM returned empty content")
+            return None
+        vendor_name = content.strip()
 
         # Validate response
         if not vendor_name or vendor_name.upper() == "UNKNOWN":
@@ -273,7 +277,7 @@ def _parse_date_string(date_str: str) -> Optional[datetime]:
     return None
 
 
-def _extract_due_date_from_text(text: str, fallback_date: str = None) -> Optional[str]:
+def _extract_due_date_from_text(text: str, fallback_date: str | None = None) -> Optional[str]:
     """Extract due date from text or use fallback."""
     if not text:
         return _calculate_fallback_due_date(fallback_date)
@@ -293,7 +297,7 @@ def _extract_due_date_from_text(text: str, fallback_date: str = None) -> Optiona
     return _calculate_fallback_due_date(fallback_date)
 
 
-def _calculate_fallback_due_date(received_date: str = None) -> Optional[str]:
+def _calculate_fallback_due_date(received_date: str | None = None) -> Optional[str]:
     """Calculate due date as received_date + 30 days."""
     try:
         if received_date:
@@ -325,7 +329,7 @@ def _extract_payment_terms_from_text(text: str) -> str:
     return "Net 30"
 
 
-def extract_invoice_fields_from_pdf(blob_url: str, received_at: str = None) -> Dict[str, any]:
+def extract_invoice_fields_from_pdf(blob_url: str, received_at: str | None = None) -> Dict[str, Any]:
     """
     Extract invoice fields from PDF (amount, currency, due date, payment terms).
 
@@ -385,7 +389,7 @@ def extract_invoice_fields_from_pdf(blob_url: str, received_at: str = None) -> D
         return _default_invoice_fields(received_at)
 
 
-def _default_invoice_fields(received_at: str = None) -> Dict[str, any]:
+def _default_invoice_fields(received_at: str | None = None) -> Dict[str, Any]:
     """Return default invoice fields when extraction fails."""
     return {
         "invoice_amount": None,

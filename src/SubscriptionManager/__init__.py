@@ -14,15 +14,16 @@ Subscription lifecycle:
 import os
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 import azure.functions as func
-from azure.data.tables import TableServiceClient
+from azure.data.tables import TableServiceClient, TableClient
 from shared.graph_client import GraphAPIClient
 from shared.ulid_generator import generate_ulid
 
 logger = logging.getLogger(__name__)
 
 
-def _get_subscription_record(table_client) -> dict:
+def _get_subscription_record(table_client: TableClient) -> dict[str, Any] | None:
     """Retrieve current subscription from Table Storage."""
     try:
         # Query for active subscriptions
@@ -37,7 +38,7 @@ def _get_subscription_record(table_client) -> dict:
         return None
 
 
-def _save_subscription_record(table_client, subscription_id: str, expiration: str):
+def _save_subscription_record(table_client: TableClient, subscription_id: str, expiration: str) -> None:
     """Save subscription details to Table Storage."""
     entity = {
         "PartitionKey": "GraphSubscription",
@@ -56,7 +57,7 @@ def _save_subscription_record(table_client, subscription_id: str, expiration: st
         raise
 
 
-def _deactivate_old_subscriptions(table_client, current_subscription_id: str):
+def _deactivate_old_subscriptions(table_client: TableClient, current_subscription_id: str) -> None:
     """Mark old subscriptions as inactive."""
     try:
         query_filter = "PartitionKey eq 'GraphSubscription' and IsActive eq true"
@@ -71,7 +72,7 @@ def _deactivate_old_subscriptions(table_client, current_subscription_id: str):
         logger.error(f"Error deactivating subscriptions: {str(e)}")
 
 
-def main(timer: func.TimerRequest):
+def main(timer: func.TimerRequest) -> None:
     """Create or renew Graph API subscription for email notifications."""
     try:
         # Get configuration
@@ -132,16 +133,21 @@ def main(timer: func.TimerRequest):
 
             result = graph.create_subscription(mailbox=mailbox, webhook_url=webhook_url, client_state=client_state)
 
-            subscription_id = result.get("id")
-            expiration = result.get("expirationDateTime")
+            new_subscription_id: str = result.get("id", "")
+            new_expiration: str = result.get("expirationDateTime", "")
 
-            logger.info(f"✅ Subscription created successfully. " f"ID: {subscription_id}, Expires: {expiration}")
+            if not new_subscription_id or not new_expiration:
+                raise ValueError("Subscription response missing required fields")
+
+            logger.info(
+                f"✅ Subscription created successfully. " f"ID: {new_subscription_id}, Expires: {new_expiration}"
+            )
 
             # Save to Table Storage
-            _save_subscription_record(table_client, subscription_id, expiration)
+            _save_subscription_record(table_client, new_subscription_id, new_expiration)
 
             # Deactivate any old subscriptions
-            _deactivate_old_subscriptions(table_client, subscription_id)
+            _deactivate_old_subscriptions(table_client, new_subscription_id)
 
         logger.info("SubscriptionManager completed successfully")
 

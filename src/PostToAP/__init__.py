@@ -103,7 +103,7 @@ def _compose_ap_email(enriched: EnrichedInvoice, attachment_error: str | None = 
     return subject, body
 
 
-def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
+def _log_transaction(enriched: EnrichedInvoice, recipient_email: str) -> None:
     """Log transaction to InvoiceTransactions table with email tracking."""
     table_client = config.get_table_client("InvoiceTransactions")
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -126,7 +126,7 @@ def _log_transaction(enriched: EnrichedInvoice, recipient_email: str):
     table_client.upsert_entity(transaction.model_dump())
 
 
-def main(msg: func.QueueMessage, notify: func.Out[str]):
+def main(msg: func.QueueMessage, notify: func.Out[str]) -> None:
     """Send enriched invoice to AP and log transaction."""
     try:
         enriched = EnrichedInvoice.model_validate_json(msg.get_body().decode())

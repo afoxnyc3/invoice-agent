@@ -6,6 +6,7 @@ for success, unknown vendor, and error notifications.
 """
 
 import logging
+from typing import Any
 import requests
 import azure.functions as func
 from shared.models import NotificationMessage
@@ -14,7 +15,7 @@ from shared.config import config
 logger = logging.getLogger(__name__)
 
 
-def _build_teams_payload(notification: NotificationMessage) -> dict:
+def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
     Build Teams webhook payload for Power Automate workflows.
 
@@ -57,7 +58,7 @@ def _build_teams_payload(notification: NotificationMessage) -> dict:
     }
 
 
-def main(msg: func.QueueMessage):
+def main(msg: func.QueueMessage) -> None:
     """Post notification to Teams webhook."""
     try:
         notification = NotificationMessage.model_validate_json(msg.get_body().decode())

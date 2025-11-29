@@ -24,7 +24,7 @@ from shared.config import config
 logger = logging.getLogger(__name__)
 
 
-def main(msg: func.QueueMessage, outQueueItem: func.Out[str]):
+def main(msg: func.QueueMessage, outQueueItem: func.Out[str]) -> None:
     """Process webhook notification and fetch email details."""
     try:
         # Parse notification message

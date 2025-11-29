@@ -8,18 +8,20 @@ Provides decorator to handle temporary failures in external service calls
 import time
 import logging
 from functools import wraps
-from typing import Callable, Type, Tuple
-
+from typing import Callable, ParamSpec, TypeVar
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def retry_with_backoff(
     max_attempts: int = 3,
     initial_delay: float = 1.0,
     backoff_factor: float = 2.0,
-    exceptions: Tuple[Type[Exception], ...] = (Exception,),
-):
+    exceptions: tuple[type[BaseException], ...] = (Exception,),
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator to retry function with exponential backoff.
 
@@ -45,11 +47,11 @@ def retry_with_backoff(
         ...     return api.get_data()
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             delay = initial_delay
-            last_exception = None
+            last_exception: BaseException | None = None
 
             for attempt in range(1, max_attempts + 1):
                 try:
@@ -65,7 +67,9 @@ def retry_with_backoff(
                         logger.error(f"All {max_attempts} attempts failed. " f"Last error: {e}")
 
             # All attempts exhausted, raise last exception
-            raise last_exception
+            if last_exception is not None:
+                raise last_exception
+            raise RuntimeError("Unexpected state: no exception but all attempts failed")
 
         return wrapper
 

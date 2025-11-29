@@ -12,7 +12,7 @@ Uses MSAL for authentication and handles throttling automatically.
 import os
 import time
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, cast
 import requests
 from msal import ConfidentialClientApplication
 from shared.retry import retry_with_backoff
@@ -30,10 +30,10 @@ class GraphAPIClient:
 
     def __init__(
         self,
-        tenant_id: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-    ):
+        tenant_id: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+    ) -> None:
         """
         Initialize Graph API client with credentials.
 
@@ -68,7 +68,7 @@ class GraphAPIClient:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         self.session.headers.update(headers)
 
-        self._access_token: Optional[str] = None
+        self._access_token: str | None = None
         self._token_expiry: float = 0
 
     def _get_access_token(self) -> str:
@@ -95,9 +95,11 @@ class GraphAPIClient:
         self._access_token = result["access_token"]
         self._token_expiry = time.time() + result.get("expires_in", 3600)
 
+        if self._access_token is None:
+            raise RuntimeError("Token acquisition failed - no token available")
         return self._access_token
 
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, **kwargs: Any) -> dict[str, Any]:
         """
         Make authenticated request to Graph API.
 
@@ -131,10 +133,10 @@ class GraphAPIClient:
         if not response.ok:
             logger.error(f"Graph API error {response.status_code}: {response.text}")
         response.raise_for_status()
-        return response.json() if response.content else {}
+        return cast(dict[str, Any], response.json()) if response.content else {}
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def get_unread_emails(self, mailbox: str, max_results: int = 50) -> List[Dict[str, Any]]:
+    def get_unread_emails(self, mailbox: str, max_results: int = 50) -> list[dict[str, Any]]:
         """
         Get unread emails from a mailbox.
 
@@ -166,9 +168,9 @@ class GraphAPIClient:
         }
 
         response = self._make_request("GET", endpoint, params=params)
-        return response.get("value", [])
+        return cast(list[dict[str, Any]], response.get("value", []))
 
-    def get_attachments(self, mailbox: str, message_id: str) -> List[Dict[str, Any]]:
+    def get_attachments(self, mailbox: str, message_id: str) -> list[dict[str, Any]]:
         """
         Get attachments for a specific email.
 
@@ -186,10 +188,10 @@ class GraphAPIClient:
         """
         endpoint = f"users/{mailbox}/messages/{message_id}/attachments"
         response = self._make_request("GET", endpoint)
-        return response.get("value", [])
+        return cast(list[dict[str, Any]], response.get("value", []))
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def get_email(self, mailbox: str, message_id: str) -> Dict[str, Any]:
+    def get_email(self, mailbox: str, message_id: str) -> dict[str, Any]:
         """
         Get a single email by message ID.
 
@@ -241,9 +243,9 @@ class GraphAPIClient:
         to_address: str,
         subject: str,
         body: str,
-        attachments: Optional[List[Dict[str, Any]]] = None,
+        attachments: list[dict[str, Any]] | None = None,
         is_html: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Send an email with optional attachments.
 
@@ -289,12 +291,12 @@ class GraphAPIClient:
             message["attachments"] = formatted_attachments
 
         endpoint = f"users/{from_address}/sendMail"
-        body = {"message": message, "saveToSentItems": True}
+        request_body = {"message": message, "saveToSentItems": True}
 
-        return self._make_request("POST", endpoint, json=body)
+        return self._make_request("POST", endpoint, json=request_body)
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def create_subscription(self, mailbox: str, webhook_url: str, client_state: str) -> Dict[str, Any]:
+    def create_subscription(self, mailbox: str, webhook_url: str, client_state: str) -> dict[str, Any]:
         """
         Create a Graph API change notification subscription for new emails.
 
@@ -330,7 +332,7 @@ class GraphAPIClient:
         return self._make_request("POST", "subscriptions", json=payload)
 
     @retry_with_backoff(max_attempts=3, initial_delay=2.0)
-    def renew_subscription(self, subscription_id: str) -> Dict[str, Any]:
+    def renew_subscription(self, subscription_id: str) -> dict[str, Any]:
         """
         Renew an existing Graph API subscription.
 
@@ -364,7 +366,7 @@ class GraphAPIClient:
         """
         self._make_request("DELETE", f"subscriptions/{subscription_id}")
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Clean up session on deletion."""
         if hasattr(self, "session"):
             self.session.close()
