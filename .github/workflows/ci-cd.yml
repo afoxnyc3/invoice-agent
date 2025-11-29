@@ -471,7 +471,97 @@ jobs:
         if: always()
         run: az logout
 
-  # Job 5: Deployment Validation Gate (ensures all checks pass on main)
+  # Job 5: Automatic rollback on production failure
+  rollback-production:
+    name: Rollback Production (Auto)
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    # Only run if deploy-production job failed
+    if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
+
+      - name: Get Function App name
+        id: func-name
+        run: |
+          FUNC_NAME=$(az functionapp list \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
+          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
+          echo "Function App: ${FUNC_NAME}"
+
+      - name: Swap slots back (rollback)
+        run: |
+          echo "ROLLBACK: Swapping slots back to previous version..."
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+
+          az functionapp deployment slot swap \
+            --name "${FUNC_NAME}" \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --slot staging \
+            --target-slot production
+
+          echo "Slot swap (rollback) completed"
+
+      - name: Wait for rollback to stabilize
+        run: |
+          echo "Waiting 30 seconds for rollback to stabilize..."
+          sleep 30
+
+      - name: Verify rollback health
+        run: |
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+          PROD_URL="https://${FUNC_NAME}.azurewebsites.net"
+
+          echo "Verifying production after rollback..."
+          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/admin/host/status" \
+            -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
+
+          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
+            echo "Rollback successful - production is healthy"
+          else
+            echo "CRITICAL: Rollback may have failed - status $ADMIN_STATUS"
+            echo "Manual intervention required!"
+            exit 1
+          fi
+
+      - name: Send rollback notification
+        if: always()
+        run: |
+          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+          WEBHOOK_URL="${{ secrets.TEAMS_WEBHOOK_URL }}"
+
+          if [ -n "$WEBHOOK_URL" ]; then
+            curl -H "Content-Type: application/json" -d '{
+              "@type": "MessageCard",
+              "@context": "http://schema.org/extensions",
+              "themeColor": "FF0000",
+              "summary": "Production Rollback Triggered",
+              "sections": [{
+                "activityTitle": "Automatic Rollback Executed",
+                "activitySubtitle": "Invoice Agent - Production",
+                "facts": [
+                  {"name": "Function App", "value": "'"${FUNC_NAME}"'"},
+                  {"name": "Trigger", "value": "Production health check failed"},
+                  {"name": "Action", "value": "Slots swapped back to previous version"},
+                  {"name": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+                ],
+                "text": "Production deployment failed and was automatically rolled back. Please investigate the failure before re-deploying."
+              }]
+            }' "$WEBHOOK_URL" || echo "Teams notification failed (non-blocking)"
+          else
+            echo "No Teams webhook configured - skipping notification"
+          fi
+
+      - name: Azure Logout
+        if: always()
+        run: az logout
+
+  # Job 6: Deployment Validation Gate (ensures all checks pass on main)
   validate-deployment:
     name: Validate All Checks
     needs: [test, build, deploy-staging, deploy-production]
@@ -493,7 +583,7 @@ jobs:
           echo ""
           echo "Deployment validation complete. Code is safe in main."
 
-  # Job 6: Deploy to dev environment (for testing infrastructure changes)
+  # Job 7: Deploy to dev environment (for testing infrastructure changes)
   deploy-dev:
     name: Deploy to Dev Environment
     needs: [test, build]
