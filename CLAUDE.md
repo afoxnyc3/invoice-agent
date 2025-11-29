@@ -363,7 +363,7 @@ func start --functions MailIngest
 ```bash
 # Unit tests with coverage (from repo root, pytest.ini configured)
 export PYTHONPATH=./src
-pytest tests/unit --cov=functions --cov=shared --cov-fail-under=60 -v
+pytest tests/unit --cov=functions --cov=shared --cov-fail-under=85 -v
 
 # Or use pytest.ini configuration (automatically sets PYTHONPATH)
 pytest
@@ -670,7 +670,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
   - No breaking changes - optional feature with degradation path
-- ✅ CI/CD pipeline operational (288 tests, 85%+ coverage)
+- ✅ CI/CD pipeline operational (314 tests, 85%+ coverage)
 - ✅ All P0 and P1 issues resolved (Nov 28, 2025)
 - ✅ Infrastructure ready (staging + production slots)
 - ✅ Webhook subscription active and tested
@@ -710,6 +710,6 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
-**Version:** 2.3 (Strict Type Checking + 85% Coverage)
+**Version:** 2.4 (Azure OpenAI + Auto Rollback)
 **Last Updated:** 2025-11-29
 **Maintained By:** Engineering Team
