@@ -103,7 +103,7 @@ invoice-agent/
 │   ├── shared/         # Shared utilities
 │   ├── host.json       # Function App config
 │   └── requirements.txt # Python dependencies
-├── tests/               # Test suite (269 tests, 60%+ coverage)
+├── tests/               # Test suite (314 tests, 85%+ coverage)
 │   ├── unit/           # Unit tests
 │   ├── integration/    # Integration tests
 │   └── fixtures/       # Test data

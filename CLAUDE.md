@@ -225,7 +225,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 85%+ coverage maintained (288 tests)
+- Unit tests: 85%+ coverage maintained (314 tests)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 

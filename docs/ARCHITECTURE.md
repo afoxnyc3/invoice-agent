@@ -1246,7 +1246,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 ```
 
 **Pipeline Stages**:
-1. **Test**: Run pytest (269 tests, 60%+ coverage)
+1. **Test**: Run pytest (314 tests, 85%+ coverage)
 2. **Lint**: Black, Flake8, mypy, bandit
 3. **Build**: Package Python functions
 4. **Deploy Staging**: Deploy to staging slot
@@ -1311,7 +1311,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Smoke Tests → Sw
 
 **CI/CD Pipeline** ✅:
 - GitHub Actions workflow configured
-- 269 tests passing (60%+ coverage)
+- 314 tests passing (85%+ coverage)
 - Quality gates: Black, Flake8, mypy, bandit
 - Staging deployment automated
 - Production approval gate
