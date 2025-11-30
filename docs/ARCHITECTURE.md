@@ -573,11 +573,11 @@ All models require strict validation (no coercion, no extra fields allowed).
 ### 1. Email Ingestion (MailIngest)
 
 ```
-Timer(5min) → Graph API → Filter Unread → Download Attachments → Queue Message → Mark Read
+Timer(hourly) → Graph API → Filter Unread → Download Attachments → Queue Message → Mark Read
 ```
 
 **Processing Steps**:
-1. Timer trigger fires every 5 minutes
+1. Timer trigger fires every hour (fallback for missed webhooks)
 2. Authenticate to Graph API (MSAL with service principal)
 3. Query shared mailbox for unread emails
 4. Process up to 50 emails per execution
@@ -1257,7 +1257,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 ```
 
 **Pipeline Stages**:
-1. **Test**: Run pytest (314 tests, 85%+ coverage)
+1. **Test**: Run pytest (389 tests, 85%+ coverage)
 2. **Lint**: Black, Flake8, mypy, bandit
 3. **Build**: Package Python functions
 4. **Deploy Staging**: Deploy to staging slot
@@ -1324,7 +1324,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 
 **CI/CD Pipeline** ✅:
 - GitHub Actions workflow configured
-- 314 tests passing (85%+ coverage)
+- 389 tests passing (85%+ coverage)
 - Quality gates: Black, Flake8, mypy, bandit
 - Staging deployment automated
 - Production approval gate
@@ -1483,7 +1483,7 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 
 ---
 
-**Version:** 2.4 (Azure OpenAI + Auto Rollback)
+**Version:** 2.5 (Documentation Cleanup)
 **Last Updated:** 2025-11-29
 **Maintained By:** Engineering Team
 **Related Documents**:

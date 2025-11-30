@@ -103,7 +103,7 @@ invoice-agent/
 │   ├── shared/         # Shared utilities
 │   ├── host.json       # Function App config
 │   └── requirements.txt # Python dependencies
-├── tests/               # Test suite (314 tests, 85%+ coverage)
+├── tests/               # Test suite (389 tests, 85%+ coverage)
 │   ├── unit/           # Unit tests
 │   ├── integration/    # Integration tests
 │   └── fixtures/       # Test data
@@ -155,7 +155,7 @@ graph LR
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
 - ✅ Full CI/CD pipeline with staging/production slot pattern, automated rollback, and secrets validation
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
-- ✅ **9 Azure Functions** implemented and tested (314 tests, 85%+ coverage)
+- ✅ **9 Azure Functions** implemented and tested (389 tests, 85%+ coverage)
 - ✅ Comprehensive monitoring and logging
 - ✅ Managed Identity-based authentication (no secrets in code)
 
@@ -181,7 +181,7 @@ graph LR
 | Metric | Target | Status |
 |--------|--------|--------|
 | Test Coverage | 85%+ | **85%+** ✅ |
-| Tests Passing | 100% | **314/314** ✅ |
+| Tests Passing | 100% | **389/389** ✅ |
 | CI/CD Pipeline | Stable | **Passing** ✅ |
 | Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
 | Infrastructure | Deployed | **Production Ready** ✅ |
@@ -234,7 +234,7 @@ pytest tests/unit/test_models.py -v
 pytest tests/integration -m integration
 
 # Current test results:
-# ✅ 314 tests passing
+# ✅ 389 tests passing
 # ✅ 85%+ code coverage (CI threshold met)
 # ✅ All critical paths tested
 ```
@@ -295,4 +295,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.4 | **Last Updated:** 2025-11-29
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.5 | **Last Updated:** 2025-11-29
