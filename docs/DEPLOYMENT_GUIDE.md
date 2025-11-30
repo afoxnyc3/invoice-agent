@@ -204,14 +204,19 @@ KV_NAME=$(az keyvault list \
   --query "[0].name" -o tsv)
 
 # Add secrets to Key Vault
-az keyvault secret set --vault-name $KV_NAME --name "GraphTenantId" --value "$GRAPH_TENANT_ID"
-az keyvault secret set --vault-name $KV_NAME --name "GraphClientId" --value "$GRAPH_CLIENT_ID"
-az keyvault secret set --vault-name $KV_NAME --name "GraphClientSecret" --value "$GRAPH_CLIENT_SECRET"
-az keyvault secret set --vault-name $KV_NAME --name "TeamsWebhookUrl" --value "$TEAMS_WEBHOOK_URL"
-az keyvault secret set --vault-name $KV_NAME --name "ApEmailAddress" --value "$AP_EMAIL_ADDRESS"
+az keyvault secret set --vault-name $KV_NAME --name "graph-tenant-id" --value "$GRAPH_TENANT_ID"
+az keyvault secret set --vault-name $KV_NAME --name "graph-client-id" --value "$GRAPH_CLIENT_ID"
+az keyvault secret set --vault-name $KV_NAME --name "graph-client-secret" --value "$GRAPH_CLIENT_SECRET"
+az keyvault secret set --vault-name $KV_NAME --name "teams-webhook-url" --value "$TEAMS_WEBHOOK_URL"
+az keyvault secret set --vault-name $KV_NAME --name "ap-email-address" --value "$AP_EMAIL_ADDRESS"
+az keyvault secret set --vault-name $KV_NAME --name "invoice-mailbox" --value "$INVOICE_MAILBOX"
+
+# Azure OpenAI for PDF vendor extraction (required for 95%+ accuracy)
+az keyvault secret set --vault-name $KV_NAME --name "azure-openai-endpoint" --value "$AZURE_OPENAI_ENDPOINT"
+az keyvault secret set --vault-name $KV_NAME --name "azure-openai-api-key" --value "$AZURE_OPENAI_API_KEY"
 ```
 
-**Note:** The Bicep template automatically configures Function App settings to reference Key Vault.
+**Note:** The Bicep template automatically configures Function App settings to reference Key Vault. Secret names use kebab-case (e.g., `graph-tenant-id`) to match the Key Vault references in `functionapp.bicep`.
 
 ### Step 2.5: Configure Staging Slot App Settings (AUTOMATED)
 
