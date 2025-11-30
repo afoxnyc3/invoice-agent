@@ -5,305 +5,123 @@ Achieve 95% straight-through processing of invoices with zero manual interventio
 
 ---
 
-## Phase 1: Core MVP ✅ COMPLETE (Deployed Nov 14, 2024)
-**Goal:** Automate 80% of invoice processing with basic extraction and routing
+## Phase 1: Core MVP + Webhooks ✅ COMPLETE
 
-### Completed Tasks
-- [x] Azure infrastructure deployment (Function App, Storage, Key Vault, App Insights)
-- [x] Storage setup (Tables, Blobs, Queues)
-- [x] Function App configuration with staging slot
-- [x] Key Vault secrets and Managed Identity
-- [x] All 5 functions implemented and tested
-  - MailIngest - Email polling via Graph API
-  - ExtractEnrich - Vendor lookup and enrichment
-  - PostToAP - Email routing with metadata
-  - Notify - Teams webhook notifications
-  - AddVendor - HTTP endpoint for vendor management
-- [x] End-to-end testing (98 tests, 96% coverage)
-- [x] CI/CD pipeline with staging/production slot pattern
-- [x] Production deployment (functions deployed and active)
-- [ ] **VendorMaster seeding** (script ready at `infrastructure/scripts/seed_vendors.py`)
-- [ ] **Production testing** (awaiting vendor data)
+**Goal:** Real-time invoice processing with <10 second latency
 
-### Current Status
-**Deployment Complete** - All infrastructure and functions deployed to production.
+### Completed (Nov 2024)
 
-**Activation Blocked By**: VendorMaster table is empty. Must run seeding script before system can process invoices.
+**Infrastructure:**
+- [x] Azure Function App with staging slot
+- [x] Storage (Tables, Blobs, Queues)
+- [x] Key Vault + Managed Identity
+- [x] Application Insights monitoring
+- [x] Azure OpenAI (gpt-4o-mini)
 
-### Next Immediate Actions
-1. **Execute vendor seeding**: `python infrastructure/scripts/seed_vendors.py --env prod`
-2. **Test end-to-end**: Send sample invoice email
-3. **Monitor processing**: Check Application Insights for execution
-4. **Measure metrics**: Capture actual performance data
+**Functions (9 total):**
+- [x] MailWebhook - HTTP endpoint for Graph notifications
+- [x] MailWebhookProcessor - Process webhook notifications
+- [x] SubscriptionManager - Auto-renew Graph subscriptions
+- [x] MailIngest - Hourly fallback polling
+- [x] ExtractEnrich - Vendor lookup + PDF extraction
+- [x] PostToAP - Route to accounts payable
+- [x] Notify - Teams notifications
+- [x] AddVendor - HTTP vendor management
+- [x] Health - Health check endpoint
 
-### Success Metrics (Ready for Testing)
-- ✅ Process invoice in <60 seconds (infrastructure supports this)
-- ✅ 80% vendor match rate (will measure after vendor seeding)
-- ✅ 0% data loss (infrastructure designed for this)
-- ✅ Teams notifications working (tested and configured)
+**Features:**
+- [x] Real-time webhooks (<10 sec latency vs 5 min polling)
+- [x] PDF vendor extraction (pdfplumber + Azure OpenAI, 95%+ accuracy)
+- [x] Duplicate detection (message ID + invoice hash)
+- [x] Unknown vendor handling (registration email)
+- [x] VendorMaster seeded and operational
 
-### Deliverables
-- ✅ Working invoice pipeline (code deployed)
-- ✅ Basic monitoring dashboard (Application Insights)
-- ✅ Deployment documentation (comprehensive guide)
-- ✅ CI/CD pipeline (fully automated)
-- ✅ Runbook for operations (see docs/)
+**Quality:**
+- [x] 389 tests, 85%+ coverage
+- [x] CI/CD with staging slot pattern
+- [x] Automated rollback on failure
+- [x] Secrets validation in pipeline
+
+### Metrics Achieved
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Latency | <60s | <10s |
+| Test Coverage | 85% | 85%+ |
+| Functions | 5 | 9 |
+| Architecture | Polling | Webhooks |
 
 ---
 
-## Phase 2: Intelligence & Optimization 🚀 (Month 2)
-**Goal:** Increase automation to 90% with AI-powered extraction
+## Phase 2: Intelligence & Scale 🎯 NEXT
 
-### Features
-- [ ] **PDF Text Extraction**
-  - PyPDF2 or Azure Form Recognizer integration
-  - Extract vendor name from invoice content
-  - Extract invoice amount and date
-  - Extract PO number if present
+**Goal:** Increase automation to 95% with enhanced extraction
 
-- [ ] **AI Vendor Matching**
-  - Azure OpenAI integration
-  - Fuzzy vendor name matching
-  - Confidence scoring
-  - Learning from corrections
-
-- [ ] **Duplicate Detection**
-  - Invoice hash generation
-  - Duplicate checking in last 90 days
-  - Alert on potential duplicates
-  - Manual override capability
-
-- [ ] **Enhanced Extraction**
-  - Invoice amount parsing
-  - Due date extraction
-  - Payment terms identification
-  - Line item extraction (future)
+### Planned Features
+- [ ] **OCR for Scanned PDFs** - Azure Form Recognizer
+- [ ] **Invoice Amount Extraction** - Parse amounts, line items
+- [ ] **Multi-Currency Support** - Beyond USD/EUR/CAD
+- [ ] **Batch Processing** - Handle high-volume periods
+- [ ] **VNet Integration** - Network isolation (#72)
 
 ### Technical Improvements
-- [ ] Performance optimization
-- [ ] Enhanced error handling
-- [ ] Retry logic improvements
+- [ ] Performance optimization under load
+- [ ] Enhanced retry logic
 - [ ] Connection pooling
+- [ ] Caching for vendor lookups
 
 ### Success Metrics
-- 90% automation rate
+- 95% automation rate
 - <5% unknown vendors
-- 99% duplicate detection accuracy
-- 30-second average processing time
+- 99% duplicate detection
+- 20-second average processing
 
 ---
 
-## Phase 3: Integration & Scale 📈 (Month 3)
-**Goal:** Direct system integration and multi-department support
+## Phase 3: Integration 📈
+
+**Goal:** Direct system integration
 
 ### Features
-- [ ] **NetSuite Direct Integration**
-  - API integration for invoice creation
-  - Automatic vendor creation
-  - PO matching
-  - Real-time status updates
-
-- [ ] **Multi-Mailbox Support**
-  - Process multiple department mailboxes
-  - Department-specific routing rules
-  - Consolidated reporting
-  - Priority processing
-
-- [ ] **Advanced Analytics**
-  - Power BI dashboard
-  - Spend analysis by vendor
-  - Processing time trends
-  - Error analysis and patterns
-
-- [ ] **Self-Service Portal**
-  - Vendor management UI
-  - Invoice status lookup
-  - Manual upload capability
-  - Audit trail viewer
-
-### Infrastructure Enhancements
-- [ ] Multi-region deployment
-- [ ] Disaster recovery setup
-- [ ] Advanced security (Private Endpoints)
-- [ ] Performance tuning
-
-### Success Metrics
-- 95% straight-through processing
-- <30 second average processing
-- 99.9% availability
-- 5 departments onboarded
+- [ ] **NetSuite Direct Integration** - Skip email, post to API
+- [ ] **Multi-Mailbox Support** - Multiple departments
+- [ ] **Power BI Dashboard** - Analytics and reporting
+- [ ] **Vendor Self-Service** - Portal for vendor management
 
 ---
 
-## Phase 4: Advanced Automation 🤖 (Months 4-6)
-**Goal:** Intelligent invoice processing with minimal human intervention
+## Phase 4: Enterprise 🏢
+
+**Goal:** Full enterprise platform
 
 ### Features
-- [ ] **Intelligent Approval Routing**
-  - ML-based approval predictions
-  - Automatic escalation rules
-  - Department head notifications
-  - Budget threshold alerts
-
-- [ ] **Vendor Portal**
-  - Invoice submission portal
-  - Status tracking
-  - Document upload
-  - Communication history
-
-- [ ] **Advanced OCR/AI**
-  - Handwritten invoice support
-  - Multi-language support
-  - Complex table extraction
-  - Contract term validation
-
-- [ ] **Predictive Analytics**
-  - Cash flow forecasting
-  - Vendor payment optimization
-  - Anomaly detection
-  - Spend trend analysis
-
-### Platform Evolution
-- [ ] API gateway for external access
-- [ ] Event-driven architecture (Event Grid)
-- [ ] Microservices refactoring
-- [ ] Container deployment option
-
-### Success Metrics
-- 98% automation rate
-- <20 second processing
-- 100% audit compliance
-- $500K+ annual savings
+- [ ] Multi-entity support
+- [ ] Advanced compliance (SOX)
+- [ ] Mobile approval app
+- [ ] AI assistant (natural language queries)
 
 ---
 
-## Phase 5: Enterprise Platform 🏢 (Months 7-12)
-**Goal:** Full enterprise invoice automation platform
+## Release History
 
-### Features
-- [ ] **Multi-Entity Support**
-  - Cross-company processing
-  - Inter-company reconciliation
-  - Consolidated reporting
-  - Entity-specific workflows
-
-- [ ] **Advanced Compliance**
-  - SOX compliance automation
-  - Audit trail blockchain
-  - Regulatory reporting
-  - Data retention policies
-
-- [ ] **Mobile Application**
-  - Invoice approval app
-  - Photo capture and submit
-  - Push notifications
-  - Offline capability
-
-- [ ] **AI Assistant**
-  - Natural language queries
-  - Automated vendor onboarding
-  - Intelligent categorization
-  - Fraud detection
-
-### Enterprise Features
-- [ ] SSO integration
-- [ ] Advanced RBAC
-- [ ] Data warehouse integration
-- [ ] ERP connectors (SAP, Oracle)
-
-### Success Metrics
-- 99% automation rate
-- <10 second processing
-- 0% compliance violations
-- $1M+ annual savings
+| Version | Date | Key Changes |
+|---------|------|-------------|
+| 1.0 | Nov 14, 2024 | Core MVP (5 functions, timer-based) |
+| 2.0 | Nov 20, 2024 | Webhook migration (9 functions, <10s) |
+| 2.1 | Nov 24, 2024 | PDF vendor extraction (Azure OpenAI) |
+| 2.2 | Nov 25, 2024 | Duplicate detection enhancements |
+| 2.3 | Nov 28, 2024 | mypy strict + 85% coverage |
+| 2.4 | Nov 28, 2024 | Auto rollback + secrets validation |
+| 2.5 | Nov 29, 2024 | Documentation cleanup |
 
 ---
 
-## Technical Debt & Maintenance
+## Open Issues
 
-### Ongoing Tasks
-- [ ] Security updates (monthly)
-- [ ] Dependency updates (quarterly)
-- [ ] Performance optimization (quarterly)
-- [ ] Disaster recovery testing (semi-annual)
-- [ ] Penetration testing (annual)
-
-### Technical Improvements
-- [ ] Code refactoring for maintainability
-- [ ] Test coverage to 80%
-- [ ] Documentation updates
-- [ ] Monitoring enhancements
-- [ ] Alert tuning
+| Issue | Priority | Description |
+|-------|----------|-------------|
+| #72 | P3 | VNet integration for network isolation |
 
 ---
 
-## Release Schedule
-
-| Version | Phase | Target Date | Key Features |
-|---------|-------|-------------|--------------|
-| 1.0 | MVP | Nov 2024 | Core processing, email routing |
-| 1.1 | MVP+ | Dec 2024 | Bug fixes, performance |
-| 2.0 | Intelligence | Jan 2025 | PDF extraction, AI matching |
-| 3.0 | Integration | Mar 2025 | NetSuite API, multi-mailbox |
-| 4.0 | Automation | Jun 2025 | ML routing, vendor portal |
-| 5.0 | Enterprise | Dec 2025 | Full platform, mobile app |
-
----
-
-## Risk Mitigation
-
-### Identified Risks
-1. **Graph API Deprecation**
-   - Mitigation: Abstract email interface
-   - Contingency: IMAP/SMTP fallback
-
-2. **NetSuite API Changes**
-   - Mitigation: Version-aware integration
-   - Contingency: Continue email routing
-
-3. **AI Service Costs**
-   - Mitigation: Cost caps and monitoring
-   - Contingency: Fallback to rules-based
-
-4. **Compliance Requirements**
-   - Mitigation: Early legal review
-   - Contingency: Manual approval option
-
----
-
-## Success Metrics Dashboard
-
-### Current State (Manual Process)
-- Processing time: 5-10 minutes/invoice
-- Error rate: 5-10%
-- Unknown vendors: 30%
-- Monthly volume: 1000 invoices
-
-### Target State (Fully Automated)
-- Processing time: <10 seconds/invoice
-- Error rate: <0.1%
-- Unknown vendors: <1%
-- Monthly volume: 5000+ invoices
-
----
-
-## Stakeholder Communication
-
-### Monthly Updates To:
-- Finance Director
-- AP Manager
-- IT Leadership
-- Compliance Officer
-
-### Quarterly Reviews:
-- ROI analysis
-- Feature roadmap review
-- Risk assessment
-- Budget reconciliation
-
----
-
-**Document Status:** Living document, updated monthly
-**Last Updated:** 2024-11-09
-**Next Review:** 2024-12-01
-**Owner:** Alex Fox, Director of IT
+**Last Updated:** 2025-11-29
+**Version:** 2.5

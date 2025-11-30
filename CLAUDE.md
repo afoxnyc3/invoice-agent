@@ -225,7 +225,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 85%+ coverage maintained (314 tests)
+- Unit tests: 85%+ coverage maintained (389 tests)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -670,7 +670,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
   - No breaking changes - optional feature with degradation path
-- ✅ CI/CD pipeline operational (314 tests, 85%+ coverage)
+- ✅ CI/CD pipeline operational (389 tests, 85%+ coverage)
 - ✅ All P0 and P1 issues resolved (Nov 28, 2025)
 - ✅ Infrastructure ready (staging + production slots)
 - ✅ Webhook subscription active and tested
@@ -710,6 +710,6 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
-**Version:** 2.4 (Azure OpenAI + Auto Rollback)
+**Version:** 2.5 (Documentation Cleanup)
 **Last Updated:** 2025-11-29
 **Maintained By:** Engineering Team
