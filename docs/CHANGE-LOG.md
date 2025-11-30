@@ -8,11 +8,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Vendor seeding script execution for initial data load
-- Production deployment with RBAC configuration (Issue #9)
-- Integration testing suite (Issue #12)
-- Monitoring and alerts setup (Issue #13)
-- Phase 2 features: PDF extraction, AI vendor matching, duplicate detection
+- OCR for scanned/image-based PDFs (Azure Form Recognizer)
+- Invoice amount extraction (parse amounts, line items)
+- NetSuite direct integration
+- VNet integration (#72)
+
+---
+
+## [2.5.0] - 2024-11-29
+
+### Documentation Cleanup
+- Updated test counts to 389 across all docs (from 314)
+- Fixed timer diagram (5min → hourly) in ARCHITECTURE.md
+- Archived 3 redundant docs to docs/archive/
+- Overhauled ROADMAP.md for webhook architecture
+- Created docs/operations/README.md index
+- Added Azure OpenAI settings to Bicep template (permanent fix)
+
+### Fixed
+- Azure OpenAI settings now persist through CI deployments (added to functionapp.bicep)
+
+---
+
+## [2.4.0] - 2024-11-28
+
+### Added
+- Automated rollback on deployment failure
+- Secrets validation in CI/CD pipeline
+- GitHub workflow permissions fixes (CodeQL alerts)
+
+---
+
+## [2.3.0] - 2024-11-28
+
+### Added
+- mypy strict mode enabled
+- Test coverage threshold raised to 85%
+- 75 edge case tests (PR #96)
+
+### Quality
+- 389 tests passing (up from 314)
+- 85%+ code coverage
+
+---
+
+## [2.2.0] - 2024-11-25
+
+### Added
+- Enhanced duplicate detection (message ID + invoice hash)
+- Improved deduplication logic in ExtractEnrich
+
+---
+
+## [2.1.0] - 2024-11-24
+
+### Added
+- **PDF Vendor Extraction** (pdfplumber + Azure OpenAI gpt-4o-mini)
+  - 95%+ accuracy for vendor name extraction
+  - ~500ms latency, ~$0.001/invoice cost
+  - Graceful fallback to email domain extraction
+  - Integrated into MailWebhookProcessor
+
+---
+
+## [2.0.0] - 2024-11-20
+
+### Major - Webhook Migration Complete
+Migrated from timer-based polling to event-driven webhooks using Microsoft Graph Change Notifications.
+
+### Added
+- **MailWebhook Function** - HTTP endpoint for Graph API notifications
+- **MailWebhookProcessor Function** - Queue-based webhook processing with PDF extraction
+- **SubscriptionManager Function** - Auto-renews Graph subscriptions every 6 days
+- **Health Function** - Health check endpoint for monitoring
+
+### Changed
+- **MailIngest** - Changed from 5-minute polling to hourly fallback/safety net
+- Architecture: Timer-based → Event-driven webhooks
+- Latency: 5 minutes → <10 seconds
+- Cost: ~$2/month → ~$0.60/month (70% reduction)
+
+### Technical
+- 9 Azure Functions (up from 5)
+- CI/CD with staging slot pattern
+- Blue/green deployment with auto-swap
 
 ---
 
@@ -295,19 +374,25 @@ A feature is considered complete when:
 
 ## Future Milestones
 
-### Version 1.0.0 (MVP Release)
+### Version 1.0.0 (MVP Release) ✅ COMPLETE
 - Core MVP complete
 - 80% automation achieved
 - Production deployment
 - Documentation complete
 
-### Version 2.0.0 (Intelligence Release)
-- PDF extraction
-- AI vendor matching
-- 90% automation
+### Version 2.0.0 (Webhook Migration) ✅ COMPLETE
+- Real-time webhooks (<10s latency)
+- PDF vendor extraction (95%+ accuracy)
+- 9 Azure Functions
+- 85%+ test coverage
 
-### Version 3.0.0 (Integration Release)
-- NetSuite integration
+### Version 3.0.0 (Intelligence Release) 🎯 NEXT
+- OCR for scanned PDFs
+- Invoice amount extraction
+- Enhanced accuracy
+
+### Version 4.0.0 (Integration Release)
+- NetSuite direct integration
 - Multi-mailbox support
 - Analytics dashboard
 
