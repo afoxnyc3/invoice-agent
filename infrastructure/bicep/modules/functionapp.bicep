@@ -130,6 +130,15 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'TEAMS_WEBHOOK_URL'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/teams-webhook-url/)'
         }
+        // Azure OpenAI for PDF vendor extraction
+        {
+          name: 'AZURE_OPENAI_ENDPOINT'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/azure-openai-endpoint/)'
+        }
+        {
+          name: 'AZURE_OPENAI_API_KEY'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/azure-openai-api-key/)'
+        }
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
