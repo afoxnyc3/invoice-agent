@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "6194238279603629056"
+      "templateHash": "7476821320879861896"
     }
   },
   "parameters": {
@@ -766,7 +766,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "17065397759384364317"
+              "templateHash": "16793350317209840611"
             }
           },
           "parameters": {
@@ -869,21 +869,13 @@
                 "logs": [
                   {
                     "category": "AuditEvent",
-                    "enabled": true,
-                    "retentionPolicy": {
-                      "enabled": true,
-                      "days": 90
-                    }
+                    "enabled": true
                   }
                 ],
                 "metrics": [
                   {
                     "category": "AllMetrics",
-                    "enabled": true,
-                    "retentionPolicy": {
-                      "enabled": true,
-                      "days": 90
-                    }
+                    "enabled": true
                   }
                 ]
               },

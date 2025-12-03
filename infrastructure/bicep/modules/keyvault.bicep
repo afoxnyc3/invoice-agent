@@ -70,6 +70,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 // Use configure-prod-secrets.sh or Azure Portal to manage secrets
 
 // Diagnostic Settings (AZQR recommendation - audit logging)
+// Note: Retention is managed by Log Analytics workspace, not diagnostic settings
 resource keyVaultDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
   name: '${keyVaultName}-diagnostics'
   scope: keyVault
@@ -79,20 +80,12 @@ resource keyVaultDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-p
       {
         category: 'AuditEvent'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 90
-        }
       }
     ]
     metrics: [
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          enabled: true
-          days: 90
-        }
       }
     ]
   }
