@@ -14,6 +14,9 @@ param functionAppPrincipalId string = ''
 @description('Staging slot principal ID (Managed Identity)')
 param stagingSlotPrincipalId string = ''
 
+@description('Log Analytics Workspace ID for diagnostic settings')
+param logAnalyticsWorkspaceId string = ''
+
 // Key Vault
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -65,6 +68,35 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 
 // Secrets are managed outside of Bicep to prevent accidental overwriting
 // Use configure-prod-secrets.sh or Azure Portal to manage secrets
+
+// Diagnostic Settings (AZQR recommendation - audit logging)
+resource keyVaultDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsWorkspaceId)) {
+  name: '${keyVaultName}-diagnostics'
+  scope: keyVault
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        category: 'AuditEvent'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 90
+        }
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          enabled: true
+          days: 90
+        }
+      }
+    ]
+  }
+}
 
 // Outputs
 output keyVaultName string = keyVault.name

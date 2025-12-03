@@ -18,6 +18,10 @@ param tags object = {
   Environment: environment
   Owner: 'AlexFox'
   ManagedBy: 'Bicep'
+  // Cost tracking tags (AZQR recommendation)
+  CostCenter: 'Finance-AP'
+  Application: 'invoice-agent'
+  CreatedDate: '2024-11-14'
 }
 
 // Variables
@@ -75,6 +79,7 @@ module keyVault './modules/keyvault.bicep' = {
     tags: tags
     functionAppPrincipalId: functionApp.outputs.functionAppPrincipalId
     stagingSlotPrincipalId: functionApp.outputs.stagingSlotPrincipalId
+    logAnalyticsWorkspaceId: monitoring.outputs.workspaceId
   }
 }
 

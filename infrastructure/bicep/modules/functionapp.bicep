@@ -155,6 +155,30 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
       http20Enabled: true
+      // Auto-heal configuration (AZQR recommendation)
+      autoHealEnabled: true
+      autoHealRules: {
+        triggers: {
+          statusCodes: [
+            {
+              status: 500
+              subStatus: 0
+              win32Status: 0
+              count: 10
+              timeInterval: '00:05:00'
+            }
+          ]
+          slowRequests: {
+            timeTaken: '00:01:00'
+            count: 5
+            timeInterval: '00:05:00'
+          }
+        }
+        actions: {
+          actionType: 'Recycle'
+          minProcessExecutionTime: '00:01:00'
+        }
+      }
     }
     httpsOnly: true
   }

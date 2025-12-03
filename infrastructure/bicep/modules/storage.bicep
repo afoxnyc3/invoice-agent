@@ -41,7 +41,13 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01'
     cors: {
       corsRules: []
     }
+    // Blob soft delete - recover deleted blobs
     deleteRetentionPolicy: {
+      enabled: true
+      days: environment == 'prod' ? 30 : 7
+    }
+    // Container soft delete - recover deleted containers (AZQR recommendation)
+    containerDeleteRetentionPolicy: {
       enabled: true
       days: environment == 'prod' ? 30 : 7
     }
