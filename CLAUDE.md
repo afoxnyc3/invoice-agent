@@ -694,11 +694,58 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
+## Architecture Decision Records (ADRs)
+
+### Location
+
+ADRs are stored in `/docs/adr/` with naming convention `NNNN-short-title.md`
+
+### When to Create an ADR
+
+Create an ADR when making decisions about:
+- Frameworks, languages, or major dependencies
+- Database or storage choices
+- API design patterns or data models
+- Authentication/authorization approaches
+- Infrastructure or deployment architecture
+- Integration patterns with external systems
+- Significant refactoring strategies
+
+### When NOT to Create an ADR
+
+- Bug fixes or minor patches
+- Implementation details that don't affect architecture
+- Dependency version updates (unless major breaking changes)
+- Code style or formatting decisions
+
+### ADR Workflow
+
+1. When reviewing code that involves architectural decisions, check `/docs/adr/` for relevant existing ADRs
+2. If a change conflicts with an existing ADR, flag it — don't assume the ADR is wrong
+3. If a significant decision lacks an ADR, recommend creating one
+4. When creating ADRs, use the template at `/docs/adr/0000-template.md`
+
+### ADR Quality Standards
+
+- **Context**: Should be understandable by someone unfamiliar with the project
+- **Rationale**: Include key reasons for the decision
+- **Decision**: Clear, active voice ("We will..." not "It was decided...")
+- **Consequences**: Honest about tradeoffs, include mitigations for negatives
+
+### Current ADR Count
+
+- **31 ADRs** documented (0001-0031)
+- **4 Superseded**: 0004, 0008, 0012, 0017
+- See [docs/adr/README.md](docs/adr/README.md) for full index
+
+---
+
 ## Quick Reference
 
 ### Essential Files
 - **This file** - Development workflow and standards
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Technical architecture and system design
+- [docs/adr/README.md](docs/adr/README.md) - Architecture Decision Records index
 - [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) - Local setup and development
 - [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) - Deployment procedures
 - [docs/operations/TROUBLESHOOTING_GUIDE.md](docs/operations/TROUBLESHOOTING_GUIDE.md) - Common issues and fixes
@@ -710,9 +757,10 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 - Tests: `tests/unit/` and `tests/integration/`
 - Infrastructure: `infrastructure/bicep/`
 - Documentation: `docs/`
+- ADRs: `docs/adr/`
 
 ---
 
-**Version:** 2.6 (Infrastructure Hardening)
+**Version:** 2.7 (ADR Practices)
 **Last Updated:** 2024-12-03
 **Maintained By:** Engineering Team
