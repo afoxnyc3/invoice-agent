@@ -290,6 +290,33 @@ Automated Azure serverless system that extracts vendor information from email, a
   3. Return success/error response
 - **Max Execution Time**: 30 seconds
 - **Scaling**: Auto-scale based on HTTP requests
+- **Rate Limit**: 10 requests/minute per client IP
+
+#### 9. Health Function
+**Purpose**: Health check endpoint for monitoring and load balancers
+
+- **Trigger**: HTTP GET
+- **Input**: None
+- **Output**: JSON health status
+- **Processing**:
+  1. Check Storage Account connectivity
+  2. Verify required configuration present
+  3. Return health status with version info
+- **Max Execution Time**: 30 seconds
+- **Scaling**: Auto-scale based on HTTP requests
+- **Rate Limit**: 60 requests/minute per client IP
+- **Response Format**:
+  ```json
+  {
+    "status": "healthy",
+    "version": "1.0.0",
+    "timestamp": "2024-12-04T15:00:00Z",
+    "checks": {
+      "storage": "ok",
+      "config": "ok"
+    }
+  }
+  ```
 
 ---
 
@@ -318,11 +345,14 @@ Automated Azure serverless system that extracts vendor information from email, a
 **Tables:**
 - `VendorMaster`: Vendor lookup data (~100-1000 vendors)
 - `InvoiceTransactions`: Audit log (7-year retention)
-- `GraphSubscriptions`: **NEW** - Webhook subscription state management
+- `GraphSubscriptions`: Webhook subscription state management
+- `RateLimits`: HTTP endpoint rate limiting data
 
-**Blobs:**
-- `invoices/raw/`: Original email attachments
-- `invoices/processed/`: Archived invoices (future)
+**Blob Containers:**
+- `invoices`: Invoice PDF attachments (`raw/` prefix for new uploads)
+- `github-actions-deploy`: CI/CD deployment artifacts (ZIP packages)
+- `azure-webjobs-*`: Azure-managed containers (hosts, secrets)
+- `scm-releases`: Azure-managed deployment container
 
 **Queues:**
 - `webhook-notifications`: **NEW** - Real-time email notifications from MailWebhook (primary path)
@@ -338,12 +368,15 @@ Automated Azure serverless system that extracts vendor information from email, a
 - Key Vault access (secrets retrieval)
 
 **Key Vault** (Standard tier)
+- `graph-tenant-id`: Azure AD tenant identifier
+- `graph-client-id`: App registration client ID
 - `graph-client-secret`: Service principal secret
-- `graph-client-state`: **NEW** - Webhook validation secret (security)
-- `mail-webhook-url`: **NEW** - MailWebhook endpoint URL with function key
-- `ap-email-address`: AP mailbox address
-- `teams-webhook-url`: Teams channel webhook
-- `invoice-mailbox`: Shared mailbox address
+- `graph-client-state`: Webhook validation secret (security)
+- `invoice-mailbox`: Shared mailbox address for invoice ingestion
+- `ap-email-address`: AP mailbox address for routing
+- `teams-webhook-url`: Teams channel webhook URL
+- `azure-openai-endpoint`: Azure OpenAI resource endpoint
+- `azure-openai-api-key`: Azure OpenAI API key
 
 ### Monitoring Layer
 **Application Insights**
@@ -366,7 +399,7 @@ Table Storage schema for vendor lookup:
 | RowKey | string | vendor_name_lower | "adobe_com" |
 | VendorName | string | Display name | "Adobe Inc" |
 | ExpenseDept | string | Department code | "IT" |
-| AllocationScheduleNumber | string | Billing frequency | "MONTHLY" |
+| AllocationSchedule | string | Billing frequency | "MONTHLY" |
 | GLCode | string | General ledger code | "6100" |
 | BillingParty | string | Responsible entity | "Company HQ" |
 | Active | bool | Soft delete flag | true |
@@ -436,6 +469,30 @@ entities = list(table_client.query_entities(query_filter))
 - Renewed every 6 days (Graph max: 7 days for mail resources)
 - Marked inactive when replaced by new subscription
 - Subscription ID stored for renewal/deletion operations
+
+### RateLimits Table Schema
+
+Table Storage schema for HTTP endpoint rate limiting:
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| PartitionKey | string | Endpoint name | "MailWebhook" |
+| RowKey | string | Client IP + minute bucket | "192.168.1.1_202412041530" |
+| RequestCount | int | Number of requests in window | 45 |
+| WindowStart | datetime | Start of rate limit window | "2024-12-04T15:30:00Z" |
+| LastRequest | datetime | Most recent request time | "2024-12-04T15:30:45Z" |
+
+**Query Pattern**: Check current window for client
+```python
+# Check rate limit for client IP
+row_key = f"{client_ip}_{current_minute}"
+entity = table_client.get_entity(
+    partition_key=endpoint_name,
+    row_key=row_key
+)
+```
+
+**TTL**: Entries expire after 5 minutes (cleanup via Table Storage lifecycle)
 
 ### Queue Message Schemas
 
@@ -762,6 +819,57 @@ Based on Azure Quick Review (AZQR) security scan, implemented Phase 1 compliance
   - ManagedBy: Bicep
 
 **Cost Impact**: $0-2/month for diagnostic log ingestion (all other changes are free Azure features)
+
+### Rate Limiting
+
+HTTP endpoints are protected by sliding-window rate limiting to prevent abuse:
+
+| Endpoint | Limit | Window | Storage |
+|----------|-------|--------|---------|
+| MailWebhook | 100 requests | 1 minute | RateLimits table |
+| AddVendor | 10 requests | 1 minute | RateLimits table |
+| Health | 60 requests | 1 minute | RateLimits table |
+
+**Implementation** (`shared/rate_limiter.py`):
+- Sliding window algorithm with minute granularity
+- Client identified by IP address (X-Forwarded-For header)
+- Exceeded limits return HTTP 429 Too Many Requests
+- Can be disabled via `RATE_LIMIT_DISABLED` env var for testing
+
+### Email Loop Prevention
+
+Multiple safeguards prevent infinite email loops between system and mailboxes:
+
+**Implementation** (`shared/email_processor.py` - `should_skip_email()`):
+
+1. **Recipient Validation**: Validates recipient is NOT the `INVOICE_MAILBOX`
+2. **Allowed Recipients List**: If `ALLOWED_AP_EMAILS` configured, recipient must be in list
+3. **System Email Detection**: Skips emails matching pattern `^Invoice:\s+.+\s+-\s+GL\s+\d{4}$`
+4. **Reply Detection**: Skips replies to vendor registration emails
+5. **Sender Filtering**: Filters out emails from system mailbox in MailIngest/MailWebhookProcessor
+
+See [ADR-0027](adr/0027-email-loop-prevention.md) for design rationale.
+
+### Deduplication Strategy
+
+Multi-level deduplication prevents duplicate invoice processing and payments:
+
+**Level 1 - Message Deduplication** (`shared/deduplication.py`):
+- Key: `original_message_id` (Graph API message ID)
+- Scope: Prevents same email from being processed twice
+- Storage: InvoiceTransactions table lookup
+
+**Level 2 - Invoice Hash Deduplication**:
+- Key: SHA256 hash of (vendor_name + sender_email + received_date)
+- Scope: Prevents duplicate invoices from same vendor/sender/date
+- Lookback: 90 days in InvoiceTransactions table
+
+**Level 3 - Atomic Transaction Claim**:
+- Mechanism: Table Storage upsert with ETag checking
+- Scope: Prevents race conditions in concurrent processing
+- Effect: Only first processor wins, others skip gracefully
+
+See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 
 ---
 
@@ -1407,33 +1515,32 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 4. Validate vendor match rate and identify any unknown vendors
 5. Adjust alert thresholds based on real production data
 6. Document actual performance characteristics
-7. Begin Phase 2 planning (PDF extraction, AI matching)
+7. Monitor and optimize based on production metrics
 
 ---
 
 ## Future Enhancements
 
-### Phase 2: Intelligence (Planned - Month 2)
+### Phase 2: Intelligence - COMPLETE (Nov 2024)
 
-**PDF Text Extraction**:
-- Azure AI Document Intelligence (Form Recognizer)
-- Extract vendor, amount, invoice number from PDF
-- Reduce dependency on email sender accuracy
+> **Status**: Implemented via [ADR-0022](adr/0022-pdf-vendor-extraction.md)
+> **Deployment Date**: November 24, 2024
 
-**AI Vendor Matching**:
-- Azure OpenAI for fuzzy matching
-- Handle vendor name variations
-- Learn from user corrections
+**PDF Vendor Extraction** ✅:
+- pdfplumber for PDF text extraction
+- Azure OpenAI (gpt-4o-mini) for intelligent vendor identification
+- 95%+ accuracy, ~500ms latency, ~$0.001/invoice
+- Graceful fallback to email domain if extraction fails
 
-**Duplicate Detection**:
-- Check InvoiceTransactions for duplicates
-- Compare invoice number, vendor, amount
-- Alert on potential duplicates
+**Duplicate Detection** ✅:
+- Message-level dedup by `original_message_id`
+- Invoice-level dedup by hash (vendor + sender + date)
+- 90-day lookback window in InvoiceTransactions table
+- See [ADR-0028](adr/0028-message-id-deduplication.md)
 
-**Amount Extraction**:
-- Extract invoice amount from PDF
-- Validate against PO or budget
-- Flag anomalies
+**Remaining Phase 2 Items** (Future):
+- AI Vendor Matching: Fuzzy matching for vendor name variations
+- Amount Extraction: Extract invoice amount from PDF for validation
 
 ### Phase 3: Integration (Planned - Month 3+)
 
@@ -1516,8 +1623,8 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 
 ---
 
-**Version:** 2.6 (Infrastructure Hardening)
-**Last Updated:** 2024-12-03
+**Version:** 2.8 (Documentation Audit)
+**Last Updated:** 2024-12-04
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

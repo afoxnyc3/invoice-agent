@@ -761,6 +761,6 @@ Create an ADR when making decisions about:
 
 ---
 
-**Version:** 2.7 (ADR Practices)
-**Last Updated:** 2024-12-03
+**Version:** 2.8 (Documentation Audit)
+**Last Updated:** 2024-12-04
 **Maintained By:** Engineering Team

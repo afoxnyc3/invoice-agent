@@ -116,6 +116,16 @@ For custom queries and investigations:
 - **Impact:** Slow processing, potential failures
 - **Action:** Check storage account limits, consider scaling
 
+#### 9. Duplicate Invoice Processing (P2)
+- **Condition:** Same invoice hash processed multiple times
+- **Impact:** Potential duplicate payments or notifications
+- **Action:** Investigate deduplication logic, check 90-day lookback window
+
+#### 10. High Duplicate Rate (P1)
+- **Condition:** >5% duplicate detection rate in 1 hour
+- **Impact:** Either spam/forwarding issue or dedup not working
+- **Action:** Review email sources, check InvoiceTransactions table
+
 ---
 
 ## Alert Response Procedures

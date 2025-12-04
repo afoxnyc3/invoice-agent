@@ -15,6 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.0] - 2024-12-04
+
+### Infrastructure Fixes
+- **Bicep Environment URLs** - Replaced hardcoded Azure URLs with `environment()` function for cloud compatibility
+- **Slot Swap Resilience** - Added handling for stuck slot swap operations in deployment pipeline
+
+### Documentation Audit
+- Comprehensive documentation audit against codebase and Azure resources
+- Added missing documentation for: Rate Limiting, Deduplication, Email Loop Prevention
+- Added RateLimits table schema
+- Updated Key Vault secrets list to match actual deployment
+- Fixed Phase 2 status (PDF extraction now marked COMPLETE)
+- Added 2 missing alert rules to MONITORING_GUIDE.md
+- Fixed VendorMaster schema field name variance
+- Fixed operations/README.md date typo
+
+---
+
 ## [2.7.0] - 2024-12-03
 
 ### ADR Practices Established
