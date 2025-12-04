@@ -77,7 +77,7 @@ invoice-agent/
 │   └── commands/       # Slash commands
 ├── docs/                # Documentation
 │   ├── ARCHITECTURE.md  # Technical architecture (comprehensive)
-│   ├── DECISIONS.md     # Architectural decision records
+│   ├── adr/             # Architecture Decision Records (31 ADRs)
 │   ├── LOCAL_DEVELOPMENT.md  # Local setup guide
 │   ├── DEPLOYMENT_GUIDE.md   # Deployment procedures
 │   ├── ROADMAP.md       # Product roadmap
@@ -107,8 +107,8 @@ invoice-agent/
 │   ├── unit/           # Unit tests
 │   ├── integration/    # Integration tests
 │   └── fixtures/       # Test data
-└── data/                # Seed data
-    └── vendors.csv      # Vendor master list
+└── infrastructure/data/  # Seed data
+    └── vendors.csv       # Vendor master list
 ```
 
 ## 🔄 How It Works
@@ -273,7 +273,7 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 ### Core Documentation
 - **[CLAUDE.md](CLAUDE.md)** - Development workflow, coding standards, quality gates
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete technical architecture and system design
-- **[docs/DECISIONS.md](docs/DECISIONS.md)** - Architectural decision records (ADRs)
+- **[docs/adr/README.md](docs/adr/README.md)** - Architecture Decision Records (31 ADRs)
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** - Product roadmap and future enhancements
 
 ### Operational Guides
@@ -284,7 +284,7 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 ## 🤝 Contributing
 
 1. Create feature branch from `main`
-2. Follow 25-line function limit
+2. Keep cyclomatic complexity ≤10 (see ADR-0026)
 3. Add tests (85% coverage minimum)
 4. Update documentation
 5. Submit PR with description
