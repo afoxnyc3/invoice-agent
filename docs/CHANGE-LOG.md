@@ -15,6 +15,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2024-12-03
+
+### ADR Practices Established
+Comprehensive Architecture Decision Record (ADR) system implemented:
+
+- **31 ADRs documented** - Full architectural decision history
+- **Migrated from DECISIONS.md** - 21 existing ADRs converted to individual files
+- **10 new ADRs created** - Recent decisions now formally documented:
+  - PDF vendor extraction (0022)
+  - Slot swap resilience (0023)
+  - 85% test coverage (0024)
+  - Staging settings sync (0025)
+  - Cyclomatic complexity (0026)
+  - Email loop prevention (0027)
+  - Message ID deduplication (0028)
+  - Modular Bicep architecture (0029)
+  - Azurite integration tests (0030)
+  - AZQR security recommendations (0031)
+
+### Added
+- `docs/adr/` directory with standard ADR format
+- `docs/adr/README.md` - Full index with categories
+- `docs/adr/0000-template.md` - Template for new ADRs
+- ADR guidance section in CLAUDE.md
+
+### Changed
+- Archived `docs/DECISIONS.md` to `docs/archive/`
+- CLAUDE.md version bumped to 2.7
+
+---
+
 ## [2.6.0] - 2024-12-03
 
 ### Infrastructure Hardening (AZQR Phase 1)
