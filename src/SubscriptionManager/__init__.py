@@ -19,6 +19,7 @@ import azure.functions as func
 from azure.data.tables import TableServiceClient, TableClient
 from shared.graph_client import GraphAPIClient
 from shared.ulid_generator import generate_ulid
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +76,22 @@ def _deactivate_old_subscriptions(table_client: TableClient, current_subscriptio
 def main(timer: func.TimerRequest) -> None:
     """Create or renew Graph API subscription for email notifications."""
     try:
-        # Get configuration
-        mailbox = os.environ["INVOICE_MAILBOX"]
+        # Check storage availability first (may be unavailable during slot swaps)
+        if not config.is_storage_available:
+            logger.warning(
+                "AzureWebJobsStorage not available - skipping execution. "
+                "This may occur during slot swaps and will resolve automatically."
+            )
+            return
+
+        # Get configuration (these are required - fail loudly if missing)
+        mailbox = os.environ.get("INVOICE_MAILBOX")
         webhook_url = os.environ.get("MAIL_WEBHOOK_URL")
         client_state = os.environ.get("GRAPH_CLIENT_STATE")
-        storage_conn = os.environ["AzureWebJobsStorage"]
+
+        if not mailbox:
+            logger.error("INVOICE_MAILBOX not configured")
+            raise ValueError("Missing INVOICE_MAILBOX configuration")
 
         if not webhook_url:
             logger.error("MAIL_WEBHOOK_URL not configured")
@@ -91,9 +103,12 @@ def main(timer: func.TimerRequest) -> None:
 
         logger.info(f"SubscriptionManager starting for mailbox: {mailbox}")
 
-        # Initialize clients
+        # Initialize clients using centralized config
         graph = GraphAPIClient()
-        table_service = TableServiceClient.from_connection_string(storage_conn)
+        table_service = config.table_service
+        if not table_service:
+            logger.warning("Table service unavailable - skipping execution")
+            return
         table_client = table_service.get_table_client("GraphSubscriptions")
 
         # Ensure table exists

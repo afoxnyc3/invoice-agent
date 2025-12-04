@@ -86,7 +86,12 @@ class InvoiceGenerator:
         if dept == "IT":
             if "Adobe" in vendor:
                 items = [
-                    {"description": "Creative Cloud - All Apps Plan (50 licenses)", "qty": 50, "rate": 54.99, "amount": 2749.50}
+                    {
+                        "description": "Creative Cloud - All Apps Plan (50 licenses)",
+                        "qty": 50,
+                        "rate": 54.99,
+                        "amount": 2749.50,
+                    }
                 ]
             elif "Microsoft" in vendor:
                 items = [
@@ -104,9 +109,13 @@ class InvoiceGenerator:
             elif "Slack" in vendor:
                 items = [{"description": "Slack Business+ Plan", "qty": 120, "rate": 12.50, "amount": 1500.00}]
             elif "Google" in vendor:
-                items = [{"description": "Google Workspace Business Standard", "qty": 80, "rate": 12.00, "amount": 960.00}]
+                items = [
+                    {"description": "Google Workspace Business Standard", "qty": 80, "rate": 12.00, "amount": 960.00}
+                ]
             elif "Dropbox" in vendor:
-                items = [{"description": "Dropbox Business Advanced (Annual)", "qty": 1, "rate": 2400.00, "amount": 2400.00}]
+                items = [
+                    {"description": "Dropbox Business Advanced (Annual)", "qty": 1, "rate": 2400.00, "amount": 2400.00}
+                ]
             elif "Verizon" in vendor:
                 items = [
                     {"description": "Business Internet - 1000 Mbps", "qty": 1, "rate": 299.99, "amount": 299.99},
@@ -118,15 +127,29 @@ class InvoiceGenerator:
                     {"description": "Mobile Lines (50)", "qty": 50, "rate": 45.00, "amount": 2250.00},
                 ]
             elif "Oracle" in vendor:
-                items = [{"description": "Oracle Database Enterprise Edition (Annual)", "qty": 1, "rate": 47500.00, "amount": 47500.00}]
+                items = [
+                    {
+                        "description": "Oracle Database Enterprise Edition (Annual)",
+                        "qty": 1,
+                        "rate": 47500.00,
+                        "amount": 47500.00,
+                    }
+                ]
             elif "ServiceNow" in vendor:
-                items = [{"description": "ServiceNow ITSM Platform (Annual)", "qty": 1, "rate": 36000.00, "amount": 36000.00}]
+                items = [
+                    {"description": "ServiceNow ITSM Platform (Annual)", "qty": 1, "rate": 36000.00, "amount": 36000.00}
+                ]
 
         # Sales Department
         elif dept == "SALES":
             if "Salesforce" in vendor:
                 items = [
-                    {"description": "Salesforce Sales Cloud Enterprise (Annual)", "qty": 50, "rate": 1800.00, "amount": 90000.00}
+                    {
+                        "description": "Salesforce Sales Cloud Enterprise (Annual)",
+                        "qty": 50,
+                        "rate": 1800.00,
+                        "amount": 90000.00,
+                    }
                 ]
 
         # Marketing Department
@@ -140,17 +163,23 @@ class InvoiceGenerator:
         # Finance Department
         elif dept == "FINANCE":
             if "QuickBooks" in vendor or "Intuit" in vendor:
-                items = [{"description": "QuickBooks Enterprise (Annual)", "qty": 5, "rate": 1500.00, "amount": 7500.00}]
+                items = [
+                    {"description": "QuickBooks Enterprise (Annual)", "qty": 5, "rate": 1500.00, "amount": 7500.00}
+                ]
 
         # Legal Department
         elif dept == "LEGAL":
             if "DocuSign" in vendor:
-                items = [{"description": "DocuSign Business Pro (Annual)", "qty": 10, "rate": 480.00, "amount": 4800.00}]
+                items = [
+                    {"description": "DocuSign Business Pro (Annual)", "qty": 10, "rate": 480.00, "amount": 4800.00}
+                ]
 
         # HR Department
         elif dept == "HR":
             if "Workday" in vendor:
-                items = [{"description": "Workday HCM Platform (Annual)", "qty": 1, "rate": 48000.00, "amount": 48000.00}]
+                items = [
+                    {"description": "Workday HCM Platform (Annual)", "qty": 1, "rate": 48000.00, "amount": 48000.00}
+                ]
             elif "ADP" in vendor:
                 items = [
                     {"description": "Payroll Processing (200 employees)", "qty": 200, "rate": 5.00, "amount": 1000.00},
@@ -280,31 +309,206 @@ Thank you,
 def generate_all_test_invoices() -> List[Dict]:
     """Generate test invoices for all vendors in the MVP list."""
     vendors = [
-        {"vendor_name": "Adobe Inc", "email_domain": "adobe.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6100", "notes": "Creative Cloud subscriptions"},
-        {"vendor_name": "Microsoft Corporation", "email_domain": "microsoft.com", "expense_dept": "IT", "allocation_schedule": "ANNUAL", "gl_code": "6100", "notes": "Office 365 and Azure services"},
-        {"vendor_name": "Amazon Web Services", "email_domain": "aws.amazon.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6110", "notes": "Cloud infrastructure"},
-        {"vendor_name": "Salesforce", "email_domain": "salesforce.com", "expense_dept": "SALES", "allocation_schedule": "ANNUAL", "gl_code": "6200", "notes": "CRM platform"},
-        {"vendor_name": "Zoom Video Communications", "email_domain": "zoom.us", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6120", "notes": "Video conferencing"},
-        {"vendor_name": "Slack Technologies", "email_domain": "slack.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6120", "notes": "Team collaboration"},
-        {"vendor_name": "Google Workspace", "email_domain": "google.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6100", "notes": "Email and productivity suite"},
-        {"vendor_name": "Dropbox", "email_domain": "dropbox.com", "expense_dept": "IT", "allocation_schedule": "ANNUAL", "gl_code": "6130", "notes": "File storage and sharing"},
-        {"vendor_name": "HubSpot", "email_domain": "hubspot.com", "expense_dept": "MARKETING", "allocation_schedule": "MONTHLY", "gl_code": "6300", "notes": "Marketing automation"},
-        {"vendor_name": "QuickBooks", "email_domain": "intuit.com", "expense_dept": "FINANCE", "allocation_schedule": "ANNUAL", "gl_code": "6400", "notes": "Accounting software"},
-        {"vendor_name": "DocuSign", "email_domain": "docusign.com", "expense_dept": "LEGAL", "allocation_schedule": "ANNUAL", "gl_code": "6500", "notes": "Electronic signatures"},
-        {"vendor_name": "Verizon", "email_domain": "verizon.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6140", "notes": "Telecom services"},
-        {"vendor_name": "AT&T", "email_domain": "att.com", "expense_dept": "IT", "allocation_schedule": "MONTHLY", "gl_code": "6140", "notes": "Telecom services"},
-        {"vendor_name": "Oracle", "email_domain": "oracle.com", "expense_dept": "IT", "allocation_schedule": "ANNUAL", "gl_code": "6110", "notes": "Database licenses"},
-        {"vendor_name": "ServiceNow", "email_domain": "servicenow.com", "expense_dept": "IT", "allocation_schedule": "ANNUAL", "gl_code": "6150", "notes": "IT service management"},
-        {"vendor_name": "Workday", "email_domain": "workday.com", "expense_dept": "HR", "allocation_schedule": "ANNUAL", "gl_code": "6600", "notes": "HR management system"},
-        {"vendor_name": "ADP", "email_domain": "adp.com", "expense_dept": "HR", "allocation_schedule": "MONTHLY", "gl_code": "6610", "notes": "Payroll processing"},
-        {"vendor_name": "LinkedIn", "email_domain": "linkedin.com", "expense_dept": "HR", "allocation_schedule": "ANNUAL", "gl_code": "6620", "notes": "Recruiting platform"},
-        {"vendor_name": "Indeed", "email_domain": "indeed.com", "expense_dept": "HR", "allocation_schedule": "MONTHLY", "gl_code": "6620", "notes": "Job postings"},
-        {"vendor_name": "FedEx", "email_domain": "fedex.com", "expense_dept": "OPERATIONS", "allocation_schedule": "MONTHLY", "gl_code": "6700", "notes": "Shipping services"},
-        {"vendor_name": "UPS", "email_domain": "ups.com", "expense_dept": "OPERATIONS", "allocation_schedule": "MONTHLY", "gl_code": "6700", "notes": "Shipping services"},
-        {"vendor_name": "Staples", "email_domain": "staples.com", "expense_dept": "OPERATIONS", "allocation_schedule": "MONTHLY", "gl_code": "6710", "notes": "Office supplies"},
-        {"vendor_name": "Amazon Business", "email_domain": "amazon.com", "expense_dept": "OPERATIONS", "allocation_schedule": "MONTHLY", "gl_code": "6710", "notes": "Business supplies"},
-        {"vendor_name": "Grainger", "email_domain": "grainger.com", "expense_dept": "FACILITIES", "allocation_schedule": "MONTHLY", "gl_code": "6800", "notes": "Industrial supplies"},
-        {"vendor_name": "Home Depot", "email_domain": "homedepot.com", "expense_dept": "FACILITIES", "allocation_schedule": "MONTHLY", "gl_code": "6810", "notes": "Maintenance supplies"},
+        {
+            "vendor_name": "Adobe Inc",
+            "email_domain": "adobe.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6100",
+            "notes": "Creative Cloud subscriptions",
+        },
+        {
+            "vendor_name": "Microsoft Corporation",
+            "email_domain": "microsoft.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6100",
+            "notes": "Office 365 and Azure services",
+        },
+        {
+            "vendor_name": "Amazon Web Services",
+            "email_domain": "aws.amazon.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6110",
+            "notes": "Cloud infrastructure",
+        },
+        {
+            "vendor_name": "Salesforce",
+            "email_domain": "salesforce.com",
+            "expense_dept": "SALES",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6200",
+            "notes": "CRM platform",
+        },
+        {
+            "vendor_name": "Zoom Video Communications",
+            "email_domain": "zoom.us",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6120",
+            "notes": "Video conferencing",
+        },
+        {
+            "vendor_name": "Slack Technologies",
+            "email_domain": "slack.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6120",
+            "notes": "Team collaboration",
+        },
+        {
+            "vendor_name": "Google Workspace",
+            "email_domain": "google.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6100",
+            "notes": "Email and productivity suite",
+        },
+        {
+            "vendor_name": "Dropbox",
+            "email_domain": "dropbox.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6130",
+            "notes": "File storage and sharing",
+        },
+        {
+            "vendor_name": "HubSpot",
+            "email_domain": "hubspot.com",
+            "expense_dept": "MARKETING",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6300",
+            "notes": "Marketing automation",
+        },
+        {
+            "vendor_name": "QuickBooks",
+            "email_domain": "intuit.com",
+            "expense_dept": "FINANCE",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6400",
+            "notes": "Accounting software",
+        },
+        {
+            "vendor_name": "DocuSign",
+            "email_domain": "docusign.com",
+            "expense_dept": "LEGAL",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6500",
+            "notes": "Electronic signatures",
+        },
+        {
+            "vendor_name": "Verizon",
+            "email_domain": "verizon.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6140",
+            "notes": "Telecom services",
+        },
+        {
+            "vendor_name": "AT&T",
+            "email_domain": "att.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6140",
+            "notes": "Telecom services",
+        },
+        {
+            "vendor_name": "Oracle",
+            "email_domain": "oracle.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6110",
+            "notes": "Database licenses",
+        },
+        {
+            "vendor_name": "ServiceNow",
+            "email_domain": "servicenow.com",
+            "expense_dept": "IT",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6150",
+            "notes": "IT service management",
+        },
+        {
+            "vendor_name": "Workday",
+            "email_domain": "workday.com",
+            "expense_dept": "HR",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6600",
+            "notes": "HR management system",
+        },
+        {
+            "vendor_name": "ADP",
+            "email_domain": "adp.com",
+            "expense_dept": "HR",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6610",
+            "notes": "Payroll processing",
+        },
+        {
+            "vendor_name": "LinkedIn",
+            "email_domain": "linkedin.com",
+            "expense_dept": "HR",
+            "allocation_schedule": "ANNUAL",
+            "gl_code": "6620",
+            "notes": "Recruiting platform",
+        },
+        {
+            "vendor_name": "Indeed",
+            "email_domain": "indeed.com",
+            "expense_dept": "HR",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6620",
+            "notes": "Job postings",
+        },
+        {
+            "vendor_name": "FedEx",
+            "email_domain": "fedex.com",
+            "expense_dept": "OPERATIONS",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6700",
+            "notes": "Shipping services",
+        },
+        {
+            "vendor_name": "UPS",
+            "email_domain": "ups.com",
+            "expense_dept": "OPERATIONS",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6700",
+            "notes": "Shipping services",
+        },
+        {
+            "vendor_name": "Staples",
+            "email_domain": "staples.com",
+            "expense_dept": "OPERATIONS",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6710",
+            "notes": "Office supplies",
+        },
+        {
+            "vendor_name": "Amazon Business",
+            "email_domain": "amazon.com",
+            "expense_dept": "OPERATIONS",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6710",
+            "notes": "Business supplies",
+        },
+        {
+            "vendor_name": "Grainger",
+            "email_domain": "grainger.com",
+            "expense_dept": "FACILITIES",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6800",
+            "notes": "Industrial supplies",
+        },
+        {
+            "vendor_name": "Home Depot",
+            "email_domain": "homedepot.com",
+            "expense_dept": "FACILITIES",
+            "allocation_schedule": "MONTHLY",
+            "gl_code": "6810",
+            "notes": "Maintenance supplies",
+        },
     ]
 
     generator = InvoiceGenerator()

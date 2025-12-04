@@ -204,6 +204,28 @@ resource stagingSlot 'Microsoft.Web/sites/slots@2023-01-01' = {
   }
 }
 
+// Slot configuration names - defines which settings are "slot-sticky"
+// Slot-sticky settings stay with the slot during swaps (don't swap with the code)
+// NOTE: AzureWebJobsStorage* settings should NOT be slot-sticky as both slots
+// need access to the same storage for triggers (queues, timers) to work correctly.
+resource slotConfigNames 'Microsoft.Web/sites/config@2023-01-01' = {
+  parent: functionApp
+  name: 'slotConfigNames'
+  properties: {
+    // App settings that stay with the slot (not swapped)
+    appSettingNames: [
+      // Slot-specific monitoring (optional - enable if you want separate App Insights per slot)
+      // 'APPINSIGHTS_INSTRUMENTATIONKEY'
+      // 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    ]
+    // Connection strings that stay with the slot (not swapped)
+    connectionStringNames: []
+    // Azure Storage account settings - intentionally NOT included
+    // Both slots must use the same storage for queue/timer triggers to function correctly
+    azureStorageConfigNames: []
+  }
+}
+
 // Outputs
 output functionAppName string = functionApp.name
 output functionAppId string = functionApp.id

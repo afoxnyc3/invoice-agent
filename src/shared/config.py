@@ -54,42 +54,73 @@ class Config:
     # =========================================================================
 
     @property
-    def storage_connection_string(self) -> str:
-        """Azure Storage connection string."""
-        return os.environ["AzureWebJobsStorage"]
+    def storage_connection_string(self) -> Optional[str]:
+        """
+        Azure Storage connection string.
+
+        Returns None if not available (e.g., during slot swap transitions).
+        Callers should handle None gracefully.
+        """
+        conn_str = os.environ.get("AzureWebJobsStorage")
+        if not conn_str:
+            logger.warning("AzureWebJobsStorage not available - may be during slot swap or misconfiguration")
+        return conn_str
 
     @property
-    def table_service(self) -> TableServiceClient:
+    def is_storage_available(self) -> bool:
+        """Check if storage connection string is available."""
+        return bool(os.environ.get("AzureWebJobsStorage"))
+
+    @property
+    def table_service(self) -> Optional[TableServiceClient]:
         """Lazy-loaded Table Service client with connection pooling."""
         if self._table_service is None:
-            self._table_service = TableServiceClient.from_connection_string(self.storage_connection_string)
+            conn_str = self.storage_connection_string
+            if not conn_str:
+                return None
+            self._table_service = TableServiceClient.from_connection_string(conn_str)
         return self._table_service
 
     @property
-    def blob_service(self) -> BlobServiceClient:
+    def blob_service(self) -> Optional[BlobServiceClient]:
         """Lazy-loaded Blob Service client with connection pooling."""
         if self._blob_service is None:
-            self._blob_service = BlobServiceClient.from_connection_string(self.storage_connection_string)
+            conn_str = self.storage_connection_string
+            if not conn_str:
+                return None
+            self._blob_service = BlobServiceClient.from_connection_string(conn_str)
         return self._blob_service
 
     @property
-    def queue_service(self) -> QueueServiceClient:
+    def queue_service(self) -> Optional[QueueServiceClient]:
         """Lazy-loaded Queue Service client with connection pooling."""
         if self._queue_service is None:
-            self._queue_service = QueueServiceClient.from_connection_string(self.storage_connection_string)
+            conn_str = self.storage_connection_string
+            if not conn_str:
+                return None
+            self._queue_service = QueueServiceClient.from_connection_string(conn_str)
         return self._queue_service
 
-    def get_table_client(self, table_name: str) -> TableClient:
+    def get_table_client(self, table_name: str) -> Optional[TableClient]:
         """Get a table client for the specified table."""
-        return self.table_service.get_table_client(table_name)
+        service = self.table_service
+        if not service:
+            return None
+        return service.get_table_client(table_name)
 
-    def get_container_client(self, container_name: str) -> ContainerClient:
+    def get_container_client(self, container_name: str) -> Optional[ContainerClient]:
         """Get a blob container client for the specified container."""
-        return self.blob_service.get_container_client(container_name)
+        service = self.blob_service
+        if not service:
+            return None
+        return service.get_container_client(container_name)
 
-    def get_queue_client(self, queue_name: str) -> QueueClient:
+    def get_queue_client(self, queue_name: str) -> Optional[QueueClient]:
         """Get a queue client for the specified queue."""
-        return self.queue_service.get_queue_client(queue_name)
+        service = self.queue_service
+        if not service:
+            return None
+        return service.get_queue_client(queue_name)
 
     # =========================================================================
     # MICROSOFT GRAPH API

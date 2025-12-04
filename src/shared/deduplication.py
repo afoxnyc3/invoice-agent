@@ -15,6 +15,7 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Any
 from azure.data.tables import TableServiceClient
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +57,11 @@ def is_message_already_processed(original_message_id: str | None) -> bool:
         return False
 
     try:
-        storage_conn = os.environ["AzureWebJobsStorage"]
-        table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
+        # Use centralized config (handles slot swap gracefully)
+        table_client = config.get_table_client("InvoiceTransactions")
+        if not table_client:
+            logger.warning("Storage unavailable - dedup check skipped (fail open)")
+            return False
 
         # Query for ANY existing transaction with this message ID
         # (not just 'processed' - unknown vendor invoices have status='unknown')
@@ -122,8 +126,11 @@ def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict[
         Existing transaction dict if duplicate found, None otherwise
     """
     try:
-        storage_conn = os.environ["AzureWebJobsStorage"]
-        table_client = TableServiceClient.from_connection_string(storage_conn).get_table_client("InvoiceTransactions")
+        # Use centralized config (handles slot swap gracefully)
+        table_client = config.get_table_client("InvoiceTransactions")
+        if not table_client:
+            logger.warning("Storage unavailable - invoice dedup check skipped")
+            return None
 
         # Calculate partition key range for lookback period
         end_date = datetime.utcnow()

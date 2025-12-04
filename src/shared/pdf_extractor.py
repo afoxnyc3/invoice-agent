@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 import pdfplumber
 from openai import AzureOpenAI
 from azure.storage.blob import BlobServiceClient
+from shared.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,10 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
         # Decode URL-encoded characters (e.g., %20 -> space) to prevent double-encoding
         blob_name = unquote(blob_name)
 
-        # Download using connection string
-        blob_service = BlobServiceClient.from_connection_string(os.environ["AzureWebJobsStorage"])
+        # Download using centralized config (handles slot swap gracefully)
+        blob_service = config.blob_service
+        if not blob_service:
+            raise RuntimeError("Storage unavailable - may be during slot swap")
         blob_client = blob_service.get_blob_client(container=container, blob=blob_name)
         return blob_client.download_blob().readall()
 
