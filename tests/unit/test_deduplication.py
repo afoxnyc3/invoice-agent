@@ -6,17 +6,13 @@ from unittest.mock import patch, MagicMock
 class TestDeduplication:
     """Test suite for deduplication utilities."""
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_returns_true_when_message_exists(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_returns_true_when_message_exists(self, mock_config):
         """Test duplicate detection when message exists in table."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = [
             {
                 "RowKey": "01JCK3Q7H8",
@@ -30,17 +26,13 @@ class TestDeduplication:
         assert result is True
         mock_table_client.query_entities.assert_called_once()
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_returns_false_when_message_not_found(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_returns_false_when_message_not_found(self, mock_config):
         """Test no duplicate when message not in table."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = []
 
         result = is_message_already_processed("new-message-id")
@@ -59,32 +51,26 @@ class TestDeduplication:
 
         assert is_message_already_processed("") is False
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_fails_open_on_error(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_fails_open_on_error(self, mock_config):
         """Test graceful handling of errors (fail open)."""
         from shared.deduplication import is_message_already_processed
 
-        mock_table_service.from_connection_string.side_effect = Exception("Connection failed")
+        mock_table_client = MagicMock()
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_table_client.query_entities.side_effect = Exception("Connection failed")
 
         result = is_message_already_processed("some-message-id")
 
         assert result is False  # Fail open - process anyway
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_detects_processed_status(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_detects_processed_status(self, mock_config):
         """Test that processed status invoices are detected as duplicates."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = [
             {
                 "RowKey": "01JCK3Q7H8",
@@ -97,17 +83,13 @@ class TestDeduplication:
 
         assert result is True
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_detects_unknown_status(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_detects_unknown_status(self, mock_config):
         """Test that unknown status invoices are also detected as duplicates."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = [
             {
                 "RowKey": "01JCK3Q7H8",
@@ -120,36 +102,26 @@ class TestDeduplication:
 
         assert result is True
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_queries_invoice_transactions_table(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_queries_invoice_transactions_table(self, mock_config):
         """Test that correct table is queried."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = []
 
         is_message_already_processed("test-message-id")
 
-        mock_table_service.from_connection_string.return_value.get_table_client.assert_called_with(
-            "InvoiceTransactions"
-        )
+        mock_config.get_table_client.assert_called_with("InvoiceTransactions")
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_query_filter_uses_original_message_id(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_query_filter_uses_original_message_id(self, mock_config):
         """Test that query filter uses the correct message ID."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = []
 
         is_message_already_processed("my-unique-message-id")
@@ -222,35 +194,27 @@ class TestInvoiceHashGeneration:
 class TestCheckDuplicateInvoice:
     """Test suite for duplicate invoice checking."""
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_returns_none_when_no_duplicate(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_returns_none_when_no_duplicate(self, mock_config):
         """Test returns None when no duplicate found."""
         from shared.deduplication import check_duplicate_invoice
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = []
 
         result = check_duplicate_invoice("abc123")
 
         assert result is None
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_returns_existing_transaction_when_duplicate(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_returns_existing_transaction_when_duplicate(self, mock_config):
         """Test returns existing transaction when duplicate found."""
         from shared.deduplication import check_duplicate_invoice
         from datetime import datetime
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
 
         # Use dynamic ProcessedAt within lookback period (now uses ProcessedAt, not partition key)
         recent_date = datetime.utcnow().isoformat() + "Z"
@@ -267,12 +231,8 @@ class TestCheckDuplicateInvoice:
         assert result is not None
         assert result["RowKey"] == "01JCK3Q7H8"
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_filters_by_processed_at_not_partition_key(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_filters_by_processed_at_not_partition_key(self, mock_config):
         """Test that date filtering uses ProcessedAt timestamp, not partition key.
 
         Regression test for P1 bug: Records in partial months at lookback
@@ -282,7 +242,7 @@ class TestCheckDuplicateInvoice:
         from datetime import datetime, timedelta
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
 
         # Create record with ProcessedAt 30 days ago (within 90-day lookback)
         # but partition key that might be at month boundary
@@ -301,18 +261,14 @@ class TestCheckDuplicateInvoice:
         assert result is not None
         assert result["RowKey"] == "01BOUNDARY"
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_excludes_records_outside_lookback_period(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_excludes_records_outside_lookback_period(self, mock_config):
         """Test that records outside lookback period are excluded."""
         from shared.deduplication import check_duplicate_invoice
         from datetime import datetime, timedelta
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
 
         # Create record with ProcessedAt 100 days ago (outside 90-day lookback)
         old_date = datetime.utcnow() - timedelta(days=100)
@@ -329,32 +285,26 @@ class TestCheckDuplicateInvoice:
         # Should NOT find duplicate - outside lookback period
         assert result is None
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_fails_open_on_error(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_fails_open_on_error(self, mock_config):
         """Test graceful handling of errors (fail open)."""
         from shared.deduplication import check_duplicate_invoice
 
-        mock_table_service.from_connection_string.side_effect = Exception("Connection failed")
+        mock_table_client = MagicMock()
+        mock_config.get_table_client.return_value = mock_table_client
+        mock_table_client.query_entities.side_effect = Exception("Connection failed")
 
         result = check_duplicate_invoice("abc123")
 
         assert result is None  # Fail open - return None to proceed
 
-    @patch.dict(
-        "os.environ",
-        {"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test"},
-    )
-    @patch("shared.deduplication.TableServiceClient")
-    def test_queries_by_invoice_hash(self, mock_table_service):
+    @patch("shared.deduplication.config")
+    def test_queries_by_invoice_hash(self, mock_config):
         """Test that query uses InvoiceHash filter."""
         from shared.deduplication import check_duplicate_invoice
 
         mock_table_client = MagicMock()
-        mock_table_service.from_connection_string.return_value.get_table_client.return_value = mock_table_client
+        mock_config.get_table_client.return_value = mock_table_client
         mock_table_client.query_entities.return_value = []
 
         check_duplicate_invoice("my-hash-value")

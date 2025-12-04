@@ -1,6 +1,6 @@
 """Unit tests for SubscriptionManager timer function."""
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, PropertyMock
 import azure.functions as func
 import pytest
 from SubscriptionManager import main, _get_subscription_record, _save_subscription_record
@@ -11,7 +11,7 @@ ENV_VARS = {
     "INVOICE_MAILBOX": "invoices@example.com",
     "MAIL_WEBHOOK_URL": "https://func.azurewebsites.net/api/MailWebhook",
     "GRAPH_CLIENT_STATE": "test-client-state-secret",
-    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test",
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==",
 }
 
 
@@ -36,9 +36,9 @@ class TestSubscriptionManager:
             main(timer)
 
     @patch.dict("os.environ", ENV_VARS)
-    @patch("SubscriptionManager.TableServiceClient")
+    @patch("SubscriptionManager.config")
     @patch("SubscriptionManager.GraphAPIClient")
-    def test_subscription_manager_new_subscription(self, mock_graph_class, mock_table_class):
+    def test_subscription_manager_new_subscription(self, mock_graph_class, mock_config):
         """Test new subscription creation when none exists."""
         # Setup mocks
         mock_graph = MagicMock()
@@ -50,8 +50,10 @@ class TestSubscriptionManager:
 
         mock_table_client = MagicMock()
         mock_table_service = MagicMock()
-        mock_table_class.from_connection_string.return_value = mock_table_service
+        mock_config.is_storage_available = True
+        mock_config.table_service = mock_table_service
         mock_table_service.get_table_client.return_value = mock_table_client
+        mock_table_service.create_table.return_value = None
         mock_table_client.query_entities.return_value = []  # No existing subscription
 
         timer = Mock(spec=func.TimerRequest)
@@ -61,9 +63,9 @@ class TestSubscriptionManager:
         mock_table_client.upsert_entity.assert_called_once()
 
     @patch.dict("os.environ", ENV_VARS)
-    @patch("SubscriptionManager.TableServiceClient")
+    @patch("SubscriptionManager.config")
     @patch("SubscriptionManager.GraphAPIClient")
-    def test_subscription_manager_renewal_success(self, mock_graph_class, mock_table_class):
+    def test_subscription_manager_renewal_success(self, mock_graph_class, mock_config):
         """Test successful renewal of existing subscription."""
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -71,8 +73,10 @@ class TestSubscriptionManager:
 
         mock_table_client = MagicMock()
         mock_table_service = MagicMock()
-        mock_table_class.from_connection_string.return_value = mock_table_service
+        mock_config.is_storage_available = True
+        mock_config.table_service = mock_table_service
         mock_table_service.get_table_client.return_value = mock_table_client
+        mock_table_service.create_table.return_value = None
         mock_table_client.query_entities.return_value = [
             {
                 "PartitionKey": "GraphSubscription",
@@ -90,9 +94,9 @@ class TestSubscriptionManager:
         mock_table_client.update_entity.assert_called_once()
 
     @patch.dict("os.environ", ENV_VARS)
-    @patch("SubscriptionManager.TableServiceClient")
+    @patch("SubscriptionManager.config")
     @patch("SubscriptionManager.GraphAPIClient")
-    def test_subscription_manager_renewal_failure_creates_new(self, mock_graph_class, mock_table_class):
+    def test_subscription_manager_renewal_failure_creates_new(self, mock_graph_class, mock_config):
         """Test that failed renewal triggers new subscription creation."""
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -104,8 +108,10 @@ class TestSubscriptionManager:
 
         mock_table_client = MagicMock()
         mock_table_service = MagicMock()
-        mock_table_class.from_connection_string.return_value = mock_table_service
+        mock_config.is_storage_available = True
+        mock_config.table_service = mock_table_service
         mock_table_service.get_table_client.return_value = mock_table_client
+        mock_table_service.create_table.return_value = None
         mock_table_client.query_entities.return_value = [
             {
                 "PartitionKey": "GraphSubscription",

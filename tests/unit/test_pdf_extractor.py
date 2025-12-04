@@ -30,8 +30,8 @@ from shared.pdf_extractor import (
 class TestDownloadPDFFromBlob:
     """Test PDF download from Azure Blob Storage."""
 
-    @patch("shared.pdf_extractor.BlobServiceClient")
-    def test_download_success(self, mock_blob_service, mock_environment):
+    @patch("shared.pdf_extractor.config")
+    def test_download_success(self, mock_config, mock_environment):
         """Test successful PDF download from blob storage."""
         # Mock blob download
         mock_blob_data = b"%PDF-1.4 fake pdf content"
@@ -41,28 +41,37 @@ class TestDownloadPDFFromBlob:
         mock_blob_client = MagicMock()
         mock_blob_client.download_blob.return_value = mock_download
 
-        mock_container = MagicMock()
-        mock_container.get_blob_client.return_value = mock_blob_client
-
-        mock_service = MagicMock()
-        mock_service.get_blob_client.return_value = mock_blob_client
-        mock_blob_service.from_connection_string.return_value = mock_service
+        mock_blob_service = MagicMock()
+        mock_blob_service.get_blob_client.return_value = mock_blob_client
+        mock_config.blob_service = mock_blob_service
 
         # Test download
         blob_url = "https://storage.blob.core.windows.net/invoices/tx123/invoice.pdf"
         result = _download_pdf_from_blob(blob_url)
 
         assert result == mock_blob_data
-        mock_blob_service.from_connection_string.assert_called_once()
+        mock_blob_service.get_blob_client.assert_called_once()
 
-    @patch("shared.pdf_extractor.BlobServiceClient")
-    def test_download_failure(self, mock_blob_service, mock_environment):
+    @patch("shared.pdf_extractor.config")
+    def test_download_failure(self, mock_config, mock_environment):
         """Test PDF download failure handling."""
-        mock_blob_service.from_connection_string.side_effect = Exception("Blob not found")
+        mock_blob_service = MagicMock()
+        mock_blob_service.get_blob_client.side_effect = Exception("Blob not found")
+        mock_config.blob_service = mock_blob_service
 
         blob_url = "https://storage.blob.core.windows.net/invoices/invalid/file.pdf"
 
         with pytest.raises(Exception, match="Blob not found"):
+            _download_pdf_from_blob(blob_url)
+
+    @patch("shared.pdf_extractor.config")
+    def test_download_fails_when_storage_unavailable(self, mock_config, mock_environment):
+        """Test PDF download fails gracefully when storage unavailable (slot swap)."""
+        mock_config.blob_service = None
+
+        blob_url = "https://storage.blob.core.windows.net/invoices/tx123/invoice.pdf"
+
+        with pytest.raises(RuntimeError, match="Storage unavailable"):
             _download_pdf_from_blob(blob_url)
 
 
