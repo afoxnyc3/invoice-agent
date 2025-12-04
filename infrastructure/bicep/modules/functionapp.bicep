@@ -62,15 +62,15 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'AzureWebJobsStorage__blobServiceUri'
-          value: 'https://${storageAccountName}.blob.core.windows.net'
+          value: 'https://${storageAccountName}.blob.${environment().suffixes.storage}'
         }
         {
           name: 'AzureWebJobsStorage__queueServiceUri'
-          value: 'https://${storageAccountName}.queue.core.windows.net'
+          value: 'https://${storageAccountName}.queue.${environment().suffixes.storage}'
         }
         {
           name: 'AzureWebJobsStorage__tableServiceUri'
-          value: 'https://${storageAccountName}.table.core.windows.net'
+          value: 'https://${storageAccountName}.table.${environment().suffixes.storage}'
         }
         {
           name: 'AzureWebJobsStorage__credential'
@@ -103,7 +103,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'KEY_VAULT_URL'
-          value: 'https://${keyVaultName}.vault.azure.net/'
+          value: 'https://${keyVaultName}.${environment().suffixes.keyvaultDns}/'
         }
         // Key Vault references (Function App will use Managed Identity to access these)
         {
