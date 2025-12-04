@@ -171,6 +171,13 @@ graph LR
 - ✅ **Unknown vendor handling** - Registration email sent to requestor
 - ✅ **HTTP vendor management** - POST /api/AddVendor endpoint
 
+### Infrastructure Security (Dec 2024) ✅
+- ✅ **AZQR Compliance** - Security scan passed (Phase 1 complete)
+- ✅ **Container soft delete** - 30-day recovery for blob containers
+- ✅ **Key Vault audit logging** - Diagnostic settings to Log Analytics
+- ✅ **Auto-heal** - Automatic recovery on error patterns
+- ✅ **Cost governance tags** - CostCenter, Application, CreatedDate
+
 **Next Steps:**
 1. End-to-end production testing with real invoices
 2. Monitor processing metrics in Application Insights
@@ -295,4 +302,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.5 | **Last Updated:** 2025-11-29
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.6 | **Last Updated:** 2024-12-03

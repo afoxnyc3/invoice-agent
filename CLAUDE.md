@@ -676,6 +676,9 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational
 - ✅ System ready for production invoice processing
+- ✅ **AZQR Phase 1 Complete** (Dec 3, 2024)
+  - Container soft delete, Key Vault diagnostics, auto-heal, cost tags
+  - $0-2/month cost impact for diagnostic log ingestion
 
 **Architecture Change:**
 ```
@@ -710,6 +713,6 @@ AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/
 
 ---
 
-**Version:** 2.5 (Documentation Cleanup)
-**Last Updated:** 2025-11-29
+**Version:** 2.6 (Infrastructure Hardening)
+**Last Updated:** 2024-12-03
 **Maintained By:** Engineering Team

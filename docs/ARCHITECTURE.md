@@ -730,6 +730,39 @@ Notify Message → Format Card → Post to Teams → Log Response
 - No credit card or payment information
 - 7-year retention for compliance
 
+### Infrastructure Hardening (Dec 2024)
+
+Based on Azure Quick Review (AZQR) security scan, implemented Phase 1 compliance improvements:
+
+**Storage Account**:
+- Container soft delete enabled (30 days prod, 7 days dev)
+- Blob soft delete enabled (30 days prod, 7 days dev)
+- TLS 1.2 minimum, HTTPS-only
+- Public blob access disabled
+
+**Key Vault**:
+- Soft delete enabled (90 days)
+- Purge protection enabled
+- Diagnostic settings → Log Analytics
+- AuditEvent logging for compliance
+
+**Function App**:
+- Auto-heal enabled
+  - Triggers: 10x 500 errors in 5 min, or 5x slow requests (>60s) in 5 min
+  - Action: Recycle worker process
+  - Min execution time: 60 seconds before recycle
+
+**Resource Governance**:
+- Standard tags applied to all resources:
+  - Project: InvoiceAgent
+  - Environment: prod/dev
+  - CostCenter: Finance-AP
+  - Application: invoice-agent
+  - CreatedDate: 2024-11-14
+  - ManagedBy: Bicep
+
+**Cost Impact**: $0-2/month for diagnostic log ingestion (all other changes are free Azure features)
+
 ---
 
 ## Error Handling & Retry Logic
@@ -1483,8 +1516,8 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 
 ---
 
-**Version:** 2.5 (Documentation Cleanup)
-**Last Updated:** 2025-11-29
+**Version:** 2.6 (Infrastructure Hardening)
+**Last Updated:** 2024-12-03
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

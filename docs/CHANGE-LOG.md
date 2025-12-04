@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2024-12-03
+
+### Infrastructure Hardening (AZQR Phase 1)
+Based on Azure Quick Review security scan, implemented zero/low-cost compliance improvements:
+
+- **Container Soft Delete** - 30 days for production, 7 days for dev (enables container recovery)
+- **Key Vault Diagnostics** - AuditEvent logs to Log Analytics (90 day retention)
+- **Auto-Heal** - Automatic worker recycle on error patterns (10x 500s or 5x slow requests in 5 min)
+- **Resource Tags** - Added CostCenter, Application, CreatedDate for cost governance
+
+### Cost Impact
+- Estimated: $0-2/month for diagnostic log ingestion
+- All other changes are free Azure features
+
+---
+
 ## [2.5.0] - 2024-11-29
 
 ### Documentation Cleanup
