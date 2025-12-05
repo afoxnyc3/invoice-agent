@@ -1,10 +1,12 @@
 """
 Health check endpoint for monitoring and CI/CD smoke tests.
 
-Returns system status including:
-- Function runtime status
-- Storage connectivity
-- Configuration validation
+Returns minimal system status to avoid information disclosure:
+- status: healthy/degraded/unhealthy
+- timestamp: ISO 8601 UTC timestamp
+
+Detailed check results are logged server-side for troubleshooting
+but not exposed in the public response.
 """
 
 import json
@@ -18,32 +20,35 @@ from shared.rate_limiter import rate_limit
 logger = logging.getLogger(__name__)
 
 
-def _check_storage_connectivity() -> dict[str, Any]:
-    """Check Azure Storage connectivity."""
+def _check_storage_connectivity() -> tuple[bool, str]:
+    """
+    Check Azure Storage connectivity.
+
+    Returns:
+        tuple: (is_healthy, error_message or empty string)
+    """
     try:
         # Attempt to list tables (lightweight operation)
         tables = list(config.table_service.list_tables())
-        return {
-            "status": "healthy",
-            "tables_count": len(tables),
-        }
+        logger.debug(f"Storage check passed: {len(tables)} tables found")
+        return True, ""
     except Exception as e:
         logger.error(f"Storage connectivity check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-        }
+        return False, str(e)
 
 
-def _check_config() -> dict[str, Any]:
-    """Validate required configuration."""
+def _check_config() -> tuple[bool, list[str]]:
+    """
+    Validate required configuration.
+
+    Returns:
+        tuple: (is_healthy, list of missing config keys)
+    """
     missing = config.validate_required()
     if missing:
-        return {
-            "status": "unhealthy",
-            "missing_config": missing,
-        }
-    return {"status": "healthy"}
+        logger.error(f"Config validation failed: missing {missing}")
+        return False, missing
+    return True, []
 
 
 @rate_limit(max_requests=60)  # Monitoring endpoint: 60 requests/minute
@@ -51,27 +56,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     """
     Health check endpoint.
 
-    Returns JSON with system status for monitoring and CI/CD.
+    Returns minimal JSON with system status for monitoring.
+    Detailed errors are logged server-side but not exposed publicly.
     """
     try:
-        # Collect health checks
-        storage_check = _check_storage_connectivity()
-        config_check = _check_config()
+        # Collect health checks (results logged internally)
+        storage_ok, storage_error = _check_storage_connectivity()
+        config_ok, missing_config = _check_config()
 
         # Determine overall status
-        checks_healthy = all(check.get("status") == "healthy" for check in [storage_check, config_check])
+        all_healthy = storage_ok and config_ok
 
+        # Minimal public response (no sensitive details)
         response = {
-            "status": "healthy" if checks_healthy else "degraded",
+            "status": "healthy" if all_healthy else "degraded",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "environment": config.environment,
-            "checks": {
-                "storage": storage_check,
-                "config": config_check,
-            },
         }
 
-        status_code = 200 if checks_healthy else 503
+        status_code = 200 if all_healthy else 503
         return func.HttpResponse(
             json.dumps(response, indent=2),
             status_code=status_code,
@@ -79,12 +81,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     except Exception as e:
+        # Log full error server-side, return minimal response publicly
         logger.error(f"Health check failed: {e}")
         return func.HttpResponse(
             json.dumps(
                 {
                     "status": "unhealthy",
-                    "error": str(e),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
             ),

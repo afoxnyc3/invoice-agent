@@ -9,6 +9,8 @@ This module provides intelligent vendor extraction from invoice PDFs by:
 
 Cost: ~$0.001 per invoice (~$1.50/month at 50 invoices/day)
 Latency: ~500ms per PDF (extraction + API call)
+
+Includes circuit breaker protection for external dependencies.
 """
 
 import os
@@ -20,8 +22,8 @@ from urllib.parse import unquote
 from datetime import datetime, timedelta
 import pdfplumber
 from openai import AzureOpenAI
-from azure.storage.blob import BlobServiceClient
 from shared.config import config
+from shared.circuit_breaker import openai_breaker, storage_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,8 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
     - Production: https://{account}.blob.core.windows.net/{container}/{blob_name}
     - Dev: http://127.0.0.1:10000/devstoreaccount1/{container}/{blob_name}
 
+    Protected by circuit breaker to fail fast during storage outages.
+
     Args:
         blob_url: Full URL to blob
 
@@ -42,7 +46,13 @@ def _download_pdf_from_blob(blob_url: str) -> bytes:
 
     Raises:
         Exception: If download fails
+        CircuitBreakerError: If storage circuit is open
     """
+    return storage_breaker.call(_download_pdf_from_blob_internal, blob_url)
+
+
+def _download_pdf_from_blob_internal(blob_url: str) -> bytes:
+    """Internal method that performs the actual blob download."""
     try:
         # Extract container and blob name from URL
         parts = blob_url.split("/")
@@ -109,6 +119,8 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
     """
     Use Azure OpenAI to extract vendor name from PDF text.
 
+    Protected by circuit breaker to fail fast during OpenAI outages.
+
     Args:
         pdf_text: Extracted text from PDF
 
@@ -117,7 +129,17 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
 
     Raises:
         Exception: If Azure OpenAI API call fails
+        CircuitBreakerError: If OpenAI circuit is open
     """
+    try:
+        return openai_breaker.call(_extract_vendor_with_llm_internal, pdf_text)
+    except Exception:
+        # Circuit breaker open or LLM failure - gracefully degrade
+        return None
+
+
+def _extract_vendor_with_llm_internal(pdf_text: str) -> Optional[str]:
+    """Internal method that performs the actual OpenAI API call."""
     try:
         # Initialize Azure OpenAI client
         client = AzureOpenAI(
@@ -162,10 +184,10 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
     except KeyError as e:
         logger.error(f"Missing Azure OpenAI environment variable: {str(e)}")
         logger.error("Required: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, AZURE_OPENAI_DEPLOYMENT (optional)")
-        return None
+        raise  # Raise to trigger circuit breaker
     except Exception as e:
         logger.error(f"Azure OpenAI API call failed: {str(e)}")
-        return None
+        raise  # Raise to trigger circuit breaker
 
 
 def extract_vendor_from_pdf(blob_url: str) -> Optional[str]:

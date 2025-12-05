@@ -20,7 +20,7 @@ azure-storage-queue==12.8.0  # Required by setup-local.sh for queue creation
 
 # Microsoft Graph
 msal==1.25.0
-requests==2.31.0
+requests>=2.32.5  # CVE-2024-35195 fix (cert verification bypass)
 
 # Data Validation and Processing
 pydantic==2.10.3
@@ -30,6 +30,9 @@ python-ulid==2.2.0
 # PDF Processing and AI
 pdfplumber==0.10.3  # PDF text extraction for vendor identification
 openai==1.54.0  # Azure OpenAI SDK for intelligent vendor extraction
+
+# Resilience
+pybreaker==1.2.0  # Circuit breaker pattern for external dependencies
 
 # Development and Testing
 pytest==7.4.3
