@@ -5,7 +5,7 @@ Tests cover:
 - Healthy state (all dependencies OK)
 - Storage connectivity failures
 - Configuration validation failures
-- Response format validation
+- Response format validation (minimal info, no sensitive data)
 - Exception handling
 """
 
@@ -31,7 +31,6 @@ class TestHealthEndpointHealthy:
             MagicMock(),
         ]
         mock_config.validate_required.return_value = []
-        mock_config.environment = "test"
 
         from Health import main
 
@@ -46,17 +45,17 @@ class TestHealthEndpointHealthy:
         assert response.status_code == 200
         body = json.loads(response.get_body())
         assert body["status"] == "healthy"
-        assert body["checks"]["storage"]["status"] == "healthy"
-        assert body["checks"]["config"]["status"] == "healthy"
-        assert body["environment"] == "test"
         assert "timestamp" in body
+        # Verify no sensitive info is exposed
+        assert "environment" not in body
+        assert "checks" not in body
+        assert "error" not in body
 
     @patch("Health.config")
-    def test_health_response_format(self, mock_config):
-        """Test response format matches expected JSON structure."""
+    def test_health_response_format_minimal(self, mock_config):
+        """Test response contains only status and timestamp (no sensitive data)."""
         mock_config.table_service.list_tables.return_value = []
         mock_config.validate_required.return_value = []
-        mock_config.environment = "prod"
 
         from Health import main
 
@@ -71,13 +70,9 @@ class TestHealthEndpointHealthy:
         assert response.mimetype == "application/json"
         body = json.loads(response.get_body())
 
-        # Verify structure
-        assert "status" in body
-        assert "timestamp" in body
-        assert "environment" in body
-        assert "checks" in body
-        assert "storage" in body["checks"]
-        assert "config" in body["checks"]
+        # Verify minimal structure - only status and timestamp
+        assert set(body.keys()) == {"status", "timestamp"}
+        assert body["status"] in ["healthy", "degraded", "unhealthy"]
 
 
 # =============================================================================
@@ -92,9 +87,10 @@ class TestHealthStorageFailures:
     def test_health_storage_unavailable(self, mock_config):
         """Test returns 503 when Table Storage is unavailable."""
         # Mock storage failure
-        mock_config.table_service.list_tables.side_effect = Exception("Connection refused")
+        mock_config.table_service.list_tables.side_effect = Exception(
+            "Connection refused"
+        )
         mock_config.validate_required.return_value = []
-        mock_config.environment = "test"
 
         from Health import main
 
@@ -109,15 +105,17 @@ class TestHealthStorageFailures:
         assert response.status_code == 503
         body = json.loads(response.get_body())
         assert body["status"] == "degraded"
-        assert body["checks"]["storage"]["status"] == "unhealthy"
-        assert "Connection refused" in body["checks"]["storage"]["error"]
+        # Verify error details are NOT exposed
+        assert "error" not in body
+        assert "Connection refused" not in json.dumps(body)
 
     @patch("Health.config")
     def test_health_storage_timeout(self, mock_config):
         """Test returns 503 when storage times out."""
-        mock_config.table_service.list_tables.side_effect = Exception("Connection timeout")
+        mock_config.table_service.list_tables.side_effect = Exception(
+            "Connection timeout"
+        )
         mock_config.validate_required.return_value = []
-        mock_config.environment = "test"
 
         from Health import main
 
@@ -131,7 +129,7 @@ class TestHealthStorageFailures:
 
         assert response.status_code == 503
         body = json.loads(response.get_body())
-        assert body["checks"]["storage"]["status"] == "unhealthy"
+        assert body["status"] == "degraded"
 
 
 # =============================================================================
@@ -150,7 +148,6 @@ class TestHealthConfigFailures:
             "INVOICE_MAILBOX",
             "AP_EMAIL_ADDRESS",
         ]
-        mock_config.environment = "test"
 
         from Health import main
 
@@ -165,9 +162,9 @@ class TestHealthConfigFailures:
         assert response.status_code == 503
         body = json.loads(response.get_body())
         assert body["status"] == "degraded"
-        assert body["checks"]["config"]["status"] == "unhealthy"
-        assert "INVOICE_MAILBOX" in body["checks"]["config"]["missing_config"]
-        assert "AP_EMAIL_ADDRESS" in body["checks"]["config"]["missing_config"]
+        # Verify missing config names are NOT exposed
+        assert "missing_config" not in body
+        assert "INVOICE_MAILBOX" not in json.dumps(body)
 
 
 # =============================================================================
@@ -180,11 +177,10 @@ class TestHealthExceptionHandling:
 
     @patch("Health.config")
     def test_health_unhandled_exception(self, mock_config):
-        """Test returns 503 with error message on unhandled exception."""
+        """Test returns 503 without exposing error message on exception."""
         # Force an exception during main processing
         mock_config.table_service.list_tables.return_value = []
         mock_config.validate_required.side_effect = Exception("Unexpected error")
-        mock_config.environment = "test"
 
         from Health import main
 
@@ -199,31 +195,26 @@ class TestHealthExceptionHandling:
         assert response.status_code == 503
         body = json.loads(response.get_body())
         assert body["status"] == "unhealthy"
-        assert "Unexpected error" in body["error"]
         assert "timestamp" in body
+        # Verify error message is NOT exposed
+        assert "error" not in body
+        assert "Unexpected error" not in json.dumps(body)
 
 
 # =============================================================================
-# TABLES COUNT TESTS
+# INFORMATION DISCLOSURE TESTS
 # =============================================================================
 
 
-class TestHealthStorageTablesCount:
-    """Test storage check returns table count."""
+class TestHealthNoInformationDisclosure:
+    """Test that Health endpoint doesn't expose sensitive information."""
 
     @patch("Health.config")
-    def test_health_storage_tables_counted(self, mock_config):
-        """Test storage check includes table count."""
-        # Mock 5 tables
-        mock_config.table_service.list_tables.return_value = [
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-            MagicMock(),
-        ]
+    def test_health_no_environment_exposed(self, mock_config):
+        """Test environment name is not exposed in response."""
+        mock_config.table_service.list_tables.return_value = []
         mock_config.validate_required.return_value = []
-        mock_config.environment = "test"
+        mock_config.environment = "production"
 
         from Health import main
 
@@ -234,6 +225,35 @@ class TestHealthStorageTablesCount:
         )
 
         response = main(req)
-
         body = json.loads(response.get_body())
-        assert body["checks"]["storage"]["tables_count"] == 5
+
+        assert "environment" not in body
+        assert "production" not in json.dumps(body)
+
+    @patch("Health.config")
+    def test_health_no_table_count_exposed(self, mock_config):
+        """Test table count is not exposed in response."""
+        mock_config.table_service.list_tables.return_value = [
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+            MagicMock(),
+        ]
+        mock_config.validate_required.return_value = []
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+        )
+
+        response = main(req)
+        body = json.loads(response.get_body())
+
+        # Verify no table count fields in response
+        assert "tables_count" not in body
+        assert "tables" not in body
+        assert "count" not in str(body).lower()
