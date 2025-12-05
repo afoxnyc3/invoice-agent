@@ -113,7 +113,8 @@ def process_email_attachments(
             vendor_name=vendor_name,  # Populated from PDF extraction, or None
         )
         queue_output.set(raw_mail.model_dump_json())
-        logger.info(f"Queued: {transaction_id} from {raw_mail.sender}")
+        sender_domain = raw_mail.sender.split("@")[1] if "@" in raw_mail.sender else "unknown"
+        logger.info(f"Queued: {transaction_id} from domain {sender_domain}")
         processed_count += 1
 
     return processed_count

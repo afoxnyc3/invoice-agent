@@ -7,6 +7,7 @@ Provides authenticated access to Microsoft Graph API for:
 - Sending emails with attachments
 
 Uses MSAL for authentication and handles throttling automatically.
+Includes circuit breaker protection to fail fast during outages.
 """
 
 import os
@@ -16,6 +17,7 @@ from typing import Any, cast
 import requests
 from msal import ConfidentialClientApplication
 from shared.retry import retry_with_backoff
+from shared.circuit_breaker import graph_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +105,7 @@ class GraphAPIClient:
         """
         Make authenticated request to Graph API.
 
-        Handles authentication, throttling, and retries.
+        Handles authentication, throttling, retries, and circuit breaker.
 
         Args:
             method: HTTP method (GET, POST, PATCH)
@@ -115,7 +117,12 @@ class GraphAPIClient:
 
         Raises:
             Exception: If request fails after retries
+            CircuitBreakerError: If circuit is open (fail-fast)
         """
+        return graph_breaker.call(self._make_request_internal, method, endpoint, **kwargs)
+
+    def _make_request_internal(self, method: str, endpoint: str, **kwargs: Any) -> dict[str, Any]:
+        """Internal method that performs the actual HTTP request."""
         url = f"{self.graph_url}/{endpoint}"
         token = self._get_access_token()
 

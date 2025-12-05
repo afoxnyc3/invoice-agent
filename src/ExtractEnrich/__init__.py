@@ -65,7 +65,8 @@ def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sende
         body=body,
         is_html=True,
     )
-    logger.warning(f"Unknown vendor: {vendor_name} - sent registration email to {sender}")
+    sender_domain = sender.split("@")[1] if "@" in sender else "unknown"
+    logger.warning(f"Unknown vendor: {vendor_name} - sent registration email to domain {sender_domain}")
 
 
 def _get_existing_transaction(original_message_id: str | None, table_client: TableClient) -> dict[str, Any] | None:
@@ -197,7 +198,8 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]) -> None:
                     logger.info(f"Vendor matched via email domain: {company_name} -> {vendor['VendorName']}")
                     vendor_name = company_name
             except (ValueError, IndexError):
-                logger.warning(f"Could not extract domain from sender: {raw_mail.sender}")
+                sender_domain = raw_mail.sender.split("@")[1] if "@" in raw_mail.sender else "unknown"
+                logger.warning(f"Could not extract domain from sender domain: {sender_domain}")
 
         # If still no vendor found, mark as unknown
         if not vendor:

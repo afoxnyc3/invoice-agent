@@ -6,10 +6,25 @@ import pytest
 import json
 from unittest.mock import MagicMock
 from typing import Dict, Any
+from shared.circuit_breaker import reset_all_circuits
 
 
 # Configure pytest
 pytest_plugins = []
+
+
+@pytest.fixture(autouse=True)
+def reset_circuit_breakers():
+    """
+    Reset all circuit breakers before each test.
+
+    Circuit breakers maintain state across test runs, which can cause
+    unexpected failures when tests trigger the breaker. This fixture
+    ensures each test starts with closed circuits.
+    """
+    reset_all_circuits()
+    yield
+    reset_all_circuits()
 
 
 @pytest.fixture
