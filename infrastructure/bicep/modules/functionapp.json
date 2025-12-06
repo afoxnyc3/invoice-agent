@@ -1,0 +1,275 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.38.33.27573",
+      "templateHash": "8850980611553605443"
+    }
+  },
+  "parameters": {
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Function App name"
+      }
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name"
+      }
+    },
+    "storageAccountConnectionString": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Storage account connection string (deprecated - kept for backward compatibility)"
+      }
+    },
+    "appInsightsInstrumentationKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Application Insights instrumentation key"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic"
+      },
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "reserved": true,
+        "siteConfig": {
+          "pythonVersion": "3.11",
+          "linuxFxVersion": "PYTHON|3.11",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage__accountName",
+              "value": "[parameters('storageAccountName')]"
+            },
+            {
+              "name": "AzureWebJobsStorage__blobServiceUri",
+              "value": "[format('https://{0}.blob.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
+            },
+            {
+              "name": "AzureWebJobsStorage__queueServiceUri",
+              "value": "[format('https://{0}.queue.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
+            },
+            {
+              "name": "AzureWebJobsStorage__tableServiceUri",
+              "value": "[format('https://{0}.table.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
+            },
+            {
+              "name": "AzureWebJobsStorage__credential",
+              "value": "managedidentity"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[parameters('storageAccountConnectionString')]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(parameters('functionAppName'))]"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[parameters('appInsightsInstrumentationKey')]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[format('InstrumentationKey={0}', parameters('appInsightsInstrumentationKey'))]"
+            },
+            {
+              "name": "KEY_VAULT_URL",
+              "value": "[format('https://{0}.{1}/', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]"
+            },
+            {
+              "name": "GRAPH_TENANT_ID",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/graph-tenant-id/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "GRAPH_CLIENT_ID",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/graph-client-id/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "GRAPH_CLIENT_SECRET",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/graph-client-secret/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "INVOICE_MAILBOX",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/invoice-mailbox/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "AP_EMAIL_ADDRESS",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/ap-email-address/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "TEAMS_WEBHOOK_URL",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/teams-webhook-url/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "AZURE_OPENAI_ENDPOINT",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/azure-openai-endpoint/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "AZURE_OPENAI_API_KEY",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/azure-openai-api-key/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
+            },
+            {
+              "name": "PYDANTIC_PURE_PYTHON",
+              "value": "1"
+            }
+          ],
+          "cors": {
+            "allowedOrigins": []
+          },
+          "ftpsState": "Disabled",
+          "minTlsVersion": "1.2",
+          "scmMinTlsVersion": "1.2",
+          "http20Enabled": true,
+          "autoHealEnabled": true,
+          "autoHealRules": {
+            "triggers": {
+              "statusCodes": [
+                {
+                  "status": 500,
+                  "subStatus": 0,
+                  "win32Status": 0,
+                  "count": 10,
+                  "timeInterval": "00:05:00"
+                }
+              ],
+              "slowRequests": {
+                "timeTaken": "00:01:00",
+                "count": 5,
+                "timeInterval": "00:05:00"
+              }
+            },
+            "actions": {
+              "actionType": "Recycle",
+              "minProcessExecutionTime": "00:01:00"
+            }
+          }
+        },
+        "httpsOnly": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/slots",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', parameters('functionAppName'), 'staging')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "reserved": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', parameters('functionAppName'), 'slotConfigNames')]",
+      "properties": {
+        "appSettingNames": [],
+        "connectionStringNames": [],
+        "azureStorageConfigNames": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionAppId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+    },
+    "functionAppUrl": {
+      "type": "string",
+      "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2023-01-01').defaultHostName)]"
+    },
+    "functionAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), '2023-01-01', 'full').identity.principalId]"
+    },
+    "stagingSlotPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites/slots', parameters('functionAppName'), 'staging'), '2023-01-01', 'full').identity.principalId]"
+    }
+  }
+}
