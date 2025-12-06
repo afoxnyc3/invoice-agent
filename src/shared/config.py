@@ -270,14 +270,18 @@ class Config:
         Returns:
             List of missing configuration keys (empty if all present)
         """
-        required = [
-            ("AzureWebJobsStorage", "storage_connection_string"),
-            ("INVOICE_MAILBOX", "invoice_mailbox"),
-            ("AP_EMAIL_ADDRESS", "ap_email_address"),
-        ]
-
         missing = []
-        for env_key, _ in required:
+
+        # Check storage availability (supports both connection string and MSI formats)
+        if not self.is_storage_available:
+            missing.append("AzureWebJobsStorage (or MSI config)")
+
+        # Check required email settings
+        required_settings = [
+            "INVOICE_MAILBOX",
+            "AP_EMAIL_ADDRESS",
+        ]
+        for env_key in required_settings:
             if not os.environ.get(env_key):
                 missing.append(env_key)
 

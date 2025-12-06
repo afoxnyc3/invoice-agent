@@ -425,7 +425,8 @@ class TestConfigValidation:
         cfg = Config()
 
         missing = cfg.validate_required()
-        assert "AzureWebJobsStorage" in missing
+        # Check for storage config (either connection string or MSI format)
+        assert any("AzureWebJobsStorage" in m or "MSI" in m for m in missing)
         assert "INVOICE_MAILBOX" in missing
         assert "AP_EMAIL_ADDRESS" in missing
 
