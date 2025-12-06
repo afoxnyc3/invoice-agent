@@ -7,52 +7,32 @@ title = "Invoice Agent Gitleaks Configuration"
 # Use default gitleaks config as base
 useDefault = true
 
-# Allowlist patterns for known false positives
-[[allowlist]]
-description = "Test fixtures with fake credentials"
+# Global allowlist for known false positives
+[allowlist]
+description = "Allowlisted paths and patterns for Invoice Agent"
 paths = [
+  # Test fixtures with fake credentials
   '''tests/.*''',
   '''\.claude/.*''',
-]
-
-[[allowlist]]
-description = "Local development configuration template"
-paths = [
+  # Local development configuration template
   '''src/local\.settings\.json\.template''',
-]
-
-[[allowlist]]
-description = "Documentation examples and ADRs"
-paths = [
+  # Documentation examples and ADRs
   '''docs/.*\.md''',
   '''README\.md''',
   '''CLAUDE\.md''',
 ]
-
-[[allowlist]]
-description = "Azure connection string patterns in templates (not real credentials)"
 regexes = [
+  # Azure connection string patterns in templates (not real credentials)
   '''DefaultEndpointsProtocol=https;AccountName=\$\{.*\};EndpointSuffix=\$\{.*\};AccountKey=\$\{.*\}''',
+  # Azurite development storage emulator well-known key
   '''DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
-]
-
-[[allowlist]]
-description = "Bicep template variables and parameters"
-regexes = [
+  # Bicep template variables and parameters
   '''listKeys\(\)\.keys\[0\]\.value''',
   '''@secure\(\)''',
-]
-
-[[allowlist]]
-description = "GitHub Actions environment variable references"
-regexes = [
+  # GitHub Actions environment variable references
   '''\$\{\{ secrets\..*\}\}''',
   '''\$\{\{ env\..*\}\}''',
-]
-
-[[allowlist]]
-description = "Known test/example GUIDs and ULIDs"
-regexes = [
+  # Known test/example GUIDs and ULIDs
   '''01ARZ3NDEKTSV4RRFFQ69G5FAV''',
   '''00000000-0000-0000-0000-000000000000''',
 ]
