@@ -29,7 +29,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Required for gitleaks to access parent commit
+          fetch-depth: 0  # Full history for gitleaks commit range scanning
 
       - name: Scan for secrets with Gitleaks
         uses: gitleaks/gitleaks-action@v2
