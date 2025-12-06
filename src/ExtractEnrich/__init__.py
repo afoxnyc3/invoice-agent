@@ -21,6 +21,7 @@ from shared.email_composer import compose_unknown_vendor_email
 from shared.email_parser import extract_domain
 from shared.deduplication import is_message_already_processed, generate_invoice_hash
 from shared.pdf_extractor import extract_invoice_fields_from_pdf
+from shared.ulid_generator import utc_now_iso
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client: Ta
     This solves the race condition where multiple concurrent function instances
     might process the same message and send duplicate registration emails.
     """
-    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    now = utc_now_iso()
     transaction = InvoiceTransaction(
         PartitionKey=datetime.now(timezone.utc).strftime("%Y%m"),
         RowKey=raw_mail.id,

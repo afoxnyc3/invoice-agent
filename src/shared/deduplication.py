@@ -133,6 +133,9 @@ def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict[
             return None
 
         # Calculate partition key range for lookback period
+        # Note: We use naive datetimes for comparison since ProcessedAt timestamps
+        # from Table Storage are parsed as naive (after stripping Z suffix).
+        # Both are effectively UTC but comparing as naive for simplicity.
         end_date = datetime.now(timezone.utc).replace(tzinfo=None)
         start_date = end_date - timedelta(days=lookback_days)
 
