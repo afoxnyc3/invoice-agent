@@ -1,7 +1,7 @@
 # ADR-0020: Blue-Green Deployments
 
 **Date:** 2024-11-09
-**Status:** Accepted
+**Status:** Superseded by [ADR-0034](0034-blob-url-deployment.md)
 
 ## Context
 

@@ -420,40 +420,38 @@ bandit -r src/functions src/shared
 - [ ] Staging slot app settings synced
 - [ ] Rollback procedure tested
 
-### Staging Slot Deployment Pattern
+### Direct Blob URL Deployment Pattern
 
-Azure Function Apps use a **slot swap pattern** for zero-downtime deployments:
+Azure Function Apps use **direct blob URL deployment** for reliable deployments on Linux Consumption plan:
 
 ```
-Code → Test → Build → Deploy to Staging → Smoke Tests → Swap to Production
+Code → Test → Build → Upload to Blob → Generate SAS → Deploy to Production → Health Check → Tag Release
 ```
 
-**Critical: Staging Slot App Settings**
+**Why Not Slot Swap?**
 
-Staging slot does NOT auto-sync app settings from production. After Bicep deployment:
+Slot swap with `WEBSITE_RUN_FROM_PACKAGE=1` is unreliable on Linux Consumption plan - functions fail to load after swap. See [ADR-0034](docs/adr/0034-blob-url-deployment.md) for details.
 
+**How It Works:**
+1. Package uploaded to blob storage with git SHA in filename
+2. 1-year SAS URL generated using storage account key
+3. `WEBSITE_RUN_FROM_PACKAGE` set to explicit SAS URL
+4. Function App restarted to load new package
+5. Health check verifies 9 functions loaded
+
+**Rollback Procedure:**
 ```bash
-# Get production settings
-az functionapp config appsettings list \
-  --name func-invoice-agent-prod \
-  --resource-group rg-invoice-agent-prod \
-  --output json > /tmp/prod-settings.json
+# List available packages
+az storage blob list --container-name function-releases --account-name stinvoiceagentprod --query "[].name" -o tsv
 
-# Apply to staging slot
-az functionapp config appsettings set \
-  --name func-invoice-agent-prod \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging \
-  --settings @/tmp/prod-settings.json
+# Generate SAS for previous version (requires account key)
+ACCOUNT_KEY=$(az storage account keys list --account-name stinvoiceagentprod --query "[0].value" -o tsv)
+SAS_URL=$(az storage blob generate-sas --container-name function-releases --name "function-app-<prev-sha>.zip" --permissions r --expiry "$(date -u -d '+1 year' +%Y-%m-%dT%H:%MZ)" --account-key "$ACCOUNT_KEY" --full-uri -o tsv)
 
-# Restart staging slot
-az functionapp restart \
-  --name func-invoice-agent-prod \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging
+# Update app setting and restart
+az functionapp config appsettings set --name func-invoice-agent-prod --resource-group rg-invoice-agent-prod --settings "WEBSITE_RUN_FROM_PACKAGE=$SAS_URL"
+az functionapp restart --name func-invoice-agent-prod --resource-group rg-invoice-agent-prod
 ```
-
-**Why?** Bicep copies initial config, but changes to production settings don't replicate to staging. This must be done manually before each deployment cycle or settings will show `undefined` errors.
 
 ### Deployment Commands
 See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed instructions.
@@ -473,10 +471,10 @@ python infrastructure/scripts/seed_vendors.py --env $ENV
 ```
 
 ### Deployment Lessons Learned (Critical for Next Iteration)
-1. **Staging Slot Configuration**: Must manually sync app settings from production to staging after Bicep deployment. See [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) Step 2.5.
-2. **Artifact Path Handling**: GitHub Actions download-artifact@v4 creates directory automatically. Upload ZIP directly, not in subdirectory.
-3. **Function App Restart**: App settings changes require Function App restart to take effect. Not automatic.
-4. **CI/CD Workflow**: Test + Build must pass BEFORE staging deployment. Staging deployment blocks production approval.
+1. **Slot Swap Unreliable**: `WEBSITE_RUN_FROM_PACKAGE=1` breaks after slot swap on Linux Consumption - use explicit blob URL instead (ADR-0034)
+2. **User Delegation SAS Limited**: User delegation SAS limited to 7 days max - use storage account key SAS for 1-year expiry
+3. **Always Verify Health**: After deployment, verify health endpoint returns 200 AND 9 functions are loaded
+4. **Keep Old Packages**: Retain previous packages in blob storage for quick rollback capability
 
 ---
 
@@ -669,28 +667,29 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - Intelligent vendor extraction from PDF invoices using pdfplumber + Azure OpenAI
   - 95%+ accuracy, ~500ms latency, ~$0.001/invoice cost
   - Graceful fallback to email domain extraction if PDF extraction fails
-  - No breaking changes - optional feature with degradation path
+- ✅ **Blob URL Deployment** (Dec 6, 2025)
+  - Direct blob URL deployment replaces unreliable slot swap (ADR-0034)
+  - Each deployment creates version-tagged package in blob storage
+  - 1-year SAS URLs for package access
+  - Simplified CI/CD pipeline (~150 lines vs 520 lines)
 - ✅ CI/CD pipeline operational (389 tests, 85%+ coverage)
-- ✅ All P0 and P1 issues resolved (Nov 28, 2025)
-- ✅ Infrastructure ready (staging + production slots)
+- ✅ All P0 and P1 issues resolved
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational
 - ✅ System ready for production invoice processing
 - ✅ **AZQR Phase 1 Complete** (Dec 3, 2024)
   - Container soft delete, Key Vault diagnostics, auto-heal, cost tags
-  - $0-2/month cost impact for diagnostic log ingestion
 
-**Architecture Change:**
+**Architecture Changes:**
 ```
-BEFORE: Timer (5 min) → Poll Mailbox → Process (5 min latency, $2/month)
-AFTER:  Email Arrives → Webhook (<10 sec) → Process (<10 sec latency, $0.60/month)
+Email Processing: Timer (5 min) → Webhook (<10 sec)
+Deployment:       Slot Swap     → Direct Blob URL
 ```
 
 **Next Steps:**
-1. End-to-end production testing with webhook flow
-2. Performance measurement and monitoring (actual metrics vs targets)
-3. Monitor processing in Application Insights
-4. Address P2 issues in next sprint
+1. End-to-end production testing with real invoices
+2. Monitor webhook and blob URL deployment performance
+3. Consider decommissioning staging slot (optional cost savings)
 
 ---
 
@@ -734,8 +733,8 @@ Create an ADR when making decisions about:
 
 ### Current ADR Count
 
-- **31 ADRs** documented (0001-0031)
-- **4 Superseded**: 0004, 0008, 0012, 0017
+- **34 ADRs** documented (0001-0034)
+- **5 Superseded**: 0004, 0008, 0012, 0017, 0020
 - See [docs/adr/README.md](docs/adr/README.md) for full index
 
 ---
@@ -761,6 +760,6 @@ Create an ADR when making decisions about:
 
 ---
 
-**Version:** 2.8 (Documentation Audit)
-**Last Updated:** 2024-12-04
+**Version:** 3.0 (Blob URL Deployment)
+**Last Updated:** 2025-12-06
 **Maintained By:** Engineering Team

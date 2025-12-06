@@ -153,7 +153,7 @@ graph LR
 - ✅ **MailWebhook function** - HTTP endpoint receives Graph API notifications
 - ✅ **SubscriptionManager function** - Automatic subscription renewal every 6 days
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
-- ✅ Full CI/CD pipeline with staging/production slot pattern, automated rollback, and secrets validation
+- ✅ Full CI/CD pipeline with direct blob URL deployment, health verification, and release tagging
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
 - ✅ **9 Azure Functions** implemented and tested (389 tests, 85%+ coverage)
 - ✅ Comprehensive monitoring and logging
@@ -192,7 +192,7 @@ graph LR
 | CI/CD Pipeline | Stable | **Passing** ✅ |
 | Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
 | Infrastructure | Deployed | **Production Ready** ✅ |
-| Deployment Pattern | Blue/Green | **Staging Slot + Auto Rollback** ✅ |
+| Deployment Pattern | Blob URL | **Direct Deploy + Health Check** ✅ |
 | P0/P1 Issues | Resolved | **All Complete** ✅ |
 
 **Performance Metrics (Not Yet Tested in Production):**
@@ -302,4 +302,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 2.8 | **Last Updated:** 2024-12-04
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.0 | **Last Updated:** 2025-12-06

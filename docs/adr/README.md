@@ -34,7 +34,7 @@ An ADR captures a significant architectural decision along with its context and 
 | [0017](0017-test-coverage-target.md) | Test Coverage Target (60%) | Superseded | 2024-11-09 |
 | [0018](0018-github-actions-cicd.md) | GitHub Actions CI/CD | Accepted | 2024-11-09 |
 | [0019](0019-application-insights-monitoring.md) | Application Insights Monitoring | Accepted | 2024-11-09 |
-| [0020](0020-blue-green-deployments.md) | Blue-Green Deployments | Accepted | 2024-11-09 |
+| [0020](0020-blue-green-deployments.md) | Blue-Green Deployments | Superseded | 2024-11-09 |
 | [0021](0021-event-driven-webhooks.md) | Event-Driven Webhooks | Accepted | 2024-11-20 |
 | [0022](0022-pdf-vendor-extraction.md) | PDF Vendor Extraction | Accepted | 2024-11-24 |
 | [0023](0023-slot-swap-resilience.md) | Slot Swap Resilience | Accepted | 2024-12-03 |
@@ -48,6 +48,7 @@ An ADR captures a significant architectural decision along with its context and 
 | [0031](0031-azqr-security-recommendations.md) | AZQR Security Recommendations | Accepted | 2024-12-03 |
 | [0032](0032-circuit-breaker-pattern.md) | Circuit Breaker Pattern | Accepted | 2024-12-05 |
 | [0033](0033-schema-versioning-strategy.md) | Schema Versioning Strategy | Accepted | 2024-12-05 |
+| [0034](0034-blob-url-deployment.md) | Blob URL Deployment | Accepted | 2025-12-06 |
 
 ## ADR Status Legend
 
@@ -68,6 +69,7 @@ The following ADRs have been replaced:
 | [0008](0008-function-line-limit.md) | [0026](0026-cyclomatic-complexity-metric.md) | Cyclomatic complexity better measures actual complexity |
 | [0012](0012-timer-trigger-polling.md) | [0021](0021-event-driven-webhooks.md) | Webhooks provide <10s latency and 70% cost savings |
 | [0017](0017-test-coverage-target.md) | [0024](0024-test-coverage-enforcement.md) | Coverage increased from 60% to 85% post-MVP |
+| [0020](0020-blue-green-deployments.md) | [0034](0034-blob-url-deployment.md) | Slot swap unreliable on Linux Consumption; blob URL is more reliable |
 
 ## Creating a New ADR
 
@@ -79,7 +81,7 @@ The following ADRs have been replaced:
 ## ADR Categories
 
 ### Infrastructure & Deployment
-0001, 0013, 0014, 0016, 0018, 0020, 0023, 0025, 0029, 0031
+0001, 0013, 0014, 0016, 0018, 0020, 0023, 0025, 0029, 0031, 0034
 
 ### Data & Storage
 0002, 0003, 0007, 0028, 0033

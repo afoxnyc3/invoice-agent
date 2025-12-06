@@ -1374,13 +1374,13 @@ User: [PDF text, first 2000 chars]
 - **Scale**: Minimal (1-2 instances)
 - **Monitoring**: Basic Application Insights
 
-#### Staging
-- **Purpose**: Pre-production testing
+#### Staging (Optional)
+- **Purpose**: Manual testing before production (not used in CI/CD)
 - **Region**: Same as production
 - **Redundancy**: Standard_LRS
 - **Scale**: Production-like
 - **Monitoring**: Full Application Insights
-- **Deployment Slot**: Staging slot in production Function App
+- **Note**: Staging slot exists but is not used in automated deployments (see ADR-0034)
 
 #### Production
 - **Purpose**: Live invoice processing
@@ -1392,27 +1392,26 @@ User: [PDF text, first 2000 chars]
 ### CI/CD Pipeline
 
 ```
-GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings → Smoke Tests → Swap Slots → Production
-                                                                                              ↓ (on failure)
-                                                                                        Auto Rollback
+GitHub → Actions → Tests → Build → Upload to Blob → Generate SAS → Deploy to Production → Health Check → Tag Release
 ```
 
 **Pipeline Stages**:
 1. **Test**: Run pytest (389 tests, 85%+ coverage)
 2. **Lint**: Black, Flake8, mypy, bandit
-3. **Build**: Package Python functions
-4. **Deploy Staging**: Deploy to staging slot
-5. **Validate Settings**: Verify required app settings present (GRAPH_*, AZURE_OPENAI_*, etc.)
-6. **Smoke Tests**: Verify basic functionality
-7. **Approval**: Manual approval gate
-8. **Swap**: Blue-green deployment via slot swap
-9. **Production Health Check**: Verify production is healthy
-10. **Auto Rollback** (on failure): Swap slots back automatically, notify Teams
+3. **Build**: Package Python functions into ZIP
+4. **Infrastructure**: Deploy Bicep templates (incremental mode)
+5. **Upload**: Upload package to blob storage with git SHA filename
+6. **Generate SAS**: Create 1-year SAS URL for package access
+7. **Deploy**: Update `WEBSITE_RUN_FROM_PACKAGE` app setting with SAS URL
+8. **Restart**: Restart Function App to load new package
+9. **Health Check**: Verify health endpoint returns 200 and 9 functions loaded
+10. **Tag**: Create git tag for release tracking
 
-**Deployment Pattern**: Blue-Green via Staging Slots
-- Zero-downtime deployments
-- Instant rollback (swap back)
-- Production traffic validation
+**Deployment Pattern**: Direct Blob URL Deployment
+- No staging slot or slot swap (removed due to reliability issues on Linux Consumption)
+- Each deployment creates version-tagged package (`function-app-{sha}.zip`)
+- Rollback by updating `WEBSITE_RUN_FROM_PACKAGE` to previous package URL
+- See [ADR-0034](adr/0034-blob-url-deployment.md) for rationale
 
 ### Configuration Management
 
@@ -1432,9 +1431,19 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 - Automatic rotation where supported
 
 **Rollback Procedure**:
-- Swap slots back to previous version
-- Restore from backup if data corruption
-- See [docs/operations/ROLLBACK_PROCEDURE.md](operations/ROLLBACK_PROCEDURE.md)
+```bash
+# List available packages
+az storage blob list --container-name function-releases --account-name stinvoiceagentprod --query "[].name" -o tsv
+
+# Generate SAS for previous version
+az storage blob generate-sas --container-name function-releases --name "function-app-<prev-sha>.zip" ...
+
+# Update app setting and restart
+az functionapp config appsettings set --settings "WEBSITE_RUN_FROM_PACKAGE=<sas-url>"
+az functionapp restart --name func-invoice-agent-prod
+```
+- See [docs/DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed rollback steps
+- See [docs/operations/ROLLBACK_PROCEDURE.md](operations/ROLLBACK_PROCEDURE.md) for emergency procedures
 
 ---
 
@@ -1467,9 +1476,9 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 - GitHub Actions workflow configured
 - 389 tests passing (85%+ coverage)
 - Quality gates: Black, Flake8, mypy, bandit
-- Staging deployment automated
-- Production approval gate
-- Slot swap pattern implemented
+- Direct blob URL deployment to production
+- Health check verification (9 functions loaded)
+- Automatic release tagging
 
 **Integration** ✅:
 - Graph API (MSAL authentication)
@@ -1488,10 +1497,10 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 ### Activation Status
 
 **Deployment Lessons Learned**:
-1. **Staging Slot Configuration**: Must manually sync app settings from production to staging after Bicep deployment
-2. **Artifact Path Handling**: GitHub Actions download-artifact@v4 creates directory automatically
-3. **Function App Restart**: App settings changes require Function App restart to take effect
-4. **CI/CD Workflow**: Test + Build must pass BEFORE staging deployment
+1. **Slot Swap Unreliable on Linux Consumption**: `WEBSITE_RUN_FROM_PACKAGE=1` breaks after slot swap - use explicit blob URL instead (see ADR-0034)
+2. **User Delegation SAS Limited to 7 Days**: For longer expiry, use storage account key SAS
+3. **Health Check Critical**: Always verify functions loaded (count=9) and health endpoint returns 200 after deployment
+4. **Rollback via Blob URL**: Keep previous packages in blob storage for quick rollback
 
 **Activation Status** ✅:
 - **VendorMaster table seeded**: Production ready with vendor data loaded
@@ -1623,8 +1632,8 @@ GitHub → Actions → Tests → Build → Deploy Staging → Validate Settings 
 
 ---
 
-**Version:** 2.8 (Documentation Audit)
-**Last Updated:** 2024-12-04
+**Version:** 3.0 (Blob URL Deployment)
+**Last Updated:** 2025-12-06
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)
