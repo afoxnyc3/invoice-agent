@@ -281,14 +281,20 @@ jobs:
           EXPIRY=$(date -u -d "+1 year" +%Y-%m-%dT%H:%MZ)
           echo "SAS expiry: ${EXPIRY}"
 
+          # Get storage account key (user delegation SAS limited to 7 days)
+          ACCOUNT_KEY=$(az storage account keys list \
+            --account-name ${{ env.STORAGE_ACCOUNT_PROD }} \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "[0].value" -o tsv)
+          echo "::add-mask::${ACCOUNT_KEY}"
+
           SAS_URL=$(az storage blob generate-sas \
             --container-name function-releases \
             --name "${{ steps.upload.outputs.package_name }}" \
             --permissions r \
             --expiry "${EXPIRY}" \
             --account-name ${{ env.STORAGE_ACCOUNT_PROD }} \
-            --auth-mode login \
-            --as-user \
+            --account-key "${ACCOUNT_KEY}" \
             --full-uri \
             -o tsv)
 
