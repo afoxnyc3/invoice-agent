@@ -8,6 +8,8 @@ This guide covers the complete setup and deployment process for the Invoice Agen
 - [GitHub Secrets Configuration](#github-secrets-configuration)
 - [Environment Protection Rules](#environment-protection-rules)
 - [First Deployment](#first-deployment)
+- [Deployment Flow](#deployment-flow)
+- [Rollback Procedure](#rollback-procedure)
 - [Monitoring Deployments](#monitoring-deployments)
 - [Troubleshooting](#troubleshooting)
 
@@ -71,19 +73,26 @@ az ad sp create-for-rbac \
 }
 ```
 
-### 2. Grant Service Principal User Access Administrator Role
+### 2. Grant Service Principal Additional Roles
 
-For RBAC module deployment, the service principal needs additional permissions:
+For RBAC module deployment and blob URL deployments, the service principal needs additional permissions:
 
 ```bash
 # Get the service principal Object ID
 SP_OBJECT_ID=$(az ad sp list --display-name "sp-invoice-agent-github-prod" --query "[0].id" -o tsv)
 
-# Assign User Access Administrator role (scoped to resource group)
+# Assign User Access Administrator role (for RBAC deployments)
 az role assignment create \
   --assignee-object-id $SP_OBJECT_ID \
   --assignee-principal-type ServicePrincipal \
   --role "User Access Administrator" \
+  --scope /subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod
+
+# Assign Storage Blob Data Contributor role (for blob URL deployment)
+az role assignment create \
+  --assignee-object-id $SP_OBJECT_ID \
+  --assignee-principal-type ServicePrincipal \
+  --role "Storage Blob Data Contributor" \
   --scope /subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod
 ```
 
@@ -167,8 +176,9 @@ For the **production** environment:
 
 Environment URLs are configured in the workflow for easy access:
 - Development: `https://func-invoice-agent-dev.azurewebsites.net`
-- Staging: `https://func-invoice-agent-prod-staging.azurewebsites.net`
 - Production: `https://func-invoice-agent-prod.azurewebsites.net`
+
+> **Note:** We no longer use the staging slot for deployments. The staging slot exists for manual testing only. See [ADR-0034](./adr/0034-blob-url-deployment.md) for details.
 
 ## First Deployment
 
@@ -218,89 +228,6 @@ az keyvault secret set --vault-name $KV_NAME --name "azure-openai-api-key" --val
 
 **Note:** The Bicep template automatically configures Function App settings to reference Key Vault. Secret names use kebab-case (e.g., `graph-tenant-id`) to match the Key Vault references in `functionapp.bicep`.
 
-### Step 2.5: Configure Staging Slot App Settings (AUTOMATED)
-
-> **Note:** As of issue #49, app settings sync is now **automated** in the CI/CD pipeline. The `deploy-staging` job automatically syncs production app settings to the staging slot after each deployment. Manual configuration is only needed for initial setup or troubleshooting.
-
-**Background**: The staging slot is created by Bicep but does NOT automatically inherit app settings from production. Without syncing, deployments fail with error: `"undefined.blob.core.windows.net"`.
-
-**What's Automated:**
-- Production app settings are synced to staging slot during each CI/CD deployment
-- Slot-specific settings (`WEBSITE_CONTENTAZUREFILECONNECTIONSTRING`, `WEBSITE_CONTENTSHARE`) are excluded
-- This happens after code deployment, before smoke tests
-
-**Manual Configuration (for initial setup or troubleshooting):**
-
-**Configure staging slot settings:**
-
-```bash
-# Get Function App name
-FUNC_NAME=$(az functionapp list \
-  --resource-group rg-invoice-agent-prod \
-  --query "[?contains(name, 'invoice-agent')].name" -o tsv)
-
-# Get production app settings
-az functionapp config appsettings list \
-  --name $FUNC_NAME \
-  --resource-group rg-invoice-agent-prod \
-  --output json > /tmp/prod-settings.json
-
-# Apply settings to staging slot
-az functionapp config appsettings set \
-  --name $FUNC_NAME \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging \
-  --settings @/tmp/prod-settings.json
-
-# Verify staging slot has settings (should show storage account name)
-az functionapp config appsettings list \
-  --name $FUNC_NAME \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging \
-  --query "[?name=='AzureWebJobsStorage__accountName'].value" -o tsv
-# Expected output: stinvoiceagentprod (NOT empty or "undefined")
-```
-
-**Restart staging slot to load settings:**
-
-```bash
-# Restart the staging slot
-az functionapp stop \
-  --name $FUNC_NAME \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging
-
-# Wait 10 seconds
-sleep 10
-
-# Start the slot
-az functionapp start \
-  --name $FUNC_NAME \
-  --resource-group rg-invoice-agent-prod \
-  --slot staging
-
-# Wait for startup
-echo "Waiting 30 seconds for slot startup..."
-sleep 30
-```
-
-**Verify staging slot is healthy:**
-
-```bash
-# Check slot health
-STAGING_URL="https://${FUNC_NAME}-staging.azurewebsites.net"
-HEALTH=$(curl -s "${STAGING_URL}/admin/host/status" | grep -o '"state":"[^"]*"')
-echo "Staging slot status: $HEALTH"
-# Expected: "state":"Running"
-```
-
-**Troubleshooting:**
-- Error: `"undefined.blob.core.windows.net"` → App settings not synced to staging slot (re-run Step 2.5)
-- 500 errors after deployment → Restart staging slot again, settings may need more time to load
-- Key Vault access denied → Verify staging slot managed identity has Key Vault access policy
-
----
-
 ### Step 3: Seed Vendor Data
 
 Initialize the VendorMaster table:
@@ -330,12 +257,117 @@ Or manually trigger the workflow:
 ### Step 5: Approve Production Deployment
 
 1. Monitor the workflow run in the **Actions** tab
-2. Wait for staging deployment to complete
-3. Review staging deployment results
-4. When **deploy-production** job reaches "Waiting for approval":
+2. Wait for tests and build to complete
+3. When **deploy-production** job reaches "Waiting for approval":
    - Click **Review deployments**
    - Review changes
    - Click **Approve and deploy** (or Reject)
+4. Monitor deployment progress (upload, restart, health check)
+
+## Deployment Flow
+
+As of December 2025, we use **direct blob URL deployment** instead of slot swaps. See [ADR-0034](./adr/0034-blob-url-deployment.md) for details.
+
+### How It Works
+
+```
+Test → Build → Upload to Blob → Generate SAS → Update App Setting → Restart → Health Check → Tag
+```
+
+1. **Test**: Run unit tests, linting, security scans
+2. **Build**: Create deployment package (`function-app.zip`)
+3. **Upload to Blob**: Store package in `function-releases` container with git SHA
+4. **Generate SAS**: Create 1-year read-only SAS URL
+5. **Update App Setting**: Set `WEBSITE_RUN_FROM_PACKAGE` to the SAS URL
+6. **Restart**: Restart function app to load new package
+7. **Health Check**: Verify `/api/health` returns 200 and 9 functions are loaded
+8. **Tag**: Create git tag `prod-YYYYMMDD-HHMMSS`
+
+### Why Not Slot Swap?
+
+The previous staging + slot swap approach had reliability issues on Linux Consumption plan:
+- `WEBSITE_RUN_FROM_PACKAGE=1` relies on metadata that doesn't transfer correctly during slot swap
+- Functions would fail to load after swap (404 errors, "0 functions loaded")
+- This is a known limitation of the platform
+
+### Deployment Packages
+
+All deployment packages are stored in blob storage:
+
+```bash
+# List deployed packages
+az storage blob list \
+  --container-name function-releases \
+  --account-name stinvoiceagentprod \
+  --auth-mode login \
+  --query "[].{name:name, created:properties.creationTime}" \
+  -o table
+```
+
+## Rollback Procedure
+
+To rollback to a previous deployment:
+
+### 1. Identify Previous Package
+
+```bash
+# List available packages (most recent first)
+az storage blob list \
+  --container-name function-releases \
+  --account-name stinvoiceagentprod \
+  --auth-mode login \
+  --query "sort_by([].{name:name, created:properties.creationTime}, &created) | reverse(@)" \
+  -o table
+```
+
+### 2. Generate SAS URL for Previous Package
+
+```bash
+# Replace PACKAGE_NAME with the target package
+PACKAGE_NAME="function-app-abc123def456.zip"
+
+EXPIRY=$(date -u -d "+1 year" +%Y-%m-%dT%H:%MZ)
+
+SAS_URL=$(az storage blob generate-sas \
+  --container-name function-releases \
+  --name "${PACKAGE_NAME}" \
+  --permissions r \
+  --expiry "${EXPIRY}" \
+  --account-name stinvoiceagentprod \
+  --auth-mode login \
+  --full-uri \
+  -o tsv)
+
+echo "SAS URL: ${SAS_URL}"
+```
+
+### 3. Deploy Previous Package
+
+```bash
+# Update app setting
+az functionapp config appsettings set \
+  --name func-invoice-agent-prod \
+  --resource-group rg-invoice-agent-prod \
+  --settings "WEBSITE_RUN_FROM_PACKAGE=${SAS_URL}" \
+  --output none
+
+# Restart function app
+az functionapp restart \
+  --name func-invoice-agent-prod \
+  --resource-group rg-invoice-agent-prod
+
+# Wait and verify health
+sleep 45
+
+curl -s "https://func-invoice-agent-prod.azurewebsites.net/api/health?code=$(az functionapp keys list --name func-invoice-agent-prod --resource-group rg-invoice-agent-prod --query 'functionKeys.default' -o tsv)"
+```
+
+### Rollback Timing
+
+- **Identify package**: ~30 seconds
+- **Generate SAS**: ~10 seconds
+- **Update setting + restart**: ~60 seconds
+- **Total**: ~2 minutes
 
 ## Monitoring Deployments
 
@@ -358,9 +390,8 @@ Monitor Function App health:
 ### Key Metrics to Monitor
 
 - **Deployment success rate**: Target 95%+
-- **Staging smoke tests**: All passing
 - **Production health checks**: All passing
-- **Slot swap duration**: <60 seconds
+- **Deployment duration**: ~90 seconds (restart + health check)
 - **Cold start time**: 2-4 seconds
 - **Error rate post-deployment**: <1%
 
@@ -402,36 +433,39 @@ az functionapp deployment list \
 2. Verify Python 3.11 compatibility of dependencies
 3. Test locally: `cd src && pip install -r requirements.txt`
 
-#### Staging Deployment Fails
+#### Production Deployment Fails
 
-**Problem:** Deployment to staging slot fails
+**Problem:** Deployment to production fails
 
 **Solution:**
-1. Verify `AZURE_CREDENTIALS` secret is correct
-2. Ensure service principal has Contributor role
+1. Verify `AZURE_CREDENTIALS_PROD` secret is correct
+2. Ensure service principal has Contributor + Storage Blob Data Contributor roles
 3. Check resource group exists: `az group show -n rg-invoice-agent-prod`
-4. Review Azure deployment logs in portal
+4. Verify `function-releases` container exists in storage account
+5. Review Azure deployment logs in portal
 
-#### Smoke Tests Fail
+#### Health Check Fails After Deployment
 
-**Problem:** Staging smoke tests fail after deployment
-
-**Solution:**
-1. Check Function App logs in Azure Portal
-2. Verify app settings are configured correctly
-3. Ensure managed identity has access to Storage and Key Vault
-4. Wait 60 seconds and re-run tests (cold start issue)
-
-#### Production Swap Fails
-
-**Problem:** Slot swap to production fails
+**Problem:** Health endpoint returns non-200 after deployment
 
 **Solution:**
-1. Check Function App health in Azure Portal
-2. Verify no sticky settings prevent swap
-3. Manually swap via Azure Portal as test
-4. Check Application Insights for errors
-5. See [ROLLBACK_PROCEDURE.md](./ROLLBACK_PROCEDURE.md) for recovery
+1. Wait additional 30-60 seconds (cold start)
+2. Check Function App logs in Azure Portal
+3. Verify app settings are configured correctly
+4. Ensure managed identity has access to Storage and Key Vault
+5. Check if 9 functions are loaded: `az functionapp function list --name func-invoice-agent-prod --resource-group rg-invoice-agent-prod`
+6. See [Rollback Procedure](#rollback-procedure) if urgent
+
+#### Functions Not Loading (0 functions)
+
+**Problem:** Azure shows "0 functions loaded" after deployment
+
+**Solution:**
+1. Verify `WEBSITE_RUN_FROM_PACKAGE` contains valid blob URL (not `=1`)
+2. Check SAS URL hasn't expired
+3. Verify package exists in blob storage
+4. Restart function app and wait 60 seconds
+5. If persistent, manually deploy using rollback procedure with known-good package
 
 ### Authentication Issues
 
@@ -492,14 +526,14 @@ az keyvault set-policy \
 
 ## Best Practices
 
-1. **Always test in staging first** - Never deploy directly to production
-2. **Monitor post-deployment** - Check metrics for 15 minutes after deployment
-3. **Incremental changes** - Deploy small, testable changes
-4. **Tag releases** - Pipeline automatically tags production deployments
-5. **Rotate credentials** - Update service principals every 90 days
-6. **Document changes** - Update commit messages with deployment notes
-7. **Use feature branches** - Merge to main only after PR review
-8. **Run smoke tests locally** - Test infrastructure changes before pushing
+1. **Monitor post-deployment** - Check metrics for 15 minutes after deployment
+2. **Incremental changes** - Deploy small, testable changes
+3. **Tag releases** - Pipeline automatically tags production deployments
+4. **Rotate credentials** - Update service principals every 90 days
+5. **Document changes** - Update commit messages with deployment notes
+6. **Use feature branches** - Merge to main only after PR review
+7. **Run tests locally** - Test changes before pushing
+8. **Keep rollback packages** - Don't delete recent packages from blob storage
 
 ## Additional Resources
 
