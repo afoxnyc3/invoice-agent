@@ -126,7 +126,7 @@ MailWebhook (HTTP) → webhook-notifications (Queue)
 | Finding | Severity | Impact | Recommendation |
 |---------|----------|--------|----------------|
 | ExtractEnrich complexity at threshold | LOW | Technical debt | Monitor; refactor if adding logic |
-| Some deprecation warnings | INFO | Python 3.12 compat | Update datetime.utcnow() calls |
+| ~~Some deprecation warnings~~ | INFO | ~~Python 3.12 compat~~ | ✅ **FIXED** - All datetime.utcnow() calls updated |
 
 ### 3. Security Assessment (90/100)
 
@@ -276,16 +276,17 @@ Implementation:
 ```
 
 ```
-Priority: High
+Priority: High ✅ RESOLVED
 Category: dev
 Issue: Python deprecation warnings (datetime.utcnow())
 Impact: Python 3.12+ compatibility
-Effort: 1 hour
+Effort: 1 hour → COMPLETED
 Cost: $0
-Implementation:
-1. Replace datetime.utcnow() with datetime.now(datetime.UTC)
-2. Update SubscriptionManager/__init__.py lines 49, 50
-3. Run tests to verify no regressions
+Status: FIXED in this audit
+Resolution:
+1. ✅ Created utc_now_iso() utility in shared/ulid_generator.py
+2. ✅ Updated 5 files: SubscriptionManager, AddVendor, ExtractEnrich, graph_client, deduplication
+3. ✅ All tests pass, no regressions
 ```
 
 ### Priority: MEDIUM
@@ -366,7 +367,7 @@ Implementation:
 
 | Item | Effort | Impact | Action |
 |------|--------|--------|--------|
-| Fix deprecation warnings | 30 min | Python 3.12 ready | Update datetime calls |
+| Fix deprecation warnings | 30 min | Python 3.12 ready | ✅ **DONE** - utc_now_iso() utility added |
 | Update retry doc | 5 min | Accuracy | Already done ✅ |
 | CORS template warning | 5 min | Security awareness | Already done ✅ |
 
@@ -374,20 +375,19 @@ Implementation:
 
 ## Code Examples: Improved Implementations
 
-### Example 1: Fix Deprecation Warning
+### Example 1: Fix Deprecation Warning (COMPLETED)
 
-**Current (SubscriptionManager/__init__.py:49-50):**
+**Before (deprecated):**
 ```python
 "CreatedAt": datetime.utcnow().isoformat(),
 "LastRenewed": datetime.utcnow().isoformat(),
 ```
 
-**Improved:**
+**After (using new utility):**
 ```python
-from datetime import datetime, timezone
+from shared.ulid_generator import utc_now_iso
 
-"CreatedAt": datetime.now(timezone.utc).isoformat(),
-"LastRenewed": datetime.now(timezone.utc).isoformat(),
+now = utc_now_iso()  # Returns '2024-12-06T03:30:00.123456Z'
 ```
 
 ### Example 2: Fix Test Timeouts
