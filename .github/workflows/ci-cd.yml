@@ -288,6 +288,7 @@ jobs:
             --expiry "${EXPIRY}" \
             --account-name ${{ env.STORAGE_ACCOUNT_PROD }} \
             --auth-mode login \
+            --as-user \
             --full-uri \
             -o tsv)
 
