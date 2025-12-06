@@ -359,7 +359,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - `raw-mail`: Unprocessed emails from MailIngest (fallback path)
 - `to-post`: Enriched invoices for AP routing
 - `notify`: Notifications for Teams
-- `*-poison`: Dead letter queues (5 retry attempts)
+- `*-poison`: Dead letter queues (3 retry attempts)
 
 ### Security Layer
 **Managed Identity** (System-assigned)
@@ -881,7 +881,7 @@ See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 - 3 retries with exponential backoff (2s, 4s, 8s)
 - Graph API throttling: Honor `Retry-After` headers
 - Queue visibility timeout: 5 minutes
-- Poison queue after 5 attempts
+- Poison queue after 3 attempts
 
 **Common Transient Errors**:
 - Network timeouts
@@ -952,7 +952,7 @@ See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 **Queues**:
 - Parallel processing with visibility timeout
 - Poison queues for failed messages
-- Dead letter handling after 5 retries
+- Dead letter handling after 3 retries
 
 **Storage**:
 - Table Storage partitioned by month (PartitionKey=YYYYMM)
