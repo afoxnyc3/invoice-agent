@@ -87,9 +87,7 @@ class TestHealthStorageFailures:
     def test_health_storage_unavailable(self, mock_config):
         """Test returns 503 when Table Storage is unavailable."""
         # Mock storage failure
-        mock_config.table_service.list_tables.side_effect = Exception(
-            "Connection refused"
-        )
+        mock_config.table_service.list_tables.side_effect = Exception("Connection refused")
         mock_config.validate_required.return_value = []
 
         from Health import main
@@ -112,9 +110,7 @@ class TestHealthStorageFailures:
     @patch("Health.config")
     def test_health_storage_timeout(self, mock_config):
         """Test returns 503 when storage times out."""
-        mock_config.table_service.list_tables.side_effect = Exception(
-            "Connection timeout"
-        )
+        mock_config.table_service.list_tables.side_effect = Exception("Connection timeout")
         mock_config.validate_required.return_value = []
 
         from Health import main
