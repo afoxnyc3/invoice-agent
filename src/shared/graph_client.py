@@ -323,10 +323,10 @@ class GraphAPIClient:
             ... )
             {'id': 'sub-12345', 'expirationDateTime': '2025-11-27T...'}
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         # Graph max: 4230 minutes (just under 7 days) for mail resources
-        expiration = datetime.utcnow() + timedelta(minutes=4200)
+        expiration = datetime.now(timezone.utc) + timedelta(minutes=4200)
 
         payload = {
             "changeType": "created",
@@ -353,9 +353,9 @@ class GraphAPIClient:
             >>> client.renew_subscription('sub-12345')
             {'id': 'sub-12345', 'expirationDateTime': '2025-11-27T...'}
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        expiration = datetime.utcnow() + timedelta(minutes=4200)
+        expiration = datetime.now(timezone.utc) + timedelta(minutes=4200)
         payload = {"expirationDateTime": expiration.isoformat() + "Z"}
 
         return self._make_request("PATCH", f"subscriptions/{subscription_id}", json=payload)

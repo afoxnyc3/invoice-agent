@@ -8,6 +8,7 @@ ULIDs provide:
 - No special characters (safe for all systems)
 """
 
+from datetime import datetime, timezone
 from ulid import ULID
 
 
@@ -29,3 +30,23 @@ def generate_ulid() -> str:
         '01JCK3Q7H8ZVXN3BARC9GWAEZM'
     """
     return str(ULID())
+
+
+def utc_now_iso() -> str:
+    """
+    Get current UTC time in ISO 8601 format with Z suffix.
+
+    Returns consistent timestamp format across the codebase:
+    - Always UTC timezone
+    - ISO 8601 format with Z suffix
+    - Microsecond precision
+
+    Returns:
+        str: ISO 8601 timestamp (e.g., '2024-12-06T03:30:00.123456Z')
+
+    Example:
+        >>> timestamp = utc_now_iso()
+        >>> print(timestamp)
+        '2024-12-06T03:30:00.123456Z'
+    """
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
