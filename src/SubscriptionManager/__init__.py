@@ -13,7 +13,7 @@ Subscription lifecycle:
 
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 import azure.functions as func
 from azure.data.tables import TableServiceClient, TableClient
@@ -46,8 +46,8 @@ def _save_subscription_record(table_client: TableClient, subscription_id: str, e
         "RowKey": subscription_id,
         "SubscriptionId": subscription_id,
         "ExpirationDateTime": expiration,
-        "CreatedAt": datetime.utcnow().isoformat(),
-        "LastRenewed": datetime.utcnow().isoformat(),
+        "CreatedAt": datetime.now(timezone.utc).isoformat(),
+        "LastRenewed": datetime.now(timezone.utc).isoformat(),
         "IsActive": True,
     }
     try:
@@ -131,7 +131,7 @@ def main(timer: func.TimerRequest) -> None:
                 expiration = result.get("expirationDateTime")
 
                 # Update record
-                existing_subscription["LastRenewed"] = datetime.utcnow().isoformat()
+                existing_subscription["LastRenewed"] = datetime.now(timezone.utc).isoformat()
                 existing_subscription["ExpirationDateTime"] = expiration
                 table_client.update_entity(existing_subscription)
 

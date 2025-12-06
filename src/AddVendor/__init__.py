@@ -4,7 +4,7 @@ AddVendor HTTP function - Register new vendors in VendorMaster table.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 import azure.functions as func
 from azure.core.exceptions import ResourceExistsError
 from pydantic import ValidationError
@@ -33,7 +33,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "GLCode": data.get("gl_code"),
             "ProductCategory": data.get("product_category", "Direct"),
             "VenueRequired": data.get("venue_required", False),
-            "UpdatedAt": datetime.utcnow().isoformat() + "Z",
+            "UpdatedAt": datetime.now(timezone.utc).isoformat() + "Z",
         }
         vendor = VendorMaster(**vendor_data)
 

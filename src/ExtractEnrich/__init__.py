@@ -9,7 +9,7 @@ Looks up vendor in VendorMaster table by vendor name. Implements:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 import azure.functions as func
 from azure.core.exceptions import ResourceExistsError
@@ -98,9 +98,9 @@ def _try_claim_transaction(raw_mail: RawMail, vendor_name: str, table_client: Ta
     This solves the race condition where multiple concurrent function instances
     might process the same message and send duplicate registration emails.
     """
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     transaction = InvoiceTransaction(
-        PartitionKey=datetime.utcnow().strftime("%Y%m"),
+        PartitionKey=datetime.now(timezone.utc).strftime("%Y%m"),
         RowKey=raw_mail.id,
         VendorName=vendor_name,
         SenderEmail=raw_mail.sender,
