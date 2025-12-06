@@ -24,7 +24,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     accessTier: 'Hot'
     supportsHttpsTrafficOnly: true
-    minimumTlsVersion: 'TLS1_3'
+    minimumTlsVersion: 'TLS1_2'  // TLS 1.3 not yet supported by Azure Storage
     allowBlobPublicAccess: false
     networkAcls: {
       defaultAction: 'Allow'

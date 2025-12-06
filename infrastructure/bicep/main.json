@@ -155,7 +155,7 @@
               "properties": {
                 "accessTier": "Hot",
                 "supportsHttpsTrafficOnly": true,
-                "minimumTlsVersion": "TLS1_3",
+                "minimumTlsVersion": "TLS1_2",
                 "allowBlobPublicAccess": false,
                 "networkAcls": {
                   "defaultAction": "Allow",
