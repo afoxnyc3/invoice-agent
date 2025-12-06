@@ -46,6 +46,8 @@ An ADR captures a significant architectural decision along with its context and 
 | [0029](0029-modular-bicep-architecture.md) | Modular Bicep Architecture | Accepted | 2024-11 |
 | [0030](0030-azurite-integration-tests.md) | Azurite for Integration Tests | Accepted | 2024-11 |
 | [0031](0031-azqr-security-recommendations.md) | AZQR Security Recommendations | Accepted | 2024-12-03 |
+| [0032](0032-circuit-breaker-pattern.md) | Circuit Breaker Pattern | Accepted | 2024-12-05 |
+| [0033](0033-schema-versioning-strategy.md) | Schema Versioning Strategy | Accepted | 2024-12-05 |
 
 ## ADR Status Legend
 
@@ -80,7 +82,7 @@ The following ADRs have been replaced:
 0001, 0013, 0014, 0016, 0018, 0020, 0023, 0025, 0029, 0031
 
 ### Data & Storage
-0002, 0003, 0007, 0028
+0002, 0003, 0007, 0028, 0033
 
 ### Email Processing
 0004, 0006, 0012, 0021, 0022, 0027
@@ -94,5 +96,5 @@ The following ADRs have been replaced:
 ### Code Quality
 0008, 0009, 0017, 0024, 0026, 0030
 
-### Monitoring
-0019
+### Monitoring & Resilience
+0019, 0032

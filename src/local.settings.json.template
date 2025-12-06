@@ -30,5 +30,8 @@
   "Host": {
     "LocalHttpPort": 7071,
     "CORS": "*"
+    // WARNING: "*" wildcard CORS allows requests from ANY origin.
+    // This is ONLY acceptable for local development.
+    // DO NOT use "*" in production. Configure specific allowed origins instead.
   }
 }
