@@ -13,6 +13,7 @@ from typing import Optional
 from azure.data.tables import TableServiceClient, TableClient
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from azure.storage.queue import QueueServiceClient, QueueClient
+from azure.identity import DefaultAzureCredential
 
 logger = logging.getLogger(__name__)
 
@@ -68,37 +69,61 @@ class Config:
 
     @property
     def is_storage_available(self) -> bool:
-        """Check if storage connection string is available."""
-        return bool(os.environ.get("AzureWebJobsStorage"))
+        """Check if storage is available (connection string or MSI format)."""
+        # Support both connection string and Managed Identity formats
+        has_conn_str = bool(os.environ.get("AzureWebJobsStorage"))
+        has_msi_config = bool(os.environ.get("AzureWebJobsStorage__accountName"))
+        return has_conn_str or has_msi_config
 
     @property
     def table_service(self) -> Optional[TableServiceClient]:
         """Lazy-loaded Table Service client with connection pooling."""
         if self._table_service is None:
-            conn_str = self.storage_connection_string
-            if not conn_str:
-                return None
-            self._table_service = TableServiceClient.from_connection_string(conn_str)
+            # Try MSI format first (AzureWebJobsStorage__tableServiceUri)
+            table_uri = os.environ.get("AzureWebJobsStorage__tableServiceUri")
+            if table_uri:
+                credential = DefaultAzureCredential()
+                self._table_service = TableServiceClient(table_uri, credential=credential)
+            else:
+                # Fall back to connection string
+                conn_str = self.storage_connection_string
+                if not conn_str:
+                    return None
+                self._table_service = TableServiceClient.from_connection_string(conn_str)
         return self._table_service
 
     @property
     def blob_service(self) -> Optional[BlobServiceClient]:
         """Lazy-loaded Blob Service client with connection pooling."""
         if self._blob_service is None:
-            conn_str = self.storage_connection_string
-            if not conn_str:
-                return None
-            self._blob_service = BlobServiceClient.from_connection_string(conn_str)
+            # Try MSI format first (AzureWebJobsStorage__blobServiceUri)
+            blob_uri = os.environ.get("AzureWebJobsStorage__blobServiceUri")
+            if blob_uri:
+                credential = DefaultAzureCredential()
+                self._blob_service = BlobServiceClient(blob_uri, credential=credential)
+            else:
+                # Fall back to connection string
+                conn_str = self.storage_connection_string
+                if not conn_str:
+                    return None
+                self._blob_service = BlobServiceClient.from_connection_string(conn_str)
         return self._blob_service
 
     @property
     def queue_service(self) -> Optional[QueueServiceClient]:
         """Lazy-loaded Queue Service client with connection pooling."""
         if self._queue_service is None:
-            conn_str = self.storage_connection_string
-            if not conn_str:
-                return None
-            self._queue_service = QueueServiceClient.from_connection_string(conn_str)
+            # Try MSI format first (AzureWebJobsStorage__queueServiceUri)
+            queue_uri = os.environ.get("AzureWebJobsStorage__queueServiceUri")
+            if queue_uri:
+                credential = DefaultAzureCredential()
+                self._queue_service = QueueServiceClient(queue_uri, credential=credential)
+            else:
+                # Fall back to connection string
+                conn_str = self.storage_connection_string
+                if not conn_str:
+                    return None
+                self._queue_service = QueueServiceClient.from_connection_string(conn_str)
         return self._queue_service
 
     def get_table_client(self, table_name: str) -> Optional[TableClient]:
