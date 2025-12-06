@@ -23,6 +23,7 @@ class RawMail(BaseModel):
     attachment uploaded to blob storage, ready for vendor extraction.
     """
 
+    schema_version: str = Field(default="1.0", description="Schema version for compatibility")
     id: str = Field(..., description="ULID transaction identifier")
     sender: EmailStr = Field(..., description="Email address of sender")
     subject: str = Field(..., description="Email subject line")
@@ -60,6 +61,7 @@ class EnrichedInvoice(BaseModel):
     information from the VendorMaster table, ready to send to AP.
     """
 
+    schema_version: str = Field(default="1.0", description="Schema version for compatibility")
     id: str = Field(..., description="ULID transaction identifier")
     vendor_name: str = Field(..., description="Vendor display name")
     expense_dept: str = Field(..., description="Department code (IT, SALES, HR, etc)")
@@ -126,6 +128,7 @@ class NotificationMessage(BaseModel):
     with type-specific formatting for success, warning, or error messages.
     """
 
+    schema_version: str = Field(default="1.0", description="Schema version for compatibility")
     type: Literal["success", "unknown", "error", "duplicate"] = Field(..., description="Notification type")
     message: str = Field(..., description="Human-readable summary message")
     details: Dict[str, str] = Field(..., description="Additional context for notification")
