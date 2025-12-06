@@ -200,12 +200,7 @@ class TestBlobStorageTimeouts:
         client = timeout_blob_client(fail_count=2)
 
         # Wrap in retry with backoff
-        @retry_with_backoff(
-            max_attempts=4,
-            initial_delay=0.1,
-            backoff_factor=2.0,
-            exceptions=(ServiceRequestError,),
-        )
+        @retry_with_backoff(max_attempts=4, initial_delay=0.1, backoff_factor=2.0, exceptions=(ServiceRequestError,))
         def download_pdf(blob_url: str):
             blob_data = client.download_blob(blob_url)
             return blob_data.readall()
