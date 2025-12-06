@@ -1,6 +1,6 @@
 name: CI/CD Pipeline
 permissions:
-  contents: read
+  contents: write
 
 # Trigger on push to main branch and on pull requests
 on:
@@ -18,6 +18,8 @@ env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './src'
   RESOURCE_GROUP_DEV: 'rg-invoice-agent-dev'
   RESOURCE_GROUP_PROD: 'rg-invoice-agent-prod'
+  STORAGE_ACCOUNT_PROD: 'stinvoiceagentprod'
+  FUNCTION_APP_PROD: 'func-invoice-agent-prod'
 
 jobs:
   # Job 1: Run tests, linting, and code quality checks
@@ -174,26 +176,26 @@ jobs:
           # Test critical imports
           try:
               import azure.functions
-              print('✅ azure.functions imported')
+              print('azure.functions imported')
           except ImportError as e:
-              print(f'❌ Failed to import azure.functions: {e}')
+              print(f'Failed to import azure.functions: {e}')
               sys.exit(1)
 
           try:
               import shared.models
-              print('✅ shared.models imported')
+              print('shared.models imported')
           except ImportError as e:
-              print(f'❌ Failed to import shared.models: {e}')
+              print(f'Failed to import shared.models: {e}')
               sys.exit(1)
 
           try:
               from MailIngest import main
-              print('✅ MailIngest function imported')
+              print('MailIngest function imported')
           except ImportError as e:
-              print(f'❌ Failed to import MailIngest: {e}')
+              print(f'Failed to import MailIngest: {e}')
               sys.exit(1)
 
-          print('✅ All critical imports successful')
+          print('All critical imports successful')
           "
 
       - name: Upload build artifact
@@ -207,16 +209,17 @@ jobs:
           path: function-app.zip
           retention-days: 30
 
-  # Job 3: Deploy to staging slot
-  deploy-staging:
-    name: Deploy to Staging Slot
+  # Job 3: Deploy to production (direct blob URL deployment)
+  # This replaces the previous staging + slot swap approach which had reliability issues
+  # on Linux Consumption plan with WEBSITE_RUN_FROM_PACKAGE=1
+  deploy-production:
+    name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
-    # Run on main branch pushes or manual trigger
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     environment:
-      name: staging
-      url: https://func-invoice-agent-prod-staging.azurewebsites.net
+      name: production
+      url: https://func-invoice-agent-prod.azurewebsites.net
 
     steps:
       - name: Checkout code
@@ -226,8 +229,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: function-app-package
-          # Download to current directory: Results in ./function-app-package/function-app.zip
-          # (download-artifact creates subdirectory automatically, so we use . to extract at root level)
           path: .
 
       - name: Azure Login
@@ -256,235 +257,116 @@ jobs:
             --mode Incremental \
             --verbose
 
-      - name: Get Function App name
-        id: func-name
+      - name: Upload package to blob storage
+        id: upload
         run: |
-          FUNC_NAME=$(az functionapp list \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
-          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
-          echo "Function App: ${FUNC_NAME}"
+          PACKAGE_NAME="function-app-${{ github.sha }}.zip"
+          echo "package_name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "Uploading ${PACKAGE_NAME} to blob storage..."
 
-      - name: Deploy to staging slot
-        uses: Azure/functions-action@v1
-        with:
-          app-name: ${{ steps.func-name.outputs.function_app_name }}
-          package: function-app.zip
-          slot-name: staging
+          az storage blob upload \
+            --container-name function-releases \
+            --name "${PACKAGE_NAME}" \
+            --file function-app.zip \
+            --account-name ${{ env.STORAGE_ACCOUNT_PROD }} \
+            --auth-mode login \
+            --overwrite
 
-      - name: Sync app settings to staging slot
+          echo "Package uploaded successfully"
+
+      - name: Generate SAS URL (1 year expiry)
+        id: sas
         run: |
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
+          # Calculate expiry date (1 year from now)
+          EXPIRY=$(date -u -d "+1 year" +%Y-%m-%dT%H:%MZ)
+          echo "SAS expiry: ${EXPIRY}"
 
-          echo "Syncing app settings from production to staging slot..."
+          SAS_URL=$(az storage blob generate-sas \
+            --container-name function-releases \
+            --name "${{ steps.upload.outputs.package_name }}" \
+            --permissions r \
+            --expiry "${EXPIRY}" \
+            --account-name ${{ env.STORAGE_ACCOUNT_PROD }} \
+            --auth-mode login \
+            --full-uri \
+            -o tsv)
 
-          # Get production settings (excluding slot-specific settings)
-          az functionapp config appsettings list \
-            --name "${FUNC_NAME}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --query "[?name!='WEBSITE_CONTENTAZUREFILECONNECTIONSTRING' && name!='WEBSITE_CONTENTSHARE']" \
-            -o json > /tmp/prod-settings.json
+          # Mask the SAS URL in logs (contains sensitive signature)
+          echo "::add-mask::${SAS_URL}"
+          echo "url=${SAS_URL}" >> $GITHUB_OUTPUT
+          echo "SAS URL generated successfully"
 
-          # Convert to key=value format for az functionapp config appsettings set
-          SETTINGS=$(cat /tmp/prod-settings.json | jq -r '.[] | "\(.name)=\(.value)"' | tr '\n' ' ')
-
-          # Apply to staging slot (suppress output to avoid logging secrets)
+      - name: Deploy to production
+        run: |
+          echo "Updating WEBSITE_RUN_FROM_PACKAGE setting..."
           az functionapp config appsettings set \
-            --name "${FUNC_NAME}" \
+            --name ${{ env.FUNCTION_APP_PROD }} \
             --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --settings $SETTINGS \
+            --settings "WEBSITE_RUN_FROM_PACKAGE=${{ steps.sas.outputs.url }}" \
             --output none
 
-          echo "App settings synced successfully"
+          echo "App setting updated successfully"
 
-      - name: Wait for staging slot to be ready
+      - name: Restart and wait for production
         run: |
-          echo "Waiting 30 seconds for staging slot to initialize..."
-          sleep 30
+          echo "Restarting function app..."
+          az functionapp restart \
+            --name ${{ env.FUNCTION_APP_PROD }} \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }}
 
-      - name: Validate required app settings
-        run: |
-          echo "Validating required app settings in staging slot..."
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-
-          # Get all app setting names from staging slot
-          SETTINGS=$(az functionapp config appsettings list \
-            --name "${FUNC_NAME}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --query "[].name" -o tsv)
-
-          # Required settings (based on src/shared/config.py)
-          REQUIRED_SETTINGS=(
-            "GRAPH_TENANT_ID"
-            "GRAPH_CLIENT_ID"
-            "GRAPH_CLIENT_SECRET"
-            "AZURE_OPENAI_ENDPOINT"
-            "AZURE_OPENAI_API_KEY"
-            "INVOICE_MAILBOX"
-            "AP_EMAIL_ADDRESS"
-          )
-
-          MISSING=()
-          for var in "${REQUIRED_SETTINGS[@]}"; do
-            if ! echo "$SETTINGS" | grep -q "^${var}$"; then
-              MISSING+=("$var")
-            fi
-          done
-
-          if [ ${#MISSING[@]} -gt 0 ]; then
-            echo "ERROR: Missing required app settings:"
-            for m in "${MISSING[@]}"; do
-              echo "  - $m"
-            done
-            echo ""
-            echo "Ensure all required settings are configured in production"
-            echo "and sync will propagate them to staging."
-            exit 1
-          fi
-
-          echo "PASS: All ${#REQUIRED_SETTINGS[@]} required app settings present"
-
-      - name: Run smoke tests against staging
-        run: |
-          echo "Running smoke tests against staging slot..."
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-          STAGING_URL="https://${FUNC_NAME}-staging.azurewebsites.net"
-
-          # Test 1: Health check endpoint
-          echo "Test 1: Checking health endpoint..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/api/health" || echo "000")
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "WARNING: Health endpoint returned status $HTTP_STATUS (may not be implemented yet)"
-          else
-            echo "PASS: Health endpoint is responding"
-          fi
-
-          # Test 2: Verify Functions runtime is responsive
-          echo "Test 2: Checking Functions runtime..."
-          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${STAGING_URL}/admin/host/status" -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
-          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
-            echo "PASS: Functions runtime is responsive"
-          else
-            echo "ERROR: Functions runtime returned unexpected status $ADMIN_STATUS"
-            exit 1
-          fi
-
-          # Test 3: Verify Storage connectivity via app settings
-          echo "Test 3: Verifying Storage Account connectivity..."
-          CONN_STRING=$(az functionapp config appsettings list \
-            --name "${FUNC_NAME}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --query "[?name=='AzureWebJobsStorage'].value" -o tsv)
-          # Extract AccountName using grep (handles variable field order)
-          STORAGE_NAME=$(echo "$CONN_STRING" | grep -oE 'AccountName=[^;]+' | cut -d'=' -f2)
-
-          if [ -n "$STORAGE_NAME" ]; then
-            STORAGE_EXISTS=$(az storage account show --name "$STORAGE_NAME" --query "name" -o tsv 2>/dev/null || echo "")
-            if [ -n "$STORAGE_EXISTS" ]; then
-              echo "PASS: Storage account ${STORAGE_NAME} is accessible"
-            else
-              echo "ERROR: Storage account not found"
-              exit 1
-            fi
-          else
-            echo "WARNING: Could not extract storage account name"
-          fi
-
-          # Test 4: Verify Key Vault configuration
-          echo "Test 4: Verifying Key Vault configuration..."
-          KV_REF=$(az functionapp config appsettings list \
-            --name "${FUNC_NAME}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --query "[?contains(value, 'keyvault.azure.net')].name" -o tsv | head -1)
-
-          if [ -n "$KV_REF" ]; then
-            echo "PASS: Key Vault references configured"
-          else
-            echo "WARNING: No Key Vault references found (may be expected)"
-          fi
-
-          echo "Smoke tests completed successfully"
-
-      - name: Azure Logout
-        if: always()
-        run: az logout
-
-  # Job 4: Deploy to production (with manual approval)
-  deploy-production:
-    name: Deploy to Production
-    needs: deploy-staging
-    runs-on: ubuntu-latest
-    # Run on main branch pushes or manual trigger
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    # Uses GitHub environment protection rules for manual approval
-    environment:
-      name: production
-      url: https://func-invoice-agent-prod.azurewebsites.net
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
-
-      - name: Get Function App name
-        id: func-name
-        run: |
-          FUNC_NAME=$(az functionapp list \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
-          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
-          echo "Function App: ${FUNC_NAME}"
-
-      - name: Swap staging to production
-        run: |
-          echo "Swapping staging slot to production..."
-          az functionapp deployment slot swap \
-            --name "${{ steps.func-name.outputs.function_app_name }}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --target-slot production
-
-          echo "Slot swap completed successfully"
-
-      - name: Wait for production to be ready
-        run: |
-          echo "Waiting 30 seconds for production to stabilize..."
-          sleep 30
+          echo "Waiting 45 seconds for production to stabilize..."
+          sleep 45
 
       - name: Verify production health
         run: |
-          echo "Verifying production deployment..."
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-          PROD_URL="https://${FUNC_NAME}.azurewebsites.net"
+          PROD_URL="https://${{ env.FUNCTION_APP_PROD }}.azurewebsites.net"
 
-          # Verify Functions runtime
-          echo "Checking production Functions runtime..."
-          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/admin/host/status" -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
-          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
-            echo "PASS: Production Functions runtime is responsive"
+          echo "Checking production health endpoint..."
+
+          # Get the function key for health check
+          FUNC_KEY=$(az functionapp keys list \
+            --name ${{ env.FUNCTION_APP_PROD }} \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "functionKeys.default" -o tsv)
+
+          HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" \
+            "${PROD_URL}/api/health?code=${FUNC_KEY}" \
+            --max-time 60 || echo "000")
+
+          echo "Health check response: ${HTTP_STATUS}"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "PASS: Production health check succeeded"
+            cat /tmp/health_response.json
           else
-            echo "ERROR: Production verification failed with status $ADMIN_STATUS"
-            echo "ROLLBACK REQUIRED - See docs/ROLLBACK_PROCEDURE.md"
+            echo "ERROR: Health check failed with status $HTTP_STATUS"
+            cat /tmp/health_response.json 2>/dev/null || true
             exit 1
           fi
 
-          echo "Production deployment verified successfully"
+      - name: Verify functions loaded
+        run: |
+          echo "Verifying functions are loaded..."
+          FUNC_COUNT=$(az functionapp function list \
+            --name ${{ env.FUNCTION_APP_PROD }} \
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
+            --query "length(@)" -o tsv)
+
+          echo "Functions loaded: ${FUNC_COUNT}"
+
+          if [ "${FUNC_COUNT}" -ge 9 ]; then
+            echo "PASS: All expected functions loaded"
+          else
+            echo "ERROR: Expected 9 functions, found ${FUNC_COUNT}"
+            exit 1
+          fi
 
       - name: Tag release
         run: |
-          # Create a git tag for this production release
           TAG_NAME="prod-$(date +%Y%m%d-%H%M%S)"
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag -a "$TAG_NAME" -m "Production release $(date)"
+          git tag -a "$TAG_NAME" -m "Production release $(date) - ${{ github.sha }}"
           git push origin "$TAG_NAME" || echo "Tag push failed (may need repo permissions)"
           echo "Created release tag: $TAG_NAME"
 
@@ -492,101 +374,10 @@ jobs:
         if: always()
         run: az logout
 
-  # Job 5: Automatic rollback on production failure
-  rollback-production:
-    name: Rollback Production (Auto)
-    needs: deploy-production
-    runs-on: ubuntu-latest
-    # Only run if deploy-production job failed
-    if: failure() && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
-    permissions: {}
-
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
-
-      - name: Get Function App name
-        id: func-name
-        run: |
-          FUNC_NAME=$(az functionapp list \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --query "[?contains(name, 'invoice-agent')].name" -o tsv)
-          echo "function_app_name=${FUNC_NAME}" >> $GITHUB_OUTPUT
-          echo "Function App: ${FUNC_NAME}"
-
-      - name: Swap slots back (rollback)
-        run: |
-          echo "ROLLBACK: Swapping slots back to previous version..."
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-
-          az functionapp deployment slot swap \
-            --name "${FUNC_NAME}" \
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --slot staging \
-            --target-slot production
-
-          echo "Slot swap (rollback) completed"
-
-      - name: Wait for rollback to stabilize
-        run: |
-          echo "Waiting 30 seconds for rollback to stabilize..."
-          sleep 30
-
-      - name: Verify rollback health
-        run: |
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-          PROD_URL="https://${FUNC_NAME}.azurewebsites.net"
-
-          echo "Verifying production after rollback..."
-          ADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${PROD_URL}/admin/host/status" \
-            -H "x-functions-key: ${{ secrets.FUNCTIONS_ADMIN_KEY }}" || echo "000")
-
-          if [ "$ADMIN_STATUS" = "401" ] || [ "$ADMIN_STATUS" = "200" ]; then
-            echo "Rollback successful - production is healthy"
-          else
-            echo "CRITICAL: Rollback may have failed - status $ADMIN_STATUS"
-            echo "Manual intervention required!"
-            exit 1
-          fi
-
-      - name: Send rollback notification
-        if: always()
-        run: |
-          FUNC_NAME="${{ steps.func-name.outputs.function_app_name }}"
-          WEBHOOK_URL="${{ secrets.TEAMS_WEBHOOK_URL }}"
-
-          if [ -n "$WEBHOOK_URL" ]; then
-            curl -H "Content-Type: application/json" -d '{
-              "@type": "MessageCard",
-              "@context": "http://schema.org/extensions",
-              "themeColor": "FF0000",
-              "summary": "Production Rollback Triggered",
-              "sections": [{
-                "activityTitle": "Automatic Rollback Executed",
-                "activitySubtitle": "Invoice Agent - Production",
-                "facts": [
-                  {"name": "Function App", "value": "'"${FUNC_NAME}"'"},
-                  {"name": "Trigger", "value": "Production health check failed"},
-                  {"name": "Action", "value": "Slots swapped back to previous version"},
-                  {"name": "Run", "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
-                ],
-                "text": "Production deployment failed and was automatically rolled back. Please investigate the failure before re-deploying."
-              }]
-            }' "$WEBHOOK_URL" || echo "Teams notification failed (non-blocking)"
-          else
-            echo "No Teams webhook configured - skipping notification"
-          fi
-
-      - name: Azure Logout
-        if: always()
-        run: az logout
-
-  # Job 6: Deployment Validation Gate (ensures all checks pass on main)
+  # Job 4: Deployment Validation Gate (ensures all checks pass on main)
   validate-deployment:
     name: Validate All Checks
-    needs: [test, build, deploy-staging, deploy-production]
+    needs: [test, build, deploy-production]
     runs-on: ubuntu-latest
     # Only run on main branch pushes (deployment validation)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -597,15 +388,14 @@ jobs:
 
       - name: Report deployment status
         run: |
-          echo "✅ All checks passed:"
-          echo "  ✅ Tests passed"
-          echo "  ✅ Build succeeded"
-          echo "  ✅ Staging deployment successful"
-          echo "  ✅ Production deployment successful"
+          echo "All checks passed:"
+          echo "  Tests passed"
+          echo "  Build succeeded"
+          echo "  Production deployment successful"
           echo ""
           echo "Deployment validation complete. Code is safe in main."
 
-  # Job 7: Deploy to dev environment (for testing infrastructure changes)
+  # Job 5: Deploy to dev environment (for testing infrastructure changes)
   deploy-dev:
     name: Deploy to Dev Environment
     needs: [test, build]
