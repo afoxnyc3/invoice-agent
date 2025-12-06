@@ -332,7 +332,7 @@ class GraphAPIClient:
             "changeType": "created",
             "notificationUrl": webhook_url,
             "resource": f"users/{mailbox}/mailFolders('Inbox')/messages",
-            "expirationDateTime": expiration.isoformat() + "Z",
+            "expirationDateTime": expiration.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "clientState": client_state,
         }
 
@@ -356,7 +356,7 @@ class GraphAPIClient:
         from datetime import datetime, timedelta, timezone
 
         expiration = datetime.now(timezone.utc) + timedelta(minutes=4200)
-        payload = {"expirationDateTime": expiration.isoformat() + "Z"}
+        payload = {"expirationDateTime": expiration.strftime("%Y-%m-%dT%H:%M:%SZ")}
 
         return self._make_request("PATCH", f"subscriptions/{subscription_id}", json=payload)
 
