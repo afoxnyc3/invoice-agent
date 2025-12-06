@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "7476821320879861896"
+      "templateHash": "17797655296702400645"
     }
   },
   "parameters": {
@@ -93,7 +93,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "13977811880289521806"
+              "templateHash": "7962918977984484501"
             }
           },
           "parameters": {
@@ -155,7 +155,7 @@
               "properties": {
                 "accessTier": "Hot",
                 "supportsHttpsTrafficOnly": true,
-                "minimumTlsVersion": "TLS1_2",
+                "minimumTlsVersion": "TLS1_3",
                 "allowBlobPublicAccess": false,
                 "networkAcls": {
                   "defaultAction": "Allow",
@@ -469,7 +469,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.38.33.27573",
-              "templateHash": "9960021810558966944"
+              "templateHash": "8850980611553605443"
             }
           },
           "parameters": {
@@ -561,15 +561,15 @@
                     },
                     {
                       "name": "AzureWebJobsStorage__blobServiceUri",
-                      "value": "[format('https://{0}.blob.core.windows.net', parameters('storageAccountName'))]"
+                      "value": "[format('https://{0}.blob.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
                     },
                     {
                       "name": "AzureWebJobsStorage__queueServiceUri",
-                      "value": "[format('https://{0}.queue.core.windows.net', parameters('storageAccountName'))]"
+                      "value": "[format('https://{0}.queue.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
                     },
                     {
                       "name": "AzureWebJobsStorage__tableServiceUri",
-                      "value": "[format('https://{0}.table.core.windows.net', parameters('storageAccountName'))]"
+                      "value": "[format('https://{0}.table.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
                     },
                     {
                       "name": "AzureWebJobsStorage__credential",
@@ -601,7 +601,7 @@
                     },
                     {
                       "name": "KEY_VAULT_URL",
-                      "value": "[format('https://{0}.vault.azure.net/', parameters('keyVaultName'))]"
+                      "value": "[format('https://{0}.{1}/', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]"
                     },
                     {
                       "name": "GRAPH_TENANT_ID",
@@ -697,6 +697,19 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+                "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites/config",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', parameters('functionAppName'), 'slotConfigNames')]",
+              "properties": {
+                "appSettingNames": [],
+                "connectionStringNames": [],
+                "azureStorageConfigNames": []
+              },
+              "dependsOn": [
                 "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
               ]
             }
