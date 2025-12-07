@@ -77,7 +77,7 @@ invoice-agent/
 │   └── commands/       # Slash commands
 ├── docs/                # Documentation
 │   ├── ARCHITECTURE.md  # Technical architecture (comprehensive)
-│   ├── adr/             # Architecture Decision Records (31 ADRs)
+│   ├── adr/             # Architecture Decision Records (34 ADRs)
 │   ├── LOCAL_DEVELOPMENT.md  # Local setup guide
 │   ├── DEPLOYMENT_GUIDE.md   # Deployment procedures
 │   ├── ROADMAP.md       # Product roadmap
@@ -252,13 +252,16 @@ pytest tests/integration -m integration
 - `GRAPH_TENANT_ID` - Azure AD tenant
 - `GRAPH_CLIENT_ID` - App registration ID
 - `GRAPH_CLIENT_SECRET` - App secret
+- `GRAPH_CLIENT_STATE` - Webhook validation secret (security)
+- `INVOICE_MAILBOX` - Shared mailbox to monitor for invoices
 - `AP_EMAIL_ADDRESS` - Accounts payable mailbox
 - `TEAMS_WEBHOOK_URL` - Teams channel webhook
+- `MAIL_WEBHOOK_URL` - Graph API webhook endpoint (auto-configured in IaC)
 - `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
 - `AZURE_OPENAI_API_KEY` - Azure OpenAI API key
 
 ### Key Vault Secrets
-All sensitive configuration is stored in Azure Key Vault and accessed via Managed Identity.
+All sensitive configuration is stored in Azure Key Vault and accessed via Managed Identity. See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for setup instructions.
 
 ## 🚨 Monitoring & Alerts
 
@@ -273,7 +276,7 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 ### Core Documentation
 - **[CLAUDE.md](CLAUDE.md)** - Development workflow, coding standards, quality gates
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete technical architecture and system design
-- **[docs/adr/README.md](docs/adr/README.md)** - Architecture Decision Records (31 ADRs)
+- **[docs/adr/README.md](docs/adr/README.md)** - Architecture Decision Records (34 ADRs)
 - **[docs/ROADMAP.md](docs/ROADMAP.md)** - Product roadmap and future enhancements
 
 ### Operational Guides

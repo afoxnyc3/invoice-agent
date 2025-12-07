@@ -294,8 +294,12 @@ This file contains all local configuration. It's created from the template durin
     "GRAPH_CLIENT_ID": "your-client-id",
     "GRAPH_CLIENT_SECRET": "your-client-secret",
 
-    "AP_EMAIL_ADDRESS": "accountspayable@chelseapiers.com",
+    "INVOICE_MAILBOX": "invoices@yourcompany.com",
+    "AP_EMAIL_ADDRESS": "accountspayable@yourcompany.com",
     "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/...",
+
+    "AZURE_OPENAI_ENDPOINT": "https://your-openai.openai.azure.com/",
+    "AZURE_OPENAI_API_KEY": "your-azure-openai-api-key",
 
     "ENVIRONMENT": "local",
     "LOG_LEVEL": "DEBUG"
@@ -307,7 +311,14 @@ This file contains all local configuration. It's created from the template durin
 1. Create an Azure AD app registration
 2. Add API permissions: `Mail.Read`, `Mail.Send`
 3. Create a client secret
-4. Update the three `GRAPH_*` variables above
+4. Update the `GRAPH_*` and `INVOICE_MAILBOX` variables above
+
+**For PDF vendor extraction (optional but recommended):**
+1. Create an Azure OpenAI resource
+2. Deploy the `gpt-4o-mini` model
+3. Update the `AZURE_OPENAI_*` variables above
+
+> **Note:** `MAIL_WEBHOOK_URL` and `GRAPH_CLIENT_STATE` are only needed in production for Graph API webhooks. Local development uses timer-based polling via MailIngest.
 
 ### Azurite Connection Strings
 

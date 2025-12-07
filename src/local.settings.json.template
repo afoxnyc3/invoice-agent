@@ -14,10 +14,13 @@
     "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
     "AZURE_OPENAI_API_VERSION": "2024-02-01",
 
-    "INVOICE_MAILBOX": "dev-invoices@chelseapiers.com",
-    "AP_EMAIL_ADDRESS": "dev-ap@chelseapiers.com",
+    "INVOICE_MAILBOX": "dev-invoices@yourcompany.com",
+    "AP_EMAIL_ADDRESS": "dev-ap@yourcompany.com",
     "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
-    "DEFAULT_BILLING_PARTY": "Chelsea Piers",
+    "DEFAULT_BILLING_PARTY": "Your Company",
+
+    "MAIL_WEBHOOK_URL": "",
+    "GRAPH_CLIENT_STATE": "",
 
     "STORAGE_ACCOUNT_NAME": "stinvoiceagentdev",
     "STORAGE_ACCOUNT_KEY": "your-storage-key",
