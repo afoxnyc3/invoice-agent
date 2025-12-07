@@ -224,9 +224,15 @@ az keyvault secret set --vault-name $KV_NAME --name "invoice-mailbox" --value "$
 # Azure OpenAI for PDF vendor extraction (required for 95%+ accuracy)
 az keyvault secret set --vault-name $KV_NAME --name "azure-openai-endpoint" --value "$AZURE_OPENAI_ENDPOINT"
 az keyvault secret set --vault-name $KV_NAME --name "azure-openai-api-key" --value "$AZURE_OPENAI_API_KEY"
+
+# Graph API webhook client state (for SubscriptionManager - security validation)
+# Generate a random 32-character hex string - only set once, reuse across deployments
+az keyvault secret set --vault-name $KV_NAME --name "graph-client-state" --value "$(openssl rand -hex 16)"
 ```
 
 **Note:** The Bicep template automatically configures Function App settings to reference Key Vault. Secret names use kebab-case (e.g., `graph-tenant-id`) to match the Key Vault references in `functionapp.bicep`.
+
+**Important:** The `graph-client-state` secret is used by `SubscriptionManager` to validate incoming webhook notifications from Microsoft Graph. It should be set once and never changed (changing it will invalidate existing subscriptions).
 
 ### Step 3: Seed Vendor Data
 

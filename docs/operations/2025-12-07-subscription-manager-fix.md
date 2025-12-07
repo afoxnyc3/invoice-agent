@@ -40,30 +40,36 @@ az functionapp config appsettings set --name func-invoice-agent-prod \
 
 ---
 
-## Follow-up Task: Persist Settings in IaC
+## Follow-up Task: Persist Settings in IaC ✅ COMPLETED
+
+**Completed:** December 7, 2025
 
 ### Problem
 `MAIL_WEBHOOK_URL` and `GRAPH_CLIENT_STATE` were reset during deployment because they're not defined in infrastructure-as-code.
 
-### Task
-Add these settings to Bicep templates so they persist across deployments:
+### Solution Implemented
 
-| Setting | Storage Location | Value |
-|---------|------------------|-------|
-| `MAIL_WEBHOOK_URL` | App Settings (Bicep) | `https://${functionAppName}.azurewebsites.net/api/MailWebhook` |
-| `GRAPH_CLIENT_STATE` | Key Vault Secret | Random 32-char hex string |
+| Setting | Storage Location | Value | Status |
+|---------|------------------|-------|--------|
+| `MAIL_WEBHOOK_URL` | App Settings (Bicep) | `https://${functionAppName}.azurewebsites.net/api/MailWebhook` | ✅ Added |
+| `GRAPH_CLIENT_STATE` | Key Vault Reference | `@Microsoft.KeyVault(...)` | ✅ Added |
 
-### Files to Modify
+### Files Modified
 ```
-infrastructure/bicep/modules/functionapp.bicep  - Add app settings
-infrastructure/bicep/modules/keyvault.bicep     - Add secret (if not exists)
-infrastructure/parameters/prod.json             - Add parameter values
+infrastructure/bicep/modules/functionapp.bicep  - Added app settings (lines 142-150)
+docs/DEPLOYMENT_GUIDE.md                        - Added secret setup instructions
 ```
 
-### Implementation Notes
-1. `MAIL_WEBHOOK_URL` can be constructed dynamically from the function app name
-2. `GRAPH_CLIENT_STATE` should be a Key Vault secret with `@Microsoft.KeyVault()` reference
-3. Generate the secret once and store in Key Vault (don't regenerate on each deploy)
+### Changes Made
+1. **functionapp.bicep**: Added `MAIL_WEBHOOK_URL` as dynamic value constructed from function app name
+2. **functionapp.bicep**: Added `GRAPH_CLIENT_STATE` as Key Vault secret reference
+3. **DEPLOYMENT_GUIDE.md**: Added setup command for `graph-client-state` secret in Key Vault
+
+### First-Time Setup
+For new deployments, add the secret to Key Vault:
+```bash
+az keyvault secret set --vault-name $KV_NAME --name "graph-client-state" --value "$(openssl rand -hex 16)"
+```
 
 ---
 
@@ -122,5 +128,5 @@ for entity in table.query_entities("IsActive eq true"):
 | MailWebhook authLevel | `anonymous` (deployed) |
 | Webhook validation | Returns 200 + token |
 | Graph subscription | Active, auto-renews every 6 days |
-| MAIL_WEBHOOK_URL | Set (needs IaC) |
-| GRAPH_CLIENT_STATE | Set (needs IaC) |
+| MAIL_WEBHOOK_URL | ✅ Persisted in Bicep |
+| GRAPH_CLIENT_STATE | ✅ Persisted in Key Vault reference |

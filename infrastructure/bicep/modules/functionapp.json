@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.38.33.27573",
-      "templateHash": "8850980611553605443"
+      "templateHash": "433698486202614241"
     }
   },
   "parameters": {
@@ -170,6 +170,14 @@
             {
               "name": "AZURE_OPENAI_API_KEY",
               "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/azure-openai-api-key/)', parameters('keyVaultName'))]"
+            },
+            {
+              "name": "MAIL_WEBHOOK_URL",
+              "value": "[format('https://{0}.azurewebsites.net/api/MailWebhook', parameters('functionAppName'))]"
+            },
+            {
+              "name": "GRAPH_CLIENT_STATE",
+              "value": "[format('@Microsoft.KeyVault(SecretUri=https://{0}.vault.azure.net/secrets/graph-client-state/)', parameters('keyVaultName'))]"
             },
             {
               "name": "WEBSITE_RUN_FROM_PACKAGE",

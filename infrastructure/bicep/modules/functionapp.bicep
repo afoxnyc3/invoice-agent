@@ -139,6 +139,15 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'AZURE_OPENAI_API_KEY'
           value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/azure-openai-api-key/)'
         }
+        // Graph API webhook settings (for SubscriptionManager)
+        {
+          name: 'MAIL_WEBHOOK_URL'
+          value: 'https://${functionAppName}.azurewebsites.net/api/MailWebhook'
+        }
+        {
+          name: 'GRAPH_CLIENT_STATE'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/graph-client-state/)'
+        }
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
