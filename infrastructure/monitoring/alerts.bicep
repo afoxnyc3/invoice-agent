@@ -73,7 +73,7 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-09-01-preview' = {
   }
 }
 
-// Alert 1: High Error Rate (>1% over 5 minutes)
+// Alert 1: High Error Rate (>5 failed requests over 5 minutes)
 resource errorRateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-${namingPrefix}-high-error-rate'
   location: 'global'
@@ -83,7 +83,7 @@ resource errorRateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
     Severity: 'P1'
   }
   properties: {
-    description: 'Triggers when function error rate exceeds 1% over 5 minutes'
+    description: 'Triggers when more than 5 failed requests occur over 5 minutes'
     severity: 1 // Warning
     enabled: true
     scopes: [
@@ -99,7 +99,7 @@ resource errorRateAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           metricName: 'requests/failed'
           metricNamespace: 'microsoft.insights/components'
           operator: 'GreaterThan'
-          threshold: 1
+          threshold: 5
           timeAggregation: 'Average'
           criterionType: 'StaticThresholdCriterion'
         }
