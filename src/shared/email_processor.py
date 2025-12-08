@@ -84,7 +84,16 @@ def process_email_attachments(
         return 0
 
     processed_count = 0
-    for attachment in attachments:
+    # Filter to only process PDF attachments (skip signature images, etc.)
+    pdf_attachments = [a for a in attachments if a["name"].lower().endswith(".pdf")]
+
+    if not pdf_attachments:
+        # Log non-PDF attachments for debugging
+        attachment_names = [a["name"] for a in attachments]
+        logger.warning(f"No PDF attachments found. Skipping: {attachment_names}")
+        return 0
+
+    for attachment in pdf_attachments:
         blob_name = f"{transaction_id}/{attachment['name']}"
         blob_client = blob_container.get_blob_client(blob_name)
         content = base64.b64decode(attachment["contentBytes"])

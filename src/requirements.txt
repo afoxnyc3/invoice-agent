@@ -30,6 +30,7 @@ python-ulid==2.2.0
 # PDF Processing and AI
 pdfplumber==0.10.3  # PDF text extraction for vendor identification
 openai==1.54.0  # Azure OpenAI SDK for intelligent vendor extraction
+httpx>=0.25.0,<1  # Pin httpx for openai compatibility (fixes 'proxies' arg error)
 
 # Resilience
 pybreaker==1.2.0  # Circuit breaker pattern for external dependencies
