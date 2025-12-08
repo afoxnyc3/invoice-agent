@@ -93,3 +93,9 @@ Screenshot*.png
 # Archived directories (keep tracked archived content)
 !docs/archive/
 !scripts/archived/
+
+# Test artifacts and temporary documents
+*.pdf
+*.xlsx
+*-TEST.png
+scripts/send_real_invoices.py
