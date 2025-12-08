@@ -35,7 +35,8 @@ def parse_webhook_resource(resource: str) -> tuple[str, str]:
         ValueError: If resource path is malformed
     """
     parts = resource.split("/")
-    if len(parts) < 4 or parts[0] != "users" or parts[2] != "messages":
+    # Graph API may return "Users" or "users", "Messages" or "messages"
+    if len(parts) < 4 or parts[0].lower() != "users" or parts[2].lower() != "messages":
         raise ValueError(f"Invalid webhook resource path: {resource}")
 
     mailbox = parts[1]

@@ -30,14 +30,21 @@ def _is_disabled_via_flag() -> bool:
 def _missing_required_settings() -> list[str]:
     """List required settings that are not configured."""
 
-    required_settings = [
-        "INVOICE_MAILBOX",
-        "AzureWebJobsStorage",
-        "GRAPH_TENANT_ID",
-        "GRAPH_CLIENT_ID",
-        "GRAPH_CLIENT_SECRET",
-    ]
-    return [key for key in required_settings if not os.getenv(key)]
+    missing = []
+
+    # Check Graph API settings
+    graph_settings = ["INVOICE_MAILBOX", "GRAPH_TENANT_ID", "GRAPH_CLIENT_ID", "GRAPH_CLIENT_SECRET"]
+    for key in graph_settings:
+        if not os.getenv(key):
+            missing.append(key)
+
+    # Check storage - supports both connection string and MSI formats
+    has_connection_string = bool(os.getenv("AzureWebJobsStorage"))
+    has_msi_config = bool(os.getenv("AzureWebJobsStorage__accountName"))
+    if not has_connection_string and not has_msi_config:
+        missing.append("AzureWebJobsStorage (or AzureWebJobsStorage__accountName)")
+
+    return missing
 
 
 def main(timer: func.TimerRequest, outQueueItem: func.Out[str]) -> None:
