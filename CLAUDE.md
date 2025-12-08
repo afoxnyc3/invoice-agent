@@ -225,7 +225,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 85%+ coverage maintained (389 tests)
+- Unit tests: 419 tests (coverage needs improvement to 85%)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -372,29 +372,29 @@ pytest
 docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 azurite
 pytest tests/integration -m integration
 
-# Type checking
-mypy src/functions src/shared --strict
+# Type checking (run from repo root with PYTHONPATH=./src)
+mypy src/ --strict
 
 # Security scan
-bandit -r src/functions src/shared
+bandit -r src/
 ```
 
 ### Code Quality Commands
 ```bash
 # Format code
-black src/functions src/shared tests/
+black src/ tests/
 
 # Check formatting
-black --check src/functions src/shared tests/
+black --check src/ tests/
 
 # Lint
-flake8 src/functions src/shared tests/
+flake8 src/ tests/
 
-# Type check
-mypy src/functions src/shared --strict
+# Type check (run from repo root with PYTHONPATH=./src)
+mypy src/ --strict
 
 # Security scan
-bandit -r src/functions src/shared
+bandit -r src/
 ```
 
 ---
@@ -538,7 +538,6 @@ Track these across all work:
 - Payment processing (NetSuite handles)
 - Complex vendor management UI (NetSuite handles)
 - Interactive Teams cards with buttons
-- Advanced PDF parsing (invoice amounts, line items - Phase 2)
 - OCR for scanned/image-based PDFs (Phase 2)
 - Multi-mailbox support (Phase 3)
 
@@ -672,7 +671,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - Each deployment creates version-tagged package in blob storage
   - 1-year SAS URLs for package access
   - Simplified CI/CD pipeline (~150 lines vs 520 lines)
-- ✅ CI/CD pipeline operational (389 tests, 85%+ coverage)
+- ✅ CI/CD pipeline operational (419 tests)
 - ✅ All P0 and P1 issues resolved
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational
@@ -751,7 +750,7 @@ Create an ADR when making decisions about:
 - [README.md](README.md) - Project overview and quick start
 
 ### Critical Paths
-- Function code: `src/functions/`
+- Function code: `src/` (each function has its own directory)
 - Shared utilities: `src/shared/`
 - Tests: `tests/unit/` and `tests/integration/`
 - Infrastructure: `infrastructure/bicep/`
@@ -760,6 +759,6 @@ Create an ADR when making decisions about:
 
 ---
 
-**Version:** 3.0 (Blob URL Deployment)
-**Last Updated:** 2025-12-06
+**Version:** 3.1 (Documentation Audit)
+**Last Updated:** 2025-12-08
 **Maintained By:** Engineering Team

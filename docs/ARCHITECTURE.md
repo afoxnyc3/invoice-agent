@@ -398,12 +398,15 @@ Table Storage schema for vendor lookup:
 | PartitionKey | string | Always "Vendor" | "Vendor" |
 | RowKey | string | vendor_name_lower | "adobe_com" |
 | VendorName | string | Display name | "Adobe Inc" |
+| ProductCategory | string | Direct or Reseller | "Direct" |
 | ExpenseDept | string | Department code | "IT" |
-| AllocationSchedule | string | Billing frequency | "MONTHLY" |
+| AllocationSchedule | string | Allocation code | "1" |
 | GLCode | string | General ledger code | "6100" |
-| BillingParty | string | Responsible entity | "Company HQ" |
+| VenueRequired | bool | Venue extraction flag | false |
 | Active | bool | Soft delete flag | true |
 | UpdatedAt | datetime | Last modified | "2024-11-09T12:00:00Z" |
+
+> **Note:** `BillingParty` is not stored in VendorMaster. It comes from the `DEFAULT_BILLING_PARTY` environment variable at enrichment time.
 
 **Query Pattern**: Direct lookup by RowKey
 ```python
@@ -428,7 +431,7 @@ Table Storage schema for audit trail:
 | ExpenseDept | string | From lookup | "IT" |
 | GLCode | string | From lookup | "6100" |
 | AllocationSchedule | string | From lookup | "MONTHLY" |
-| BillingParty | string | From lookup | "Company HQ" |
+| BillingParty | string | From config | "Company HQ" |
 | Status | string | processed/unknown/error | "processed" |
 | BlobUrl | string | Attachment location | "https://..." |
 | ProcessedAt | datetime | Completion time | "2024-11-09T14:30:00Z" |
@@ -668,11 +671,21 @@ Queue Message → PDF Extraction (AI) → Fallback to Email Domain → Table Loo
 7. If not found: Flag as "UNKNOWN"
 8. Queue enriched message to `to-post`
 
-**Enrichment Fields Applied**:
+**Enrichment Fields Applied** (from VendorMaster lookup):
 - **ExpenseDept**: Department code for allocation (e.g., "IT", "Marketing")
-- **AllocationScheduleNumber**: Billing frequency (e.g., "MONTHLY", "ANNUAL")
+- **AllocationSchedule**: Allocation schedule code (e.g., "1", "3", "14")
 - **GLCode**: General ledger code (e.g., "6100")
-- **BillingParty**: Entity responsible for payment (e.g., "Company HQ")
+- **BillingParty**: Entity responsible for payment (from `DEFAULT_BILLING_PARTY` config)
+
+**Invoice Fields Extracted** (from PDF using Azure OpenAI):
+- **InvoiceAmount**: Detected amount with currency (e.g., "1,234.56")
+- **Currency**: Currency code (e.g., "USD", "EUR")
+- **DueDate**: Payment due date (e.g., "2024-12-15")
+- **PaymentTerms**: Payment terms (e.g., "Net 30")
+
+**Reseller Handling**:
+- If `ProductCategory == "Reseller"`, invoice is flagged as "unknown" status for manual review
+- Prevents automatic enrichment of VAR (Value-Added Reseller) invoices that require venue extraction
 
 **Fallback Behavior**:
 - Unknown vendors processed with "UNKNOWN" values
@@ -1632,8 +1645,8 @@ az functionapp restart --name func-invoice-agent-prod
 
 ---
 
-**Version:** 3.0 (Blob URL Deployment)
-**Last Updated:** 2025-12-06
+**Version:** 3.1 (Documentation Audit)
+**Last Updated:** 2025-12-08
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

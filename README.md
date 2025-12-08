@@ -90,20 +90,19 @@ invoice-agent/
 │   ├── parameters/     # Environment configs
 │   └── scripts/        # Deployment & seed scripts
 ├── src/                 # Source code
-│   ├── functions/      # Azure Functions (9 functions)
-│   │   ├── MailWebhook/          # HTTP webhook (NEW)
-│   │   ├── MailWebhookProcessor/ # Webhook processor (NEW)
-│   │   ├── SubscriptionManager/  # Subscription renewal (NEW)
-│   │   ├── MailIngest/           # Fallback polling (MODIFIED)
-│   │   ├── ExtractEnrich/        # Vendor enrichment
-│   │   ├── PostToAP/             # AP routing
-│   │   ├── Notify/               # Teams notifications
-│   │   ├── AddVendor/            # Vendor management API
-│   │   └── Health/               # Health check endpoint (NEW)
-│   ├── shared/         # Shared utilities
-│   ├── host.json       # Function App config
-│   └── requirements.txt # Python dependencies
-├── tests/               # Test suite (389 tests, 85%+ coverage)
+│   ├── MailWebhook/          # HTTP webhook receiver
+│   ├── MailWebhookProcessor/ # Webhook processor with PDF extraction
+│   ├── SubscriptionManager/  # Subscription renewal (6-day timer)
+│   ├── MailIngest/           # Hourly fallback polling
+│   ├── ExtractEnrich/        # Vendor enrichment + field extraction
+│   ├── PostToAP/             # AP routing
+│   ├── Notify/               # Teams notifications
+│   ├── AddVendor/            # Vendor management API
+│   ├── Health/               # Health check endpoint
+│   ├── shared/               # Shared utilities
+│   ├── host.json             # Function App config
+│   └── requirements.txt      # Python dependencies
+├── tests/               # Test suite (419 tests)
 │   ├── unit/           # Unit tests
 │   ├── integration/    # Integration tests
 │   └── fixtures/       # Test data
@@ -155,7 +154,7 @@ graph LR
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
 - ✅ Full CI/CD pipeline with direct blob URL deployment, health verification, and release tagging
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
-- ✅ **9 Azure Functions** implemented and tested (389 tests, 85%+ coverage)
+- ✅ **9 Azure Functions** implemented and tested (419 tests)
 - ✅ Comprehensive monitoring and logging
 - ✅ Managed Identity-based authentication (no secrets in code)
 
@@ -187,8 +186,8 @@ graph LR
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Test Coverage | 85%+ | **85%+** ✅ |
-| Tests Passing | 100% | **389/389** ✅ |
+| Test Coverage | 85%+ | **30%** (needs improvement) |
+| Tests Passing | 100% | **419/419** ✅ |
 | CI/CD Pipeline | Stable | **Passing** ✅ |
 | Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
 | Infrastructure | Deployed | **Production Ready** ✅ |
@@ -208,7 +207,7 @@ graph LR
 **Future Enhancements:**
 
 - 🔜 **OCR for Scanned PDFs** - Azure Form Recognizer for image-based invoices
-- 🔜 **Invoice Amount Extraction** - Parse amounts, line items from structured invoices
+- ✅ **Invoice Amount Extraction** - Implemented in v1.2.0 (amount, currency, due date, payment terms)
 - 🔜 **NetSuite Direct Integration** - Skip email approval workflow, post directly to NetSuite API
 - 🔜 **Multi-Mailbox Support** - Process from multiple shared mailboxes
 - 🔜 **Analytics Dashboard** - Power BI reporting on invoice processing metrics
@@ -241,8 +240,8 @@ pytest tests/unit/test_models.py -v
 pytest tests/integration -m integration
 
 # Current test results:
-# ✅ 389 tests passing
-# ✅ 85%+ code coverage (CI threshold met)
+# ✅ 419 tests passing
+# ⚠️ 30% code coverage (needs improvement to reach 85% target)
 # ✅ All critical paths tested
 ```
 
@@ -305,4 +304,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.0 | **Last Updated:** 2025-12-06
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.1 | **Last Updated:** 2025-12-08
