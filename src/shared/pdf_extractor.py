@@ -21,6 +21,7 @@ from typing import Optional, Dict, Any
 from urllib.parse import unquote
 from datetime import datetime, timedelta
 import pdfplumber
+import httpx
 from openai import AzureOpenAI
 from shared.config import config
 from shared.circuit_breaker import openai_breaker, storage_breaker
@@ -141,11 +142,14 @@ def _extract_vendor_with_llm(pdf_text: str) -> Optional[str]:
 def _extract_vendor_with_llm_internal(pdf_text: str) -> Optional[str]:
     """Internal method that performs the actual OpenAI API call."""
     try:
-        # Initialize Azure OpenAI client
+        # Initialize Azure OpenAI client with explicit httpx client to avoid proxy issues
+        # Azure Functions may have proxy env vars that cause 'proxies' argument errors
+        http_client = httpx.Client()
         client = AzureOpenAI(
             api_key=os.environ["AZURE_OPENAI_API_KEY"],
             api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
             azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+            http_client=http_client,
         )
 
         # Call GPT-4o-mini with vendor extraction prompt
