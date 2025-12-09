@@ -29,12 +29,12 @@ jobs:
       env:
         PYTHONPATH: ./src
       run: |
-        pytest tests/unit --cov=functions --cov=shared --cov-fail-under=85 -v
+        pytest tests/unit --cov=src --cov-fail-under=85 -v
 
     - name: Type checking with mypy
       run: |
-        mypy src/functions src/shared --strict || true
+        mypy src/ --strict || true
 
     - name: Security scan with bandit
       run: |
-        bandit -r src/functions src/shared || true
+        bandit -r src/ || true
