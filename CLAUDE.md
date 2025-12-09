@@ -225,7 +225,7 @@ One-line description of changes.
 - [x] Criteria 3
 
 ## Testing
-- Unit tests: 419 tests (coverage needs improvement to 85%)
+- Unit tests: 433 tests (91% coverage)
 - Integration tests: All passing
 - Manual testing: Verified X, Y, Z
 
@@ -363,7 +363,7 @@ func start --functions MailIngest
 ```bash
 # Unit tests with coverage (from repo root, pytest.ini configured)
 export PYTHONPATH=./src
-pytest tests/unit --cov=functions --cov=shared --cov-fail-under=85 -v
+pytest tests/unit --cov=src --cov-fail-under=85 -v
 
 # Or use pytest.ini configuration (automatically sets PYTHONPATH)
 pytest
@@ -671,7 +671,7 @@ Migrated from timer-based polling to event-driven webhooks using Microsoft Graph
   - Each deployment creates version-tagged package in blob storage
   - 1-year SAS URLs for package access
   - Simplified CI/CD pipeline (~150 lines vs 520 lines)
-- ✅ CI/CD pipeline operational (419 tests)
+- ✅ CI/CD pipeline operational (433 tests, 91% coverage)
 - ✅ All P0 and P1 issues resolved
 - ✅ Webhook subscription active and tested
 - ✅ VendorMaster table seeded and operational

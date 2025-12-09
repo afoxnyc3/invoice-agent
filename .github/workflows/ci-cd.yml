@@ -305,14 +305,21 @@ jobs:
 
       - name: Deploy to production
         run: |
-          echo "Updating WEBSITE_RUN_FROM_PACKAGE setting..."
+          DEPLOYMENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "Deployment timestamp: ${DEPLOYMENT_TIMESTAMP}"
+          echo "Git SHA: ${{ github.sha }}"
+
+          echo "Updating app settings..."
           az functionapp config appsettings set \
             --name ${{ env.FUNCTION_APP_PROD }} \
             --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
-            --settings "WEBSITE_RUN_FROM_PACKAGE=${{ steps.sas.outputs.url }}" \
+            --settings \
+              "WEBSITE_RUN_FROM_PACKAGE=${{ steps.sas.outputs.url }}" \
+              "GIT_SHA=${{ github.sha }}" \
+              "DEPLOYMENT_TIMESTAMP=${DEPLOYMENT_TIMESTAMP}" \
             --output none
 
-          echo "App setting updated successfully"
+          echo "App settings updated successfully"
 
       - name: Restart and wait for production
         run: |
@@ -336,8 +343,9 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP_PROD }} \
             --query "functionKeys.default" -o tsv)
 
+          # Use detailed=true to verify deployment info is set correctly
           HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" \
-            "${PROD_URL}/api/health?code=${FUNC_KEY}" \
+            "${PROD_URL}/api/health?code=${FUNC_KEY}&detailed=true" \
             --max-time 60 || echo "000")
 
           echo "Health check response: ${HTTP_STATUS}"
@@ -345,6 +353,13 @@ jobs:
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "PASS: Production health check succeeded"
             cat /tmp/health_response.json
+
+            # Verify deployment info is present
+            if grep -q "${{ github.sha }}" /tmp/health_response.json; then
+              echo "PASS: Git SHA verified in health response"
+            else
+              echo "WARN: Git SHA not found in health response (may need restart)"
+            fi
           else
             echo "ERROR: Health check failed with status $HTTP_STATUS"
             cat /tmp/health_response.json 2>/dev/null || true
