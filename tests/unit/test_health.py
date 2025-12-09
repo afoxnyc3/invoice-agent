@@ -253,3 +253,218 @@ class TestHealthNoInformationDisclosure:
         assert "tables_count" not in body
         assert "tables" not in body
         assert "count" not in str(body).lower()
+
+
+# =============================================================================
+# DETAILED HEALTH CHECK TESTS
+# =============================================================================
+
+
+class TestHealthDetailedEndpoint:
+    """Test Health endpoint with ?detailed=true parameter."""
+
+    @patch.dict("os.environ", {
+        "GRAPH_TENANT_ID": "test-tenant",
+        "GRAPH_CLIENT_ID": "test-client",
+        "GRAPH_CLIENT_SECRET": "test-secret",
+        "GIT_SHA": "abc123",
+        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+    })
+    @patch("Health.get_all_circuit_states")
+    @patch("Health.config")
+    def test_detailed_returns_all_checks(self, mock_config, mock_circuits):
+        """Test detailed=true returns all health check information."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+        mock_config.environment = "prod"
+        mock_circuits.return_value = {
+            "graph_api": {"name": "graph_api", "state": "closed", "fail_count": 0},
+            "azure_openai": {"name": "azure_openai", "state": "closed", "fail_count": 0},
+            "azure_storage": {"name": "azure_storage", "state": "closed", "fail_count": 0},
+        }
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+            params={"detailed": "true"},
+        )
+
+        response = main(req)
+
+        assert response.status_code == 200
+        body = json.loads(response.get_body())
+        assert body["status"] == "healthy"
+        assert "checks" in body
+        assert "deployment" in body
+        assert body["checks"]["storage"]["healthy"] is True
+        assert body["checks"]["config"]["healthy"] is True
+        assert body["checks"]["graph_credentials"]["healthy"] is True
+        assert body["checks"]["circuits"]["healthy"] is True
+
+    @patch.dict("os.environ", {
+        "GRAPH_TENANT_ID": "test-tenant",
+        "GRAPH_CLIENT_ID": "test-client",
+        "GRAPH_CLIENT_SECRET": "test-secret",
+        "GIT_SHA": "abc123",
+        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+    })
+    @patch("Health.get_all_circuit_states")
+    @patch("Health.config")
+    def test_detailed_includes_circuit_states(self, mock_config, mock_circuits):
+        """Test detailed response includes circuit breaker states."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+        mock_config.environment = "prod"
+        mock_circuits.return_value = {
+            "graph_api": {"name": "graph_api", "state": "closed", "fail_count": 0, "fail_max": 5},
+            "azure_openai": {"name": "azure_openai", "state": "closed", "fail_count": 0, "fail_max": 3},
+            "azure_storage": {"name": "azure_storage", "state": "closed", "fail_count": 0, "fail_max": 5},
+        }
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+            params={"detailed": "true"},
+        )
+
+        response = main(req)
+        body = json.loads(response.get_body())
+
+        assert "circuits" in body["checks"]
+        assert "states" in body["checks"]["circuits"]
+        states = body["checks"]["circuits"]["states"]
+        assert "graph_api" in states
+        assert "azure_openai" in states
+        assert "azure_storage" in states
+        assert states["graph_api"]["state"] == "closed"
+
+    @patch.dict("os.environ", {
+        "GRAPH_TENANT_ID": "test-tenant",
+        "GRAPH_CLIENT_ID": "test-client",
+        "GRAPH_CLIENT_SECRET": "test-secret",
+        "GIT_SHA": "abc123",
+        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+    })
+    @patch("Health.get_all_circuit_states")
+    @patch("Health.config")
+    def test_detailed_includes_deployment_info(self, mock_config, mock_circuits):
+        """Test detailed response includes deployment information."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+        mock_config.environment = "prod"
+        mock_circuits.return_value = {
+            "graph_api": {"name": "graph_api", "state": "closed", "fail_count": 0},
+            "azure_openai": {"name": "azure_openai", "state": "closed", "fail_count": 0},
+            "azure_storage": {"name": "azure_storage", "state": "closed", "fail_count": 0},
+        }
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+            params={"detailed": "true"},
+        )
+
+        response = main(req)
+        body = json.loads(response.get_body())
+
+        assert "deployment" in body
+        assert body["deployment"]["git_sha"] == "abc123"
+        assert body["deployment"]["deployment_timestamp"] == "2025-12-08T10:00:00Z"
+        assert body["deployment"]["environment"] == "prod"
+        assert body["deployment"]["function_count"] == 9
+
+    @patch.dict("os.environ", {
+        "GRAPH_TENANT_ID": "test-tenant",
+        "GRAPH_CLIENT_ID": "test-client",
+        "GRAPH_CLIENT_SECRET": "test-secret",
+    })
+    @patch("Health.get_all_circuit_states")
+    @patch("Health.config")
+    def test_detailed_circuit_open_shows_degraded(self, mock_config, mock_circuits):
+        """Test open circuit results in degraded status."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+        mock_config.environment = "prod"
+        mock_circuits.return_value = {
+            "graph_api": {"name": "graph_api", "state": "open", "fail_count": 5},
+            "azure_openai": {"name": "azure_openai", "state": "closed", "fail_count": 0},
+            "azure_storage": {"name": "azure_storage", "state": "closed", "fail_count": 0},
+        }
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+            params={"detailed": "true"},
+        )
+
+        response = main(req)
+
+        assert response.status_code == 503
+        body = json.loads(response.get_body())
+        assert body["status"] == "degraded"
+        assert body["checks"]["circuits"]["healthy"] is False
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("Health.get_all_circuit_states")
+    @patch("Health.config")
+    def test_detailed_missing_graph_credentials_shows_degraded(self, mock_config, mock_circuits):
+        """Test missing Graph credentials results in degraded status."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+        mock_config.environment = "prod"
+        mock_circuits.return_value = {
+            "graph_api": {"name": "graph_api", "state": "closed", "fail_count": 0},
+            "azure_openai": {"name": "azure_openai", "state": "closed", "fail_count": 0},
+            "azure_storage": {"name": "azure_storage", "state": "closed", "fail_count": 0},
+        }
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+            params={"detailed": "true"},
+        )
+
+        response = main(req)
+
+        assert response.status_code == 503
+        body = json.loads(response.get_body())
+        assert body["status"] == "degraded"
+        assert body["checks"]["graph_credentials"]["healthy"] is False
+        assert "Missing" in body["checks"]["graph_credentials"]["error"]
+
+    @patch("Health.config")
+    def test_default_still_minimal_without_detailed(self, mock_config):
+        """Test default response without detailed param is still minimal."""
+        mock_config.table_service.list_tables.return_value = []
+        mock_config.validate_required.return_value = []
+
+        from Health import main
+
+        req = func.HttpRequest(
+            method="GET",
+            body=b"",
+            url="/api/health",
+        )
+
+        response = main(req)
+        body = json.loads(response.get_body())
+
+        # Verify minimal structure - only status and timestamp
+        assert set(body.keys()) == {"status", "timestamp"}
+        assert "checks" not in body
+        assert "deployment" not in body
