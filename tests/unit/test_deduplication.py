@@ -7,8 +7,8 @@ class TestDeduplication:
     """Test suite for deduplication utilities."""
 
     @patch("shared.deduplication.config")
-    def test_returns_true_when_message_exists(self, mock_config):
-        """Test duplicate detection when message exists in table."""
+    def test_returns_true_when_processed_message_exists(self, mock_config):
+        """Test duplicate detection when processed message exists in table."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
@@ -17,7 +17,7 @@ class TestDeduplication:
             {
                 "RowKey": "01JCK3Q7H8",
                 "ProcessedAt": "2025-11-24T10:05:00Z",
-                "Status": "unknown",
+                "Status": "processed",
             }
         ]
 
@@ -84,23 +84,22 @@ class TestDeduplication:
         assert result is True
 
     @patch("shared.deduplication.config")
-    def test_detects_unknown_status(self, mock_config):
-        """Test that unknown status invoices are also detected as duplicates."""
+    def test_allows_unknown_status_to_proceed(self, mock_config):
+        """Test that unknown status invoices are NOT blocked - allows notifications.
+
+        Unknown vendor invoices need to proceed to PostToAP for Teams notification.
+        Only Status='processed' should block as a duplicate.
+        """
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
         mock_config.get_table_client.return_value = mock_table_client
-        mock_table_client.query_entities.return_value = [
-            {
-                "RowKey": "01JCK3Q7H8",
-                "ProcessedAt": "2025-11-24T10:05:00Z",
-                "Status": "unknown",
-            }
-        ]
+        # Query for Status='processed' returns empty (only unknown exists)
+        mock_table_client.query_entities.return_value = []
 
         result = is_message_already_processed("unknown-vendor-message-id")
 
-        assert result is True
+        assert result is False  # Unknown status does NOT block processing
 
     @patch("shared.deduplication.config")
     def test_queries_invoice_transactions_table(self, mock_config):
@@ -116,8 +115,8 @@ class TestDeduplication:
         mock_config.get_table_client.assert_called_with("InvoiceTransactions")
 
     @patch("shared.deduplication.config")
-    def test_query_filter_uses_original_message_id(self, mock_config):
-        """Test that query filter uses the correct message ID."""
+    def test_query_filter_uses_message_id_and_processed_status(self, mock_config):
+        """Test that query filter uses message ID and Status='processed' filter."""
         from shared.deduplication import is_message_already_processed
 
         mock_table_client = MagicMock()
@@ -126,7 +125,9 @@ class TestDeduplication:
 
         is_message_already_processed("my-unique-message-id")
 
-        mock_table_client.query_entities.assert_called_once_with("OriginalMessageId eq 'my-unique-message-id'")
+        mock_table_client.query_entities.assert_called_once_with(
+            "OriginalMessageId eq 'my-unique-message-id' and Status eq 'processed'"
+        )
 
 
 class TestInvoiceHashGeneration:
