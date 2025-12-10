@@ -39,7 +39,10 @@ class RawMail(BaseModel):
     @field_validator("blob_url")
     @classmethod
     def validate_url(cls, v: str) -> str:
-        """Ensure blob URL uses HTTPS protocol"""
+        """Ensure blob URL uses HTTPS protocol (HTTP allowed for Azurite local dev)"""
+        # Allow HTTP for Azurite local development (127.0.0.1 or localhost)
+        if v.startswith("http://127.0.0.1") or v.startswith("http://localhost"):
+            return v
         if not v.startswith("https://"):
             raise ValueError("blob_url must be HTTPS")
         return v

@@ -56,6 +56,7 @@ def test_concurrent_processing_50_invoices(
             "subject": f"Invoice #{1000 + i}",
             "blob_url": blob_url,
             "received_at": datetime.utcnow().isoformat() + "Z",
+            "original_message_id": f"AAMkAGI2THVSAAA={txn_id}",
         }
         storage_helper.send_message("raw-mail", json.dumps(raw_mail))
 
@@ -136,6 +137,7 @@ def test_single_invoice_latency(
         "subject": "Invoice #12345",
         "blob_url": blob_url,
         "received_at": datetime.utcnow().isoformat() + "Z",
+        "original_message_id": f"AAMkAGI2THVSAAA={transaction_id}",
     }
 
     start_time = time.time()
@@ -327,6 +329,7 @@ def test_memory_usage_stability(
             "subject": f"Invoice #{i}",
             "blob_url": f"https://test.blob/invoices/test-{i}.pdf",
             "received_at": datetime.utcnow().isoformat() + "Z",
+            "original_message_id": f"AAMkAGI2THVSAAA=mem-test-{i}",
         }
 
         mock_queue_msg = MagicMock()

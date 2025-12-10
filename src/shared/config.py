@@ -290,6 +290,18 @@ class Config:
 
         return missing
 
+    def reset_clients(self) -> None:
+        """
+        Reset cached service clients (for testing with different connection strings).
+
+        This method clears all cached Azure clients, forcing them to be recreated
+        on next access with the current environment variables.
+        """
+        self._table_service = None
+        self._blob_service = None
+        self._queue_service = None
+        logger.debug("Config clients reset")
+
 
 # Global singleton instance
 config = Config()

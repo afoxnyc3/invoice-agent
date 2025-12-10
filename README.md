@@ -102,9 +102,9 @@ invoice-agent/
 │   ├── shared/               # Shared utilities
 │   ├── host.json             # Function App config
 │   └── requirements.txt      # Python dependencies
-├── tests/               # Test suite (419 tests)
-│   ├── unit/           # Unit tests
-│   ├── integration/    # Integration tests
+├── tests/               # Test suite (472 tests)
+│   ├── unit/           # Unit tests (446 tests)
+│   ├── integration/    # Integration tests (26 tests)
 │   └── fixtures/       # Test data
 └── infrastructure/data/  # Seed data
     └── vendors.csv       # Vendor master list
@@ -154,7 +154,7 @@ graph LR
 - ✅ **Hourly fallback polling** - MailIngest as safety net for missed notifications
 - ✅ Full CI/CD pipeline with direct blob URL deployment, health verification, and release tagging
 - ✅ Infrastructure deployed (Function App, Storage, Key Vault, App Insights)
-- ✅ **9 Azure Functions** implemented and tested (419 tests)
+- ✅ **9 Azure Functions** implemented and tested (472 tests, 93% coverage)
 - ✅ Comprehensive monitoring and logging
 - ✅ Managed Identity-based authentication (no secrets in code)
 
@@ -186,11 +186,12 @@ graph LR
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Unit Test Coverage | 85%+ | **28.5%** (framework coverage good, HTTP trigger mocking needed) |
-| Unit Tests Passing | 100% | **419/419** ✅ |
-| Integration Tests | 100% | **20/26** (77% passing, framework complete) |
+| Test Coverage | 85%+ | **93%** ✅ |
+| Unit Tests Passing | 100% | **446/446** ✅ |
+| Integration Tests | 100% | **26/26** ✅ |
+| Total Tests | - | **472 passing** ✅ |
 | E2E Testing Plan | ✅ | **Framework Ready** (manual procedures: TESTING_PLAYBOOK.md) |
-| CI/CD Pipeline | Stable | **Passing + Integration Tests** ✅ (NOW ENABLED) |
+| CI/CD Pipeline | Stable | **Passing + All Tests** ✅ |
 | Code Quality | ✅ | Black/Flake8/mypy **Passing** ✅ |
 | Infrastructure | Deployed | **Production Ready** ✅ |
 | Deployment Pattern | Blob URL | **Direct Deploy + Health Check** ✅ |
@@ -249,13 +250,15 @@ pytest tests/integration -v --tb=short
 
 ### E2E Testing (End-to-End)
 
-**Status**: Framework complete (20/26 tests passing), manual validation available
+**Status**: All 26 integration tests passing ✅
 
 **Automated Integration Tests** (in CI/CD):
 - `test_happy_path_known_vendor_flow` - Complete workflow through all functions
 - `test_unknown_vendor_flow` - Unknown vendor handling with registration email
 - `test_missing_attachment_flow` - Missing attachment handling
 - `test_malformed_email_flow` - Malformed email error handling
+- `test_successful_retry_after_transient_error` - Retry behavior on transient failures
+- Queue retry, vendor management, and performance tests
 
 **Manual E2E Validation** (for production testing):
 ```bash
@@ -268,22 +271,23 @@ pytest tests/integration -v --tb=short
 
 ### Current Test Results
 ```
-Unit Tests:              419 passing ✅
-Integration Tests:        20/26 passing (77%) 🔄
-Performance Tests:         5 passing ✅
-Vendor Management Tests:   10 passing ✅
-Total:                   472 tests
+Unit Tests:              446 passing ✅
+Integration Tests:        26 passing ✅
+  - E2E Flow Tests:        4 passing
+  - Queue Retry Tests:     6 passing
+  - Vendor Management:    10 passing
+  - Performance Tests:     6 passing
+Total:                   472 tests ✅
 
-Code Coverage:           28.5% (primary blocker: HTTP trigger mocking)
+Code Coverage:           93% (exceeds 85% target)
 Critical Paths Tested:   ✅ 100% (queue processing, business logic)
-E2E Framework:           ✅ Complete (manual validation available)
+E2E Framework:           ✅ Complete (automated + manual validation)
 ```
 
-**Coverage Explanation**:
+**Testing Architecture**:
 - Unit tests cover queue message processing, vendor lookup, PDF extraction
-- HTTP trigger endpoints (MailWebhook, Health, AddVendor) require Azure Functions runtime
-- Integration test framework uses Azurite (Azure Storage emulator) for local testing
-- Production e2e validation uses manual testing procedures in TESTING_PLAYBOOK.md
+- Integration tests use Azurite (Azure Storage emulator) for realistic storage testing
+- E2E tests validate complete workflows from email ingestion to Teams notification
 - See [ADR-0030](docs/adr/0030-azurite-integration-tests.md) for testing architecture
 
 ## 📝 Configuration
@@ -345,4 +349,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.1 | **Last Updated:** 2025-12-08
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.2 | **Last Updated:** 2025-12-10

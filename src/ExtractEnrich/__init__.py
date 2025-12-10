@@ -45,9 +45,9 @@ def _find_vendor_by_name(vendor_name: str, table_client: TableClient) -> dict[st
             # Exact match on normalized RowKey
             if vendor["RowKey"] == vendor_lower.replace(" ", "_").replace("-", "_"):
                 return vendor
-            # Contains match - check if vendor name from table is in search term
-            # E.g., "Microsoft" in "Microsoft Corporation" → True
-            if vendor["VendorName"].lower() in vendor_lower:
+            # Contains match - check if search term is in vendor name from table
+            # E.g., "adobe" in "Adobe Inc" → True
+            if vendor_lower in vendor["VendorName"].lower():
                 return vendor
 
         return None

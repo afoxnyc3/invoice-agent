@@ -72,6 +72,7 @@ def test_happy_path_known_vendor_flow(
         "subject": email["subject"],
         "blob_url": blob_url,
         "received_at": email["receivedDateTime"],
+        "original_message_id": email.get("id", f"AAMkAGI2THVSAAA={transaction_id}"),
     }
     storage_helper.send_message("raw-mail", json.dumps(raw_mail))
 
@@ -136,11 +137,16 @@ def test_happy_path_known_vendor_flow(
     mock_queue_msg.get_body.return_value = messages[0].content.encode()
     notify_main(mock_queue_msg)
 
-    # Validate Teams webhook called
+    # Validate Teams webhook called (Adaptive Card format)
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
-    assert webhook_call[1]["json"]["text"] is not None
-    assert webhook_call[1]["json"]["themeColor"] == "00FF00"  # Green for success
+    payload = webhook_call[1]["json"]
+    assert "attachments" in payload
+    assert len(payload["attachments"]) == 1
+    card_content = payload["attachments"][0]["content"]
+    assert card_content["type"] == "AdaptiveCard"
+    # First body element contains the message with emoji
+    assert "Adobe Inc" in card_content["body"][0]["text"]
 
 
 @pytest.mark.integration
@@ -149,6 +155,7 @@ def test_unknown_vendor_flow(
     storage_helper,
     test_queues,
     test_tables,
+    test_blobs,
     sample_vendors,
     sample_emails,
     sample_pdf,
@@ -175,6 +182,7 @@ def test_unknown_vendor_flow(
         "subject": email["subject"],
         "blob_url": blob_url,
         "received_at": email["receivedDateTime"],
+        "original_message_id": email.get("id", f"AAMkAGI2THVSAAA={transaction_id}"),
     }
     storage_helper.send_message("raw-mail", json.dumps(raw_mail))
 
@@ -187,17 +195,24 @@ def test_unknown_vendor_flow(
     mock_graph = MagicMock()
     mock_graph.send_email.return_value = {"id": "sent-reg-email"}
 
+    enriched_msgs = []
+    mock_output.set.side_effect = lambda x: enriched_msgs.append(x)
+
     with patch("ExtractEnrich.GraphAPIClient", return_value=mock_graph):
         extract_enrich_main(mock_queue_msg, mock_output)
 
-    # Validate no message queued to to-post (processing stopped)
-    mock_output.set.assert_not_called()
+    # Unknown vendors now get queued with status="unknown" for downstream processing
+    assert len(enriched_msgs) == 1
+    enriched_data = json.loads(enriched_msgs[0])
+    assert enriched_data["status"] == "unknown"
+    assert enriched_data["gl_code"] == "0000"
 
-    # Validate registration email sent
+    # Validate registration email sent to requestor
     assert mock_graph.send_email.called
     email_call = mock_graph.send_email.call_args
     assert email_call[1]["to_address"] == "billing@newvendor.com"
-    assert "vendor registration" in email_call[1]["subject"].lower()
+    # Subject is "Action Required: Add Vendor Information for Invoice Processing"
+    assert "vendor" in email_call[1]["subject"].lower()
 
 
 @pytest.mark.integration
@@ -236,6 +251,7 @@ def test_missing_attachment_flow(
 def test_malformed_email_flow(
     storage_helper,
     test_queues,
+    test_blobs,
     sample_emails,
     mock_environment,
 ):
@@ -247,11 +263,22 @@ def test_malformed_email_flow(
     mock_graph = MagicMock()
     email = sample_emails["malformed"]
     mock_graph.get_unread_emails.return_value = [email]
+    # Provide attachments so code reaches the point where sender is accessed
+    mock_graph.get_attachments.return_value = [
+        {
+            "id": "att-malformed-001",
+            "name": "invoice_malformed.pdf",
+            "contentType": "application/pdf",
+            "contentBytes": base64.b64encode(b"fake pdf content").decode(),
+            "size": 100,
+        }
+    ]
 
     mock_timer = MagicMock()
     mock_output = MagicMock()
 
-    # Should raise exception due to missing sender
+    # Should raise KeyError/TypeError due to missing sender field when accessing
+    # email["sender"]["emailAddress"]["address"]
     with patch("MailIngest.GraphAPIClient", return_value=mock_graph):
-        with pytest.raises(Exception):
+        with pytest.raises((KeyError, TypeError)):
             mail_ingest_main(mock_timer, mock_output)

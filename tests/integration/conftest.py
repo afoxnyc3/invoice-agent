@@ -134,9 +134,9 @@ def sample_vendors(storage_helper, test_tables) -> List[Dict[str, Any]]:
                 "RowKey": row["vendor_domain"],
                 "VendorName": row["vendor_name"],
                 "ExpenseDept": row["expense_dept"],
-                "AllocationScheduleNumber": row["allocation_schedule"],
+                "AllocationSchedule": row["allocation_schedule"],
                 "GLCode": row["gl_code"],
-                "BillingParty": row["billing_party"],
+                "ProductCategory": "Direct",
                 "Active": True,
                 "UpdatedAt": datetime.utcnow().isoformat() + "Z",
             }
@@ -174,6 +174,8 @@ def mock_graph_client(sample_emails) -> MockGraphAPIClient:
 @pytest.fixture
 def mock_environment(monkeypatch):
     """Mock environment variables for integration tests."""
+    from shared.config import config
+
     env_vars = {
         "AzureWebJobsStorage": AZURITE_CONNECTION,
         "INVOICE_MAILBOX": "invoices@test.com",
@@ -188,6 +190,9 @@ def mock_environment(monkeypatch):
 
     for key, value in env_vars.items():
         monkeypatch.setenv(key, value)
+
+    # Reset config clients so they use the new Azurite connection string
+    config.reset_clients()
 
     return env_vars
 
@@ -218,8 +223,9 @@ def raw_mail_message(transaction_id) -> Dict[str, Any]:
         "id": transaction_id,
         "sender": "billing@adobe.com",
         "subject": "Invoice #12345",
-        "blob_url": "https://127.0.0.1:10000/devstoreaccount1/invoices/test/invoice.pdf",
+        "blob_url": "http://127.0.0.1:10000/devstoreaccount1/invoices/test/invoice.pdf",
         "received_at": datetime.utcnow().isoformat() + "Z",
+        "original_message_id": f"AAMkAGI2THVSAAA={transaction_id}",
     }
 
 
@@ -233,8 +239,11 @@ def enriched_invoice_message(transaction_id) -> Dict[str, Any]:
         "gl_code": "6100",
         "allocation_schedule": "MONTHLY",
         "billing_party": "Company HQ",
-        "blob_url": "https://127.0.0.1:10000/devstoreaccount1/invoices/test/invoice.pdf",
+        "blob_url": "http://127.0.0.1:10000/devstoreaccount1/invoices/test/invoice.pdf",
+        "original_message_id": f"AAMkAGI2THVSAAA={transaction_id}",
         "status": "enriched",
+        "sender_email": "billing@adobe.com",
+        "received_at": datetime.utcnow().isoformat() + "Z",
     }
 
 

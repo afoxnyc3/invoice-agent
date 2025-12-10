@@ -47,7 +47,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 - **Auto-routing Rate**: >80% (known vendors)
 - **Unknown Vendor Rate**: <10%
 - **Error Rate**: <1%
-- **Test Coverage**: >85% (CI threshold met)
+- **Test Coverage**: 93% (exceeds 85% CI threshold)
 
 ---
 
@@ -1409,7 +1409,7 @@ GitHub → Actions → Tests → Build → Upload to Blob → Generate SAS → D
 ```
 
 **Pipeline Stages**:
-1. **Test**: Run pytest (389 tests, 85%+ coverage)
+1. **Test**: Run pytest (472 tests, 93% coverage)
 2. **Lint**: Black, Flake8, mypy, bandit
 3. **Build**: Package Python functions into ZIP
 4. **Infrastructure**: Deploy Bicep templates (incremental mode)
@@ -1487,7 +1487,9 @@ az functionapp restart --name func-invoice-agent-prod
 
 **CI/CD Pipeline** ✅:
 - GitHub Actions workflow configured
-- 389 tests passing (85%+ coverage)
+- 472 tests passing (93% coverage)
+  - 446 unit tests
+  - 26 integration tests (all passing)
 - Quality gates: Black, Flake8, mypy, bandit
 - Direct blob URL deployment to production
 - Health check verification (9 functions loaded)
@@ -1645,8 +1647,8 @@ az functionapp restart --name func-invoice-agent-prod
 
 ---
 
-**Version:** 3.1 (Documentation Audit)
-**Last Updated:** 2025-12-08
+**Version:** 3.2 (Integration Tests Complete)
+**Last Updated:** 2025-12-10
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)

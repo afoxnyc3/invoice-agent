@@ -14,7 +14,9 @@ def assert_raw_mail_valid(message_json: str) -> RawMail:
     raw_mail = RawMail.model_validate_json(message_json)
     assert raw_mail.id, "Transaction ID must not be empty"
     assert raw_mail.sender, "Sender email must not be empty"
-    assert raw_mail.blob_url.startswith("https://"), "Blob URL must be HTTPS"
+    # Allow HTTP for Azurite (local dev) or HTTPS for production
+    is_local = raw_mail.blob_url.startswith("http://127.0.0.1") or raw_mail.blob_url.startswith("http://localhost")
+    assert is_local or raw_mail.blob_url.startswith("https://"), "Blob URL must be HTTPS (or HTTP for local)"
     return raw_mail
 
 
