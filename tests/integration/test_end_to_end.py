@@ -137,16 +137,16 @@ def test_happy_path_known_vendor_flow(
     mock_queue_msg.get_body.return_value = messages[0].content.encode()
     notify_main(mock_queue_msg)
 
-    # Validate Teams webhook called (Adaptive Card format)
+    # Validate Teams webhook called (MessageCard format)
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
     payload = webhook_call[1]["json"]
-    assert "attachments" in payload
-    assert len(payload["attachments"]) == 1
-    card_content = payload["attachments"][0]["content"]
-    assert card_content["type"] == "AdaptiveCard"
-    # First body element contains the message with emoji
-    assert "Adobe Inc" in card_content["body"][0]["text"]
+    assert payload["@type"] == "MessageCard"
+    assert payload["@context"] == "http://schema.org/extensions"
+    assert "sections" in payload
+    assert len(payload["sections"]) == 1
+    # Section activityTitle contains the message with emoji
+    assert "Adobe Inc" in payload["sections"][0]["activityTitle"]
 
 
 @pytest.mark.integration
