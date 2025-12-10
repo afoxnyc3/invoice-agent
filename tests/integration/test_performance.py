@@ -164,7 +164,7 @@ def test_single_invoice_latency(
     mock_graph = MagicMock()
     mock_graph.send_email.return_value = {"id": "sent-123"}
 
-    with patch("functions.PostToAP.GraphAPIClient", return_value=mock_graph):
+    with patch("PostToAP.GraphAPIClient", return_value=mock_graph):
         from PostToAP import main as post_to_ap_main
 
         post_to_ap_main(mock_queue_msg, mock_notify_output)

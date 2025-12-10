@@ -70,7 +70,7 @@ def test_transient_failure_retry(
     mock_table_service = MagicMock()
     mock_table_service.get_table_client.return_value = mock_table_client
 
-    with patch("functions.ExtractEnrich.TableServiceClient.from_connection_string", return_value=mock_table_service):
+    with patch("shared.config.config.get_table_client", return_value=mock_table_service):
         # Function should raise exception (Azure Functions runtime handles retry)
         with pytest.raises(Exception):
             extract_enrich_main(mock_queue_msg, mock_output)
@@ -158,7 +158,7 @@ def test_successful_retry_after_transient_error(
     mock_table_service = MagicMock()
     mock_table_service.get_table_client.return_value = mock_table_client
 
-    with patch("functions.ExtractEnrich.TableServiceClient.from_connection_string", return_value=mock_table_service):
+    with patch("shared.config.config.get_table_client", return_value=mock_table_service):
         # First attempt should fail
         with pytest.raises(ServiceRequestError):
             extract_enrich_main(mock_queue_msg, mock_output)
@@ -173,7 +173,7 @@ def test_successful_retry_after_transient_error(
     enriched_msgs = []
     mock_output_retry.set.side_effect = lambda x: enriched_msgs.append(x)
 
-    with patch("functions.ExtractEnrich.TableServiceClient.from_connection_string", return_value=mock_table_service):
+    with patch("shared.config.config.get_table_client", return_value=mock_table_service):
         # Second attempt should succeed
         extract_enrich_main(mock_queue_msg, mock_output_retry)
 
@@ -229,7 +229,7 @@ def test_graph_api_retry_on_throttling(
 
     mock_graph.send_email = send_with_throttle
 
-    with patch("functions.PostToAP.GraphAPIClient", return_value=mock_graph):
+    with patch("PostToAP.GraphAPIClient", return_value=mock_graph):
         # Should fail on first attempt (throttled)
         with pytest.raises(Exception):
             post_to_ap_main(mock_queue_msg, mock_output)

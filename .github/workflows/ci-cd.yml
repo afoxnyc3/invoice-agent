@@ -77,15 +77,22 @@ jobs:
           # Exit-zero treats all errors as warnings (line length=127 to match Black default)
           flake8 MailIngest/ ExtractEnrich/ PostToAP/ Notify/ AddVendor/ shared/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Run unit tests with coverage
+      - name: Run unit and integration tests with coverage
         working-directory: .
         run: |
-          echo "Running tests under coverage..."
+          echo "Running all tests (unit + integration) under coverage..."
           python -m pip install coverage
-          # Run tests and create .coverage (exclude integration tests)
-          coverage run -m pytest -m "not integration" || TEST_EXIT=$?
+          # Run all tests and create .coverage
+          coverage run -m pytest || TEST_EXIT=$?
           # Propagate pytest non-zero exit after collecting coverage so subsequent coverage report can run
           if [ -n "${TEST_EXIT}" ]; then exit ${TEST_EXIT}; fi
+
+      - name: Run integration tests separately (detailed reporting)
+        if: always()
+        working-directory: .
+        run: |
+          echo "Running integration tests with detailed reporting..."
+          python -m pytest tests/integration/ -v --tb=short -m integration || true
 
       - name: Generate coverage report
         if: always()

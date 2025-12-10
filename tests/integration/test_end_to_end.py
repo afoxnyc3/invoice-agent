@@ -89,7 +89,7 @@ def test_happy_path_known_vendor_flow(
     enriched_msgs = []
     mock_output.set.side_effect = lambda x: enriched_msgs.append(x)
 
-    with patch("functions.ExtractEnrich.GraphAPIClient", return_value=mock_graph):
+    with patch("ExtractEnrich.GraphAPIClient", return_value=mock_graph):
         extract_enrich_main(mock_queue_msg, mock_output)
 
     # Validate EnrichedInvoice message
@@ -111,7 +111,7 @@ def test_happy_path_known_vendor_flow(
     notify_msgs = []
     mock_notify_output.set.side_effect = lambda x: notify_msgs.append(x)
 
-    with patch("functions.PostToAP.GraphAPIClient", return_value=mock_graph):
+    with patch("PostToAP.GraphAPIClient", return_value=mock_graph):
         post_to_ap_main(mock_queue_msg, mock_notify_output)
 
     # Validate NotificationMessage
@@ -187,7 +187,7 @@ def test_unknown_vendor_flow(
     mock_graph = MagicMock()
     mock_graph.send_email.return_value = {"id": "sent-reg-email"}
 
-    with patch("functions.ExtractEnrich.GraphAPIClient", return_value=mock_graph):
+    with patch("ExtractEnrich.GraphAPIClient", return_value=mock_graph):
         extract_enrich_main(mock_queue_msg, mock_output)
 
     # Validate no message queued to to-post (processing stopped)
@@ -221,7 +221,7 @@ def test_missing_attachment_flow(
     mock_timer = MagicMock()
     mock_output = MagicMock()
 
-    with patch("functions.MailIngest.GraphAPIClient", return_value=mock_graph):
+    with patch("MailIngest.GraphAPIClient", return_value=mock_graph):
         mail_ingest_main(mock_timer, mock_output)
 
     # Validate email marked as read
@@ -252,6 +252,6 @@ def test_malformed_email_flow(
     mock_output = MagicMock()
 
     # Should raise exception due to missing sender
-    with patch("functions.MailIngest.GraphAPIClient", return_value=mock_graph):
+    with patch("MailIngest.GraphAPIClient", return_value=mock_graph):
         with pytest.raises(Exception):
             mail_ingest_main(mock_timer, mock_output)

@@ -35,10 +35,25 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 @pytest.fixture(scope="session")
 def azurite_available():
-    """Check if Azurite is running."""
+    """Check if Azurite is running with quick connection test."""
+    import socket
+
+    # Quick socket test first to avoid Azure SDK retry delays
+    test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_socket.settimeout(2)
+    try:
+        result = test_socket.connect_ex(("127.0.0.1", 10001))
+        test_socket.close()
+        if result != 0:
+            pytest.skip("Azurite not available: cannot connect to port 10001")
+    except Exception as e:
+        test_socket.close()
+        pytest.skip(f"Azurite not available: {e}")
+
+    # If socket connects, verify Azure SDK connectivity
     try:
         helper = StorageTestHelper(AZURITE_CONNECTION)
-        helper.queue_service.list_queues(results_per_page=1)
+        list(helper.queue_service.list_queues(results_per_page=1))
         return True
     except Exception as e:
         pytest.skip(f"Azurite not available: {e}")
