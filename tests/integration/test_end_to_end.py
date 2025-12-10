@@ -137,10 +137,11 @@ def test_happy_path_known_vendor_flow(
     mock_queue_msg.get_body.return_value = messages[0].content.encode()
     notify_main(mock_queue_msg)
 
-    # Validate Teams webhook called (Adaptive Card format)
+    # Validate Teams webhook called (Adaptive Card format for Power Automate)
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
     payload = webhook_call[1]["json"]
+    assert payload["type"] == "message"
     assert "attachments" in payload
     assert len(payload["attachments"]) == 1
     card_content = payload["attachments"][0]["content"]

@@ -42,11 +42,15 @@ class TestNotify:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
-        # Verify Adaptive Card structure
+        # Verify Adaptive Card structure for Power Automate
         card_data = call_args[1]["json"]
+        assert card_data["type"] == "message"
         assert "attachments" in card_data
         assert len(card_data["attachments"]) == 1
-        content = card_data["attachments"][0]["content"]
+
+        attachment = card_data["attachments"][0]
+        assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
+        content = attachment["content"]
         assert content["type"] == "AdaptiveCard"
 
         # Verify body elements
@@ -201,12 +205,13 @@ class TestNotify:
         facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount
 
-        # Verify fact titles are titlecased (Adaptive Cards use "title" not "name")
+        # Verify fact titles are titlecased with underscores replaced by spaces
+        # (Adaptive Card uses "title" not "name")
         fact_titles = [f["title"] for f in facts]
-        assert "Vendor:" in fact_titles
-        assert "Gl_Code:" in fact_titles
-        assert "Department:" in fact_titles
-        assert "Transaction_Id:" in fact_titles
+        assert "Vendor" in fact_titles
+        assert "Gl Code" in fact_titles
+        assert "Department" in fact_titles
+        assert "Transaction Id" in fact_titles
 
     def test_notify_invalid_message(self):
         """Test handling of invalid queue message."""

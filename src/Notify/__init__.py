@@ -17,13 +17,12 @@ logger = logging.getLogger(__name__)
 
 def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
-    Build Teams webhook payload for Power Automate workflows.
+    Build Teams webhook payload using Adaptive Card format for Power Automate.
 
-    Power Automate webhooks expect Adaptive Card format with attachments array.
+    Power Automate Workflows expect the payload to have an 'attachments' array
+    containing Adaptive Cards. The flow iterates over attachments to post to Teams.
 
-    Note: This workflow may fail with "bot not in roster" error until the
-    Power Automate Flow bot is granted permission to post to the channel.
-    This is a platform limitation that requires admin intervention.
+    See: https://learn.microsoft.com/en-us/power-automate/overview-adaptive-cards
     """
     emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
     color_map = {"success": "good", "unknown": "warning", "error": "attention", "duplicate": "warning"}
@@ -32,9 +31,10 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     color = color_map.get(notification.type, "default")
 
     # Build facts for Adaptive Card FactSet
-    facts = [{"title": f"{k.title()}:", "value": str(v)} for k, v in notification.details.items()]
+    facts = [{"title": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
 
     return {
+        "type": "message",
         "attachments": [
             {
                 "contentType": "application/vnd.microsoft.card.adaptive",
@@ -47,14 +47,18 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
                             "type": "TextBlock",
                             "text": f"{emoji} {notification.message}",
                             "weight": "Bolder",
-                            "size": "Large",
+                            "size": "Medium",
+                            "wrap": True,
                             "color": color,
                         },
-                        {"type": "FactSet", "facts": facts},
+                        {
+                            "type": "FactSet",
+                            "facts": facts,
+                        },
                     ],
                 },
             }
-        ]
+        ],
     }
 
 

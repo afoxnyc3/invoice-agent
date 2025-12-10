@@ -63,10 +63,10 @@ def is_message_already_processed(original_message_id: str | None) -> bool:
             logger.warning("Storage unavailable - dedup check skipped (fail open)")
             return False
 
-        # Query for ANY existing transaction with this message ID
-        # (not just 'processed' - unknown vendor invoices have status='unknown')
+        # Query for PROCESSED transactions only - unknown vendor invoices should
+        # still proceed to PostToAP for notification delivery
         safe_message_id = _sanitize_odata_string(original_message_id)
-        filter_query = f"OriginalMessageId eq '{safe_message_id}'"
+        filter_query = f"OriginalMessageId eq '{safe_message_id}' and Status eq 'processed'"
         results = list(table_client.query_entities(filter_query))
 
         if results:
