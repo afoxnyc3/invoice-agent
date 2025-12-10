@@ -243,7 +243,7 @@ make start-azurite
 make seed-vendors
 
 # Clear and reseed
-python3 infrastructure/scripts/clear_vendors.py  # TODO: Create this
+python3 infrastructure/scripts/clear_vendors.py --env prod --force
 make seed-vendors
 ```
 
