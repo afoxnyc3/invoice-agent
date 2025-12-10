@@ -42,22 +42,28 @@ class TestNotify:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
-        # Verify MessageCard structure
+        # Verify Adaptive Card structure for Power Automate
         card_data = call_args[1]["json"]
-        assert card_data["@type"] == "MessageCard"
-        assert card_data["@context"] == "http://schema.org/extensions"
-        assert card_data["themeColor"] == "00FF00"  # Green for success
-        assert card_data["summary"] == "Processed: Adobe Inc - GL 6100"
+        assert card_data["type"] == "message"
+        assert "attachments" in card_data
+        assert len(card_data["attachments"]) == 1
 
-        # Verify sections
-        assert "sections" in card_data
-        assert len(card_data["sections"]) == 1
-        section = card_data["sections"][0]
-        assert "✅ Processed: Adobe Inc - GL 6100" in section["activityTitle"]
+        attachment = card_data["attachments"][0]
+        assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
+        content = attachment["content"]
+        assert content["type"] == "AdaptiveCard"
+
+        # Verify body elements
+        body = content["body"]
+        text_block = body[0]
+        assert text_block["type"] == "TextBlock"
+        assert "✅ Processed: Adobe Inc - GL 6100" in text_block["text"]
+        assert text_block["color"] == "good"
 
         # Verify facts
-        facts = section["facts"]
-        assert len(facts) == 3
+        fact_set = body[1]
+        assert fact_set["type"] == "FactSet"
+        assert len(fact_set["facts"]) == 3
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
     @patch("Notify.requests")
@@ -84,9 +90,11 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify warning color for unknown vendor (orange hex)
+        # Verify warning color for unknown vendor
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["themeColor"] == "FFA500"  # Orange for warning
+        content = card_data["attachments"][0]["content"]
+        text_block = content["body"][0]
+        assert text_block["color"] == "warning"
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
     @patch("Notify.requests")
@@ -113,9 +121,11 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify red color for error
+        # Verify attention color for error
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["themeColor"] == "FF0000"  # Red for error
+        content = card_data["attachments"][0]["content"]
+        text_block = content["body"][0]
+        assert text_block["color"] == "attention"
 
     @patch.dict("os.environ", {})  # No webhook URL configured
     @patch("Notify.requests")
@@ -188,19 +198,20 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify facts are properly formatted in MessageCard
+        # Verify facts are properly formatted in Adaptive Card
         card_data = mock_requests.post.call_args[1]["json"]
-        section = card_data["sections"][0]
-        facts = section["facts"]
+        content = card_data["attachments"][0]["content"]
+        fact_set = content["body"][1]
+        facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount
 
-        # Verify fact names are titlecased with underscores replaced by spaces
-        # (MessageCard uses "name" not "title")
-        fact_names = [f["name"] for f in facts]
-        assert "Vendor" in fact_names
-        assert "Gl Code" in fact_names
-        assert "Department" in fact_names
-        assert "Transaction Id" in fact_names
+        # Verify fact titles are titlecased with underscores replaced by spaces
+        # (Adaptive Card uses "title" not "name")
+        fact_titles = [f["title"] for f in facts]
+        assert "Vendor" in fact_titles
+        assert "Gl Code" in fact_titles
+        assert "Department" in fact_titles
+        assert "Transaction Id" in fact_titles
 
     def test_notify_invalid_message(self):
         """Test handling of invalid queue message."""

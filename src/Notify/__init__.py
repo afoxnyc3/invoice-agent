@@ -17,33 +17,46 @@ logger = logging.getLogger(__name__)
 
 def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
-    Build Teams webhook payload using MessageCard format.
+    Build Teams webhook payload using Adaptive Card format for Power Automate.
 
-    Direct Teams Incoming Webhooks use MessageCard (Office 365 Connector) format.
-    This is simpler and more reliable than Power Automate + Adaptive Cards.
+    Power Automate Workflows expect the payload to have an 'attachments' array
+    containing Adaptive Cards. The flow iterates over attachments to post to Teams.
 
-    See: https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using
+    See: https://learn.microsoft.com/en-us/power-automate/overview-adaptive-cards
     """
     emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
-    # Teams MessageCard uses hex color codes (without #)
-    color_map = {"success": "00FF00", "unknown": "FFA500", "error": "FF0000", "duplicate": "FFA500"}
+    color_map = {"success": "good", "unknown": "warning", "error": "attention", "duplicate": "warning"}
 
     emoji = emoji_map.get(notification.type, "ℹ️")
-    theme_color = color_map.get(notification.type, "0078D4")
+    color = color_map.get(notification.type, "default")
 
-    # Build facts for MessageCard format
-    facts = [{"name": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
+    # Build facts for Adaptive Card FactSet
+    facts = [{"title": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
 
     return {
-        "@type": "MessageCard",
-        "@context": "http://schema.org/extensions",
-        "themeColor": theme_color,
-        "summary": notification.message,
-        "sections": [
+        "type": "message",
+        "attachments": [
             {
-                "activityTitle": f"{emoji} {notification.message}",
-                "facts": facts,
-                "markdown": True,
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "type": "AdaptiveCard",
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"{emoji} {notification.message}",
+                            "weight": "Bolder",
+                            "size": "Medium",
+                            "wrap": True,
+                            "color": color,
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": facts,
+                        },
+                    ],
+                },
             }
         ],
     }
