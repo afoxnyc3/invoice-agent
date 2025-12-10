@@ -7,7 +7,9 @@ This directory contains monitoring and alerting infrastructure for the Invoice A
 - **alerts.bicep** - Bicep template for alert rules and action groups
 - **alerts.parameters.json** - Parameter file for alert deployment
 - **dashboard.json** - Azure Dashboard definition (JSON)
+- **invoice-agent-workbook.json** - Azure Monitor Workbook (detailed analytics)
 - **deploy-monitoring.sh** - Deployment script for monitoring infrastructure
+- **deploy_workbook.sh** - Script to deploy the workbook (in /scripts/)
 - **README.md** - This file
 
 ## Quick Start
@@ -83,7 +85,7 @@ Alerts are sent to action groups with these notification channels:
 
 ## Dashboard
 
-The Azure Dashboard includes:
+The Azure Dashboard (`dashboard.json`) includes:
 - Real-time performance metrics (request rate, latency)
 - Error rate trends
 - Queue depths visualization
@@ -114,6 +116,40 @@ Option 3: Import via Azure Portal
 2. Click "Upload"
 3. Select `dashboard.json`
 4. Save dashboard
+
+## Workbook (Recommended)
+
+The Azure Monitor Workbook (`invoice-agent-workbook.json`) provides more detailed analytics with interactive visualizations:
+
+### Workbook Sections
+
+| Section | Metrics |
+|---------|---------|
+| **Processing Overview** | Total processed, vendor match rate, avg processing time, error rate |
+| **Function Performance** | Executions by function, avg/P95 duration, failure rates |
+| **Queue Health** | Throughput by queue, poison queue messages |
+| **Webhook vs Fallback** | Real-time webhook vs timer-based processing comparison |
+| **Vendor Analytics** | Top 10 vendors, unknown vendors needing attention |
+| **Recent Errors** | Exceptions and failed requests table |
+
+### Deploying Workbook
+
+```bash
+# Deploy to production
+../scripts/deploy_workbook.sh --env prod
+
+# Deploy to dev
+../scripts/deploy_workbook.sh --env dev
+```
+
+### Viewing the Workbook
+
+After deployment:
+1. Go to Azure Portal
+2. Navigate to: Application Insights > ai-invoice-agent-prod > Workbooks
+3. Open "Invoice Agent Operations"
+
+The workbook has a time range picker (1h, 4h, 12h, 24h, 48h, 7d) for historical analysis.
 
 ## Configuration
 

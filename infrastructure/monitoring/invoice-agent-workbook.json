@@ -1,0 +1,375 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Invoice Agent Operations Dashboard\n\nReal-time monitoring for invoice processing pipeline. Use this workbook to track throughput, errors, and vendor analytics."
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "timeRange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 86400000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 172800000 },
+                { "durationMs": 604800000 }
+              ]
+            },
+            "label": "Time Range"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Processing Overview"
+      },
+      "name": "section-overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Total Invoices Processed\ntraces\n| where timestamp {TimeRange}\n| where message contains \"Posted\" and message contains \"notification to Teams\"\n| summarize TotalProcessed = count()",
+        "size": 4,
+        "title": "Total Invoices Processed",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": false,
+          "titleContent": {
+            "columnMatch": "TotalProcessed",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          }
+        }
+      },
+      "customWidth": "25",
+      "name": "tile-total-processed"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Vendor Match Rate\ntraces\n| where timestamp {TimeRange}\n| where message contains \"Vendor lookup\" or message contains \"Unknown vendor\"\n| extend IsKnown = message !contains \"Unknown\"\n| summarize Known = countif(IsKnown), Unknown = countif(not(IsKnown))\n| extend MatchRate = round(Known * 100.0 / (Known + Unknown), 1)\n| project MatchRate",
+        "size": 4,
+        "title": "Vendor Match Rate %",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": false,
+          "titleContent": {
+            "columnMatch": "MatchRate",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "greenRed"
+            }
+          }
+        }
+      },
+      "customWidth": "25",
+      "name": "tile-match-rate"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Average Processing Time (end-to-end)\nrequests\n| where timestamp {TimeRange}\n| where name in (\"MailWebhook\", \"MailWebhookProcessor\", \"ExtractEnrich\", \"PostToAP\", \"Notify\")\n| summarize AvgDuration = round(avg(duration), 0)\n| project AvgDuration",
+        "size": 4,
+        "title": "Avg Processing Time (ms)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": false,
+          "titleContent": {
+            "columnMatch": "AvgDuration",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "blue"
+            }
+          }
+        }
+      },
+      "customWidth": "25",
+      "name": "tile-avg-duration"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Error Rate\nrequests\n| where timestamp {TimeRange}\n| where name in (\"MailWebhook\", \"MailWebhookProcessor\", \"ExtractEnrich\", \"PostToAP\", \"Notify\")\n| summarize Total = count(), Failed = countif(success == false)\n| extend ErrorRate = round(Failed * 100.0 / Total, 2)\n| project ErrorRate",
+        "size": 4,
+        "title": "Error Rate %",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": false,
+          "titleContent": {
+            "columnMatch": "ErrorRate",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "redGreen"
+            }
+          }
+        }
+      },
+      "customWidth": "25",
+      "name": "tile-error-rate"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Function Performance"
+      },
+      "name": "section-functions"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Function execution counts and durations\nrequests\n| where timestamp {TimeRange}\n| where name in (\"MailWebhook\", \"MailWebhookProcessor\", \"ExtractEnrich\", \"PostToAP\", \"Notify\", \"MailIngest\", \"SubscriptionManager\", \"AddVendor\", \"Health\")\n| summarize \n    Executions = count(),\n    AvgDuration = round(avg(duration), 0),\n    P95Duration = round(percentile(duration, 95), 0),\n    FailureRate = round(countif(success == false) * 100.0 / count(), 2)\n    by name\n| order by Executions desc",
+        "size": 0,
+        "title": "Function Performance Summary",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Executions",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "blue"
+              }
+            },
+            {
+              "columnMatch": "FailureRate",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  { "operator": "<", "thresholdValue": "1", "representation": "green" },
+                  { "operator": "<", "thresholdValue": "5", "representation": "yellow" },
+                  { "operator": "Default", "representation": "red" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "table-function-performance"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Function executions over time\nrequests\n| where timestamp {TimeRange}\n| where name in (\"MailWebhook\", \"MailWebhookProcessor\", \"ExtractEnrich\", \"PostToAP\", \"Notify\")\n| summarize count() by bin(timestamp, 1h), name\n| render timechart",
+        "size": 0,
+        "title": "Function Executions Over Time",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "chart-function-executions"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Queue Health"
+      },
+      "name": "section-queues"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Queue processing throughput\ntraces\n| where timestamp {TimeRange}\n| where message contains \"Queue message\" or message contains \"Queued\"\n| extend Queue = case(\n    message contains \"webhook-notifications\", \"webhook-notifications\",\n    message contains \"raw-mail\", \"raw-mail\",\n    message contains \"to-post\", \"to-post\",\n    message contains \"notify\", \"notify\",\n    \"other\")\n| where Queue != \"other\"\n| summarize MessagesProcessed = count() by Queue\n| order by MessagesProcessed desc",
+        "size": 0,
+        "title": "Queue Throughput",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "chart-queue-throughput"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Poison queue messages (errors)\nexceptions\n| where timestamp {TimeRange}\n| where message contains \"poison\" or outerMessage contains \"poison\"\n| summarize PoisonMessages = count() by bin(timestamp, 1h)\n| render columnchart",
+        "size": 0,
+        "title": "Poison Queue Messages (Errors)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "chart-poison-queue"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Webhook vs Fallback"
+      },
+      "name": "section-webhook"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Webhook vs MailIngest (fallback) processing\nrequests\n| where timestamp {TimeRange}\n| where name in (\"MailWebhook\", \"MailIngest\")\n| summarize count() by name\n| extend Source = case(name == \"MailWebhook\", \"Webhook (Real-time)\", \"Fallback (Timer)\")\n| project Source, Count = count_",
+        "size": 0,
+        "title": "Processing Source Comparison",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "chart-webhook-vs-fallback"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Subscription renewal status\ntraces\n| where timestamp {TimeRange}\n| where message contains \"subscription\" and (message contains \"renewed\" or message contains \"created\" or message contains \"failed\")\n| project timestamp, message\n| order by timestamp desc\n| take 10",
+        "size": 0,
+        "title": "Recent Subscription Events",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "customWidth": "50",
+      "name": "table-subscription-events"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Vendor Analytics"
+      },
+      "name": "section-vendors"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Top vendors by invoice count\ntraces\n| where timestamp {TimeRange}\n| where message contains \"Enriched invoice\" or message contains \"Vendor lookup\"\n| extend Vendor = extract(\"vendor[=:]\\\\s*([^,\\\\]]+)\", 1, message)\n| where isnotempty(Vendor) and Vendor != \"UNKNOWN\"\n| summarize InvoiceCount = count() by Vendor\n| top 10 by InvoiceCount desc",
+        "size": 0,
+        "title": "Top 10 Vendors by Invoice Count",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "customWidth": "50",
+      "name": "chart-top-vendors"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Unknown vendors (need attention)\ntraces\n| where timestamp {TimeRange}\n| where message contains \"Unknown vendor\" or message contains \"UNKNOWN\"\n| extend Sender = extract(\"sender[=:]\\\\s*([^,\\\\]]+)\", 1, message)\n| where isnotempty(Sender)\n| summarize Count = count() by Sender\n| order by Count desc\n| take 10",
+        "size": 0,
+        "title": "Unknown Vendors (Add to VendorMaster)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table"
+      },
+      "customWidth": "50",
+      "name": "table-unknown-vendors"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Recent Errors"
+      },
+      "name": "section-errors"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Recent exceptions\nexceptions\n| where timestamp {TimeRange}\n| project timestamp, type, outerMessage, innermostMessage\n| order by timestamp desc\n| take 20",
+        "size": 0,
+        "title": "Recent Exceptions",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "timestamp",
+              "formatter": 6
+            }
+          ]
+        }
+      },
+      "name": "table-exceptions"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Failed requests\nrequests\n| where timestamp {TimeRange}\n| where success == false\n| project timestamp, name, resultCode, duration, url\n| order by timestamp desc\n| take 20",
+        "size": 0,
+        "title": "Failed Requests",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "timestamp",
+              "formatter": 6
+            },
+            {
+              "columnMatch": "resultCode",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  { "operator": "startsWith", "thresholdValue": "2", "representation": "green" },
+                  { "operator": "startsWith", "thresholdValue": "4", "representation": "yellow" },
+                  { "operator": "Default", "representation": "red" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "table-failed-requests"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/{subscription-id}/resourceGroups/rg-invoice-agent-prod/providers/Microsoft.Insights/components/ai-invoice-agent-prod"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
