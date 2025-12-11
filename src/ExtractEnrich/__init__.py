@@ -221,7 +221,9 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]) -> None:
                 company_name = domain.split("_")[0]
                 vendor, match_type = _find_vendor_by_name(company_name, table_client)
                 if vendor:
-                    logger.info(f"Vendor matched via email domain ({match_type}): {company_name} -> {vendor['VendorName']}")
+                    logger.info(
+                        f"Vendor matched via email domain ({match_type}): {company_name} -> {vendor['VendorName']}"
+                    )
                     vendor_name = company_name
             except (ValueError, IndexError):
                 sender_domain = raw_mail.sender.split("@")[1] if "@" in raw_mail.sender else "unknown"

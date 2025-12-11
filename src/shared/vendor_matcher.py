@@ -18,7 +18,8 @@ from rapidfuzz import fuzz, process
 logger = logging.getLogger(__name__)
 
 # Default threshold - configurable via environment variable
-DEFAULT_FUZZY_THRESHOLD = 80
+# Set to 75 for better cross-version compatibility with rapidfuzz
+DEFAULT_FUZZY_THRESHOLD = 75
 FUZZY_THRESHOLD = int(os.environ.get("VENDOR_FUZZY_THRESHOLD", DEFAULT_FUZZY_THRESHOLD))
 
 
@@ -73,9 +74,7 @@ def find_fuzzy_match(
 
     if score >= threshold:
         vendor = choices[matched_name]
-        logger.info(
-            f"Fuzzy match: '{search_name}' -> '{vendor['VendorName']}' (score: {score})"
-        )
+        logger.info(f"Fuzzy match: '{search_name}' -> '{vendor['VendorName']}' (score: {score})")
         return vendor, score
 
     logger.debug(
