@@ -301,38 +301,17 @@ Closes #XX
 - All Pydantic models use strict validation
 
 ### Testing Requirements
-- **85% coverage target** (current: 28.5% - see breakdown below)
-- **Unit tests** for business logic (439 tests)
-- **Integration tests** for queue flow (26 tests, 14 passing - requires Azurite)
+- **85% coverage target** (current: 93% - CI enforced)
+- **Unit tests** for business logic (446 tests)
+- **Integration tests** for queue flow (26 tests - requires Azurite)
 - **E2E tests** for complete workflows (4 tests in test_end_to_end.py)
 - **Fixtures** for queue messages, sample emails, PDFs
-
-### Coverage Breakdown (Current: 28.5%)
-
-**Well Tested**:
-- ✅ Queue message processing (models, deduplication)
-- ✅ Vendor lookup and enrichment logic
-- ✅ PDF text extraction
-- ✅ Email parsing and validation
-
-**Needs HTTP Trigger Mocking**:
-- ❌ MailWebhook (HTTP trigger) - 0% coverage
-- ❌ Health (HTTP trigger) - 0% coverage
-- ❌ AddVendor (HTTP trigger) - 0% coverage
-- ❌ MailWebhookProcessor (queue trigger) - partially mocked
-- ❌ SubscriptionManager (timer trigger) - 14% coverage
-
-**Why Coverage is Low**:
-Azure Functions runtime is not available locally without emulating the full `azure.functions` context. HTTP triggers require special mocking that the current test framework doesn't implement. These are secondary to core business logic and can be tested via:
-1. Local Azure Functions Core Tools (`func start`)
-2. Integration tests with Azurite (running now)
-3. Manual e2e testing in production (see TESTING_PLAYBOOK.md)
 
 ### E2E Testing Strategy
 - **Integration tests**: Run against Azurite (Docker-based Azure Storage emulator)
 - **Manual validation**: Use TESTING_PLAYBOOK.md procedures for production safety
 - **CI/CD**: Integration tests enabled in `.github/workflows/ci-cd.yml` (skip cleanly without Azurite)
-- **Status**: 14/26 passing (54%), 12 failing due to fixture/model updates needed
+- **Status**: All 26 integration tests passing (as of Dec 2024)
 
 ### Logging Standards
 - **Structured logging** with correlation IDs

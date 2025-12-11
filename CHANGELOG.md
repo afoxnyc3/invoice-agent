@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Pydantic V2 validator migration for future-proofing
+- `clear_vendors.py` script for resetting VendorMaster table
+
+### Fixed
+- **Teams Notifications Not Delivered** - Fixed deduplication logic that blocked unknown vendor notifications
+  - `is_message_already_processed()` now only blocks if Status="processed" (not "unknown")
+  - Unknown vendor invoices now properly trigger Teams notifications
+- **Power Automate Payload Format** - Fixed Adaptive Card format for Power Automate compatibility
+  - Power Automate flows expect `attachments` array, not MessageCard format
 
 ## [1.2.0] - 2025-11-26
 
