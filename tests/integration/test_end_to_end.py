@@ -138,13 +138,14 @@ def test_happy_path_known_vendor_flow(
     notify_main(mock_queue_msg)
 
     # Validate Teams webhook called (Adaptive Card format for Power Automate)
+    # Payload is nested under body.attachments for Power Automate HTTP trigger
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
     payload = webhook_call[1]["json"]
-    assert payload["type"] == "message"
-    assert "attachments" in payload
-    assert len(payload["attachments"]) == 1
-    card_content = payload["attachments"][0]["content"]
+    assert "body" in payload
+    assert "attachments" in payload["body"]
+    assert len(payload["body"]["attachments"]) == 1
+    card_content = payload["body"]["attachments"][0]["content"]
     assert card_content["type"] == "AdaptiveCard"
     # First body element contains the message with emoji
     assert "Adobe Inc" in card_content["body"][0]["text"]
