@@ -22,38 +22,59 @@ from shared.email_parser import extract_domain
 from shared.deduplication import is_message_already_processed, generate_invoice_hash
 from shared.pdf_extractor import extract_invoice_fields_from_pdf
 from shared.ulid_generator import utc_now_iso
+from shared.vendor_matcher import find_fuzzy_match
 
 logger = logging.getLogger(__name__)
 
 
-def _find_vendor_by_name(vendor_name: str, table_client: TableClient) -> dict[str, Any] | None:
+def _find_vendor_by_name(
+    vendor_name: str, table_client: TableClient, use_fuzzy: bool = True
+) -> tuple[dict[str, Any] | None, str]:
     """
-    Find vendor in VendorMaster table using case-insensitive contains matching.
+    Find vendor in VendorMaster table using multi-stage matching.
 
-    Returns the vendor entity if found, None otherwise.
+    Matching stages (in order):
+    1. Exact match on normalized RowKey
+    2. Contains match (search term in vendor name)
+    3. Fuzzy match using rapidfuzz (if enabled)
+
+    Returns:
+        Tuple of (vendor_entity, match_type) where match_type is one of:
+        - "exact": Exact RowKey match
+        - "contains": Search term found in vendor name
+        - "fuzzy": Fuzzy string match above threshold
+        - "none": No match found (vendor is None)
     """
     if not vendor_name or not vendor_name.strip():
-        return None
+        return None, "none"
 
     vendor_lower = vendor_name.lower().strip()
 
     try:
-        # Query all vendors and do case-insensitive contains matching
+        # Query all active vendors once
         vendors = list(table_client.query_entities("PartitionKey eq 'Vendor' and Active eq true"))
 
+        # Stage 1: Exact match on normalized RowKey
         for vendor in vendors:
-            # Exact match on normalized RowKey
             if vendor["RowKey"] == vendor_lower.replace(" ", "_").replace("-", "_"):
-                return vendor
-            # Contains match - check if search term is in vendor name from table
-            # E.g., "adobe" in "Adobe Inc" → True
-            if vendor_lower in vendor["VendorName"].lower():
-                return vendor
+                return vendor, "exact"
 
-        return None
+        # Stage 2: Contains match - check if search term is in vendor name
+        for vendor in vendors:
+            if vendor_lower in vendor["VendorName"].lower():
+                return vendor, "contains"
+
+        # Stage 3: Fuzzy match (if enabled)
+        if use_fuzzy and vendors:
+            fuzzy_vendor, score = find_fuzzy_match(vendor_name, vendors)
+            if fuzzy_vendor:
+                logger.info(f"Fuzzy matched '{vendor_name}' to '{fuzzy_vendor['VendorName']}' (score: {score})")
+                return fuzzy_vendor, "fuzzy"
+
+        return None, "none"
     except Exception as e:
         logger.error(f"Error querying vendors: {str(e)}")
-        return None
+        return None, "none"
 
 
 def _send_vendor_registration_email(vendor_name: str, transaction_id: str, sender: str) -> None:
@@ -182,22 +203,27 @@ def main(msg: func.QueueMessage, toPost: func.Out[str]) -> None:
             )
             return
 
-        # Try vendor name first (from PDF extraction, future phase)
+        # Try vendor name first (from PDF extraction)
         vendor_name = raw_mail.vendor_name
         vendor = None
+        match_type = "none"
 
         if vendor_name:
-            vendor = _find_vendor_by_name(vendor_name, table_client)
+            vendor, match_type = _find_vendor_by_name(vendor_name, table_client)
+            if vendor:
+                logger.info(f"Vendor matched via PDF extraction ({match_type}): {vendor['VendorName']}")
 
-        # Fallback to email domain extraction (MVP phase)
+        # Fallback to email domain extraction
         if not vendor and raw_mail.sender:
             try:
                 domain = extract_domain(raw_mail.sender)
                 # Extract company name from domain (e.g., "adobe_com" -> "adobe")
                 company_name = domain.split("_")[0]
-                vendor = _find_vendor_by_name(company_name, table_client)
+                vendor, match_type = _find_vendor_by_name(company_name, table_client)
                 if vendor:
-                    logger.info(f"Vendor matched via email domain: {company_name} -> {vendor['VendorName']}")
+                    logger.info(
+                        f"Vendor matched via email domain ({match_type}): {company_name} -> {vendor['VendorName']}"
+                    )
                     vendor_name = company_name
             except (ValueError, IndexError):
                 sender_domain = raw_mail.sender.split("@")[1] if "@" in raw_mail.sender else "unknown"

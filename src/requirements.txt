@@ -26,6 +26,7 @@ requests>=2.32.5  # CVE-2024-35195 fix (cert verification bypass)
 pydantic==2.10.3
 email-validator==2.1.0  # Required by Pydantic EmailStr
 python-ulid==2.2.0
+rapidfuzz==3.10.1  # Fuzzy string matching for vendor name variations
 
 # PDF Processing and AI
 pdfplumber==0.10.3  # PDF text extraction for vendor identification
