@@ -43,12 +43,13 @@ class TestNotify:
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
         # Verify Adaptive Card structure for Power Automate
+        # Payload is nested under body.attachments for Power Automate HTTP trigger
         card_data = call_args[1]["json"]
-        assert card_data["type"] == "message"
-        assert "attachments" in card_data
-        assert len(card_data["attachments"]) == 1
+        assert "body" in card_data
+        assert "attachments" in card_data["body"]
+        assert len(card_data["body"]["attachments"]) == 1
 
-        attachment = card_data["attachments"][0]
+        attachment = card_data["body"]["attachments"][0]
         assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
         content = attachment["content"]
         assert content["type"] == "AdaptiveCard"
@@ -92,7 +93,7 @@ class TestNotify:
 
         # Verify warning color for unknown vendor
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["attachments"][0]["content"]
+        content = card_data["body"]["attachments"][0]["content"]
         text_block = content["body"][0]
         assert text_block["color"] == "warning"
 
@@ -123,7 +124,7 @@ class TestNotify:
 
         # Verify attention color for error
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["attachments"][0]["content"]
+        content = card_data["body"]["attachments"][0]["content"]
         text_block = content["body"][0]
         assert text_block["color"] == "attention"
 
@@ -200,7 +201,7 @@ class TestNotify:
 
         # Verify facts are properly formatted in Adaptive Card
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["attachments"][0]["content"]
+        content = card_data["body"]["attachments"][0]["content"]
         fact_set = content["body"][1]
         facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount
