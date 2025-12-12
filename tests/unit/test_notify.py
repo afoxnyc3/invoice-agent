@@ -43,14 +43,16 @@ class TestNotify:
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
         # Verify Adaptive Card structure for Power Automate
-        # Payload is nested under body.attachments for Power Automate HTTP trigger
+        # Payload has root-level "type": "message" and "attachments" array
         card_data = call_args[1]["json"]
-        assert "body" in card_data
-        assert "attachments" in card_data["body"]
-        assert len(card_data["body"]["attachments"]) == 1
+        assert card_data["type"] == "message"
+        assert "attachments" in card_data
+        assert "body" not in card_data  # NOT nested under body
+        assert len(card_data["attachments"]) == 1
 
-        attachment = card_data["body"]["attachments"][0]
+        attachment = card_data["attachments"][0]
         assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
+        assert "contentUrl" not in attachment  # Removed - Power Automate rejects null
         content = attachment["content"]
         assert content["type"] == "AdaptiveCard"
 
@@ -59,7 +61,6 @@ class TestNotify:
         text_block = body[0]
         assert text_block["type"] == "TextBlock"
         assert "✅ Processed: Adobe Inc - GL 6100" in text_block["text"]
-        assert text_block["color"] == "good"
 
         # Verify facts
         fact_set = body[1]
@@ -91,11 +92,12 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify warning color for unknown vendor
+        # Verify payload structure and warning emoji for unknown vendor
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["body"]["attachments"][0]["content"]
+        assert card_data["type"] == "message"
+        content = card_data["attachments"][0]["content"]
         text_block = content["body"][0]
-        assert text_block["color"] == "warning"
+        assert "⚠️" in text_block["text"]
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
     @patch("Notify.requests")
@@ -122,11 +124,12 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify attention color for error
+        # Verify payload structure and error emoji
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["body"]["attachments"][0]["content"]
+        assert card_data["type"] == "message"
+        content = card_data["attachments"][0]["content"]
         text_block = content["body"][0]
-        assert text_block["color"] == "attention"
+        assert "❌" in text_block["text"]
 
     @patch.dict("os.environ", {})  # No webhook URL configured
     @patch("Notify.requests")
@@ -201,7 +204,8 @@ class TestNotify:
 
         # Verify facts are properly formatted in Adaptive Card
         card_data = mock_requests.post.call_args[1]["json"]
-        content = card_data["body"]["attachments"][0]["content"]
+        assert card_data["type"] == "message"
+        content = card_data["attachments"][0]["content"]
         fact_set = content["body"][1]
         facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount

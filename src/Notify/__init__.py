@@ -19,48 +19,46 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
     Build Teams webhook payload using Adaptive Card format for Power Automate.
 
-    Power Automate Workflows expect the payload nested under 'body.attachments'
-    when using the 'When HTTP request received' trigger. The flow iterates over
-    attachments to post each Adaptive Card to Teams.
+    Power Automate's "When a Teams webhook request is received" trigger expects:
+    - Root-level "type": "message"
+    - Root-level "attachments" array (NOT nested under "body")
+    - Each attachment must have "contentUrl": null
 
-    See: https://learn.microsoft.com/en-us/power-automate/overview-adaptive-cards
+    See: https://techcommunity.microsoft.com/discussions/teamsdeveloper/
+         simple-workflow-to-replace-teams-incoming-webhooks/4225270
     """
     emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
-    color_map = {"success": "good", "unknown": "warning", "error": "attention", "duplicate": "warning"}
 
     emoji = emoji_map.get(notification.type, "ℹ️")
-    color = color_map.get(notification.type, "default")
 
     # Build facts for Adaptive Card FactSet
     facts = [{"title": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
 
     return {
-        "body": {
-            "attachments": [
-                {
-                    "contentType": "application/vnd.microsoft.card.adaptive",
-                    "content": {
-                        "type": "AdaptiveCard",
-                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                        "version": "1.4",
-                        "body": [
-                            {
-                                "type": "TextBlock",
-                                "text": f"{emoji} {notification.message}",
-                                "weight": "Bolder",
-                                "size": "Medium",
-                                "wrap": True,
-                                "color": color,
-                            },
-                            {
-                                "type": "FactSet",
-                                "facts": facts,
-                            },
-                        ],
-                    },
-                }
-            ],
-        }
+        "type": "message",
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                    "type": "AdaptiveCard",
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "text": f"{emoji} {notification.message}",
+                            "weight": "Bolder",
+                            "size": "Medium",
+                            "wrap": True,
+                        },
+                        {
+                            "type": "FactSet",
+                            "facts": facts,
+                        },
+                    ],
+                },
+            }
+        ],
     }
 
 
