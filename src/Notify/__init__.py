@@ -17,15 +17,13 @@ logger = logging.getLogger(__name__)
 
 def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
-    Build Teams webhook payload using Adaptive Card format for Power Automate.
+    Build Teams webhook payload for Power Automate.
 
-    Power Automate's "When a Teams webhook request is received" trigger expects:
-    - Root-level "type": "message"
-    - Root-level "attachments" array (NOT nested under "body")
-    - Each attachment must have "contentUrl": null
+    Power Automate's "When a Teams webhook request is received" trigger with
+    "Adaptive Card" response type expects the Adaptive Card JSON directly
+    as the request body (NOT wrapped in a message envelope).
 
-    See: https://techcommunity.microsoft.com/discussions/teamsdeveloper/
-         simple-workflow-to-replace-teams-incoming-webhooks/4225270
+    See: https://learn.microsoft.com/en-us/power-automate/create-adaptive-cards-teams
     """
     emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
 
@@ -34,30 +32,23 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     # Build facts for Adaptive Card FactSet
     facts = [{"title": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
 
+    # Return Adaptive Card directly (not wrapped in message envelope)
     return {
-        "type": "message",
-        "attachments": [
+        "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.4",
+        "body": [
             {
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": {
-                    "type": "AdaptiveCard",
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "version": "1.4",
-                    "body": [
-                        {
-                            "type": "TextBlock",
-                            "text": f"{emoji} {notification.message}",
-                            "weight": "Bolder",
-                            "size": "Medium",
-                            "wrap": True,
-                        },
-                        {
-                            "type": "FactSet",
-                            "facts": facts,
-                        },
-                    ],
-                },
-            }
+                "type": "TextBlock",
+                "text": f"{emoji} {notification.message}",
+                "weight": "Bolder",
+                "size": "Medium",
+                "wrap": True,
+            },
+            {
+                "type": "FactSet",
+                "facts": facts,
+            },
         ],
     }
 

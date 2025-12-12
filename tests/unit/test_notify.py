@@ -42,22 +42,15 @@ class TestNotify:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
-        # Verify Adaptive Card structure for Power Automate
-        # Payload has root-level "type": "message" and "attachments" array
+        # Verify Adaptive Card sent directly (not wrapped in message envelope)
+        # Power Automate expects the Adaptive Card JSON as the request body
         card_data = call_args[1]["json"]
-        assert card_data["type"] == "message"
-        assert "attachments" in card_data
-        assert "body" not in card_data  # NOT nested under body
-        assert len(card_data["attachments"]) == 1
-
-        attachment = card_data["attachments"][0]
-        assert attachment["contentType"] == "application/vnd.microsoft.card.adaptive"
-        assert "contentUrl" not in attachment  # Removed - Power Automate rejects null
-        content = attachment["content"]
-        assert content["type"] == "AdaptiveCard"
+        assert card_data["type"] == "AdaptiveCard"
+        assert card_data["$schema"] == "http://adaptivecards.io/schemas/adaptive-card.json"
+        assert card_data["version"] == "1.4"
 
         # Verify body elements
-        body = content["body"]
+        body = card_data["body"]
         text_block = body[0]
         assert text_block["type"] == "TextBlock"
         assert "✅ Processed: Adobe Inc - GL 6100" in text_block["text"]
@@ -92,11 +85,10 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify payload structure and warning emoji for unknown vendor
+        # Verify Adaptive Card sent directly with warning emoji for unknown vendor
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "message"
-        content = card_data["attachments"][0]["content"]
-        text_block = content["body"][0]
+        assert card_data["type"] == "AdaptiveCard"
+        text_block = card_data["body"][0]
         assert "⚠️" in text_block["text"]
 
     @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
@@ -124,11 +116,10 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify payload structure and error emoji
+        # Verify Adaptive Card sent directly with error emoji
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "message"
-        content = card_data["attachments"][0]["content"]
-        text_block = content["body"][0]
+        assert card_data["type"] == "AdaptiveCard"
+        text_block = card_data["body"][0]
         assert "❌" in text_block["text"]
 
     @patch.dict("os.environ", {})  # No webhook URL configured
@@ -204,9 +195,8 @@ class TestNotify:
 
         # Verify facts are properly formatted in Adaptive Card
         card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "message"
-        content = card_data["attachments"][0]["content"]
-        fact_set = content["body"][1]
+        assert card_data["type"] == "AdaptiveCard"
+        fact_set = card_data["body"][1]
         facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount
 
