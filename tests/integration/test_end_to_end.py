@@ -137,16 +137,18 @@ def test_happy_path_known_vendor_flow(
     mock_queue_msg.get_body.return_value = messages[0].content.encode()
     notify_main(mock_queue_msg)
 
-    # Validate Teams webhook called (Adaptive Card sent directly to Power Automate)
-    # Power Automate expects Adaptive Card JSON directly as request body
+    # Validate Teams webhook called with message envelope containing Adaptive Card
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
     payload = webhook_call[1]["json"]
-    assert payload["type"] == "AdaptiveCard"
-    assert payload["$schema"] == "http://adaptivecards.io/schemas/adaptive-card.json"
-    assert payload["version"] == "1.4"
+    assert payload["type"] == "message"
+    assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
+    card = payload["attachments"][0]["content"]
+    assert card["type"] == "AdaptiveCard"
+    assert card["$schema"] == "http://adaptivecards.io/schemas/adaptive-card.json"
+    assert card["version"] == "1.4"
     # First body element contains the message with emoji
-    assert "Adobe Inc" in payload["body"][0]["text"]
+    assert "Adobe Inc" in card["body"][0]["text"]
 
 
 @pytest.mark.integration
