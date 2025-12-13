@@ -49,6 +49,7 @@ class TestNotify:
         assert payload["type"] == "message"
         assert len(payload["attachments"]) == 1
         assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
+        assert payload["attachments"][0]["contentUrl"] is None
 
         card_data = payload["attachments"][0]["content"]
         assert card_data["type"] == "AdaptiveCard"

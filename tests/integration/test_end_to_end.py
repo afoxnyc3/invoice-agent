@@ -144,6 +144,7 @@ def test_happy_path_known_vendor_flow(
     payload = json.loads(webhook_call[1]["data"])
     assert payload["type"] == "message"
     assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
+    assert payload["attachments"][0]["contentUrl"] is None
     card = payload["attachments"][0]["content"]
     assert card["type"] == "AdaptiveCard"
     assert card["$schema"] == "http://adaptivecards.io/schemas/adaptive-card.json"

@@ -48,7 +48,13 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     }
     return {
         "type": "message",
-        "attachments": [{"contentType": "application/vnd.microsoft.card.adaptive", "content": adaptive_card}],
+        "attachments": [
+            {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "contentUrl": None,
+                "content": adaptive_card,
+            }
+        ],
     }
 
 
