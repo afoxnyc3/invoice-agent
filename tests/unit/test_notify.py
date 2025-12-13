@@ -2,6 +2,7 @@
 Unit tests for Notify queue function.
 """
 
+import json
 from unittest.mock import Mock, patch
 import azure.functions as func
 from Notify import main
@@ -43,7 +44,8 @@ class TestNotify:
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
         # Verify message envelope with Adaptive Card in attachments
-        payload = call_args[1]["json"]
+        # Now using data= with explicit JSON serialization to avoid chunked encoding
+        payload = json.loads(call_args[1]["data"])
         assert payload["type"] == "message"
         assert len(payload["attachments"]) == 1
         assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
@@ -90,7 +92,7 @@ class TestNotify:
         main(msg)
 
         # Verify Adaptive Card wrapped in message envelope with warning emoji
-        payload = mock_requests.post.call_args[1]["json"]
+        payload = json.loads(mock_requests.post.call_args[1]["data"])
         assert payload["type"] == "message"
         card_data = payload["attachments"][0]["content"]
         text_block = card_data["body"][0]
@@ -122,7 +124,7 @@ class TestNotify:
         main(msg)
 
         # Verify Adaptive Card wrapped in message envelope with error emoji
-        payload = mock_requests.post.call_args[1]["json"]
+        payload = json.loads(mock_requests.post.call_args[1]["data"])
         assert payload["type"] == "message"
         card_data = payload["attachments"][0]["content"]
         text_block = card_data["body"][0]
@@ -200,7 +202,7 @@ class TestNotify:
         main(msg)
 
         # Verify facts are properly formatted in Adaptive Card
-        payload = mock_requests.post.call_args[1]["json"]
+        payload = json.loads(mock_requests.post.call_args[1]["data"])
         assert payload["type"] == "message"
         card_data = payload["attachments"][0]["content"]
         fact_set = card_data["body"][1]

@@ -5,6 +5,7 @@ Formats and posts simple message cards to Teams channel
 for success, unknown vendor, and error notifications.
 """
 
+import json
 import logging
 from typing import Any
 import requests
@@ -62,7 +63,12 @@ def main(msg: func.QueueMessage) -> None:
             logger.warning("Teams webhook URL not configured, skipping notification")
             return
 
-        response = requests.post(webhook_url, json=payload, timeout=10)
+        # Explicitly serialize JSON and set Content-Length to avoid chunked encoding
+        # Power Automate/Logic Apps doesn't handle Transfer-Encoding: chunked properly
+        # See: https://github.com/Azure/logicapps/issues/869
+        json_data = json.dumps(payload)
+        headers = {"Content-Type": "application/json; charset=utf-8"}
+        response = requests.post(webhook_url, data=json_data, headers=headers, timeout=10)
         response.raise_for_status()
         logger.info(f"Posted {notification.type} notification to Teams")
     except Exception as e:

@@ -140,7 +140,8 @@ def test_happy_path_known_vendor_flow(
     # Validate Teams webhook called with message envelope containing Adaptive Card
     assert mock_teams_webhook.called
     webhook_call = mock_teams_webhook.call_args
-    payload = webhook_call[1]["json"]
+    # Parse JSON from data= parameter (using explicit serialization to avoid chunked encoding)
+    payload = json.loads(webhook_call[1]["data"])
     assert payload["type"] == "message"
     assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
     card = payload["attachments"][0]["content"]
