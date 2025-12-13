@@ -42,9 +42,13 @@ class TestNotify:
         call_args = mock_requests.post.call_args
         assert call_args[0][0] == "https://outlook.office.com/webhook/test"
 
-        # Verify Adaptive Card sent directly (not wrapped in message envelope)
-        # Power Automate expects the Adaptive Card JSON as the request body
-        card_data = call_args[1]["json"]
+        # Verify message envelope with Adaptive Card in attachments
+        payload = call_args[1]["json"]
+        assert payload["type"] == "message"
+        assert len(payload["attachments"]) == 1
+        assert payload["attachments"][0]["contentType"] == "application/vnd.microsoft.card.adaptive"
+
+        card_data = payload["attachments"][0]["content"]
         assert card_data["type"] == "AdaptiveCard"
         assert card_data["$schema"] == "http://adaptivecards.io/schemas/adaptive-card.json"
         assert card_data["version"] == "1.4"
@@ -85,9 +89,10 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify Adaptive Card sent directly with warning emoji for unknown vendor
-        card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "AdaptiveCard"
+        # Verify Adaptive Card wrapped in message envelope with warning emoji
+        payload = mock_requests.post.call_args[1]["json"]
+        assert payload["type"] == "message"
+        card_data = payload["attachments"][0]["content"]
         text_block = card_data["body"][0]
         assert "⚠️" in text_block["text"]
 
@@ -116,9 +121,10 @@ class TestNotify:
         # Execute function
         main(msg)
 
-        # Verify Adaptive Card sent directly with error emoji
-        card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "AdaptiveCard"
+        # Verify Adaptive Card wrapped in message envelope with error emoji
+        payload = mock_requests.post.call_args[1]["json"]
+        assert payload["type"] == "message"
+        card_data = payload["attachments"][0]["content"]
         text_block = card_data["body"][0]
         assert "❌" in text_block["text"]
 
@@ -194,8 +200,9 @@ class TestNotify:
         main(msg)
 
         # Verify facts are properly formatted in Adaptive Card
-        card_data = mock_requests.post.call_args[1]["json"]
-        assert card_data["type"] == "AdaptiveCard"
+        payload = mock_requests.post.call_args[1]["json"]
+        assert payload["type"] == "message"
+        card_data = payload["attachments"][0]["content"]
         fact_set = card_data["body"][1]
         facts = fact_set["facts"]
         assert len(facts) == 5  # transaction_id + vendor + gl_code + department + amount

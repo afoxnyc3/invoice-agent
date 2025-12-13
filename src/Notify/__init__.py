@@ -19,11 +19,8 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     """
     Build Teams webhook payload for Power Automate.
 
-    Power Automate's "When a Teams webhook request is received" trigger with
-    "Adaptive Card" response type expects the Adaptive Card JSON directly
-    as the request body (NOT wrapped in a message envelope).
-
-    See: https://learn.microsoft.com/en-us/power-automate/create-adaptive-cards-teams
+    Power Automate's "When a Teams webhook request is received" trigger expects
+    the Adaptive Card wrapped in a message envelope with attachments array.
     """
     emoji_map = {"success": "✅", "unknown": "⚠️", "error": "❌", "duplicate": "🔄"}
 
@@ -32,8 +29,8 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
     # Build facts for Adaptive Card FactSet
     facts = [{"title": k.replace("_", " ").title(), "value": str(v)} for k, v in notification.details.items()]
 
-    # Return Adaptive Card directly (not wrapped in message envelope)
-    return {
+    # Wrap Adaptive Card in Teams message format for Power Automate webhook trigger
+    adaptive_card = {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.4",
@@ -45,11 +42,12 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
                 "size": "Medium",
                 "wrap": True,
             },
-            {
-                "type": "FactSet",
-                "facts": facts,
-            },
+            {"type": "FactSet", "facts": facts},
         ],
+    }
+    return {
+        "type": "message",
+        "attachments": [{"contentType": "application/vnd.microsoft.card.adaptive", "content": adaptive_card}],
     }
 
 

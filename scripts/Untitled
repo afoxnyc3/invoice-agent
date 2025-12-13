@@ -1,0 +1,6 @@
+  Summary for context carry-over:
+  - Issue: Power Automate returns 400 Bad Request on Teams webhook POST
+  - Tried: Two payload format changes (commits 102286b, a0772b1) - neither fixed it
+  - Status: All functions work, only Teams notification fails
+  - Root cause: Power Automate flow configuration, not our code
+  - Next: Waiting for your Power Automate flow screenshots to diagnose
