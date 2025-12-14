@@ -202,6 +202,40 @@ az storage entity query --table-name VendorMaster --filter "PartitionKey eq 'Ven
 az storage message peek --queue-name raw-mail
 ```
 
+### Testing Teams Webhook Integration
+
+The project includes utility scripts for testing Power Automate webhook integration.
+
+**Test webhook connectivity:**
+```bash
+# Using webhook URL directly
+python scripts/power-automate/test_webhook.py "YOUR_WEBHOOK_URL" --message "Test notification"
+
+# Using environment variable
+export TEAMS_WEBHOOK_URL="YOUR_WEBHOOK_URL"
+python scripts/power-automate/test_webhook.py --message "Test from local dev"
+
+# Verbose mode for debugging
+python scripts/power-automate/test_webhook.py "$TEAMS_WEBHOOK_URL" --verbose
+```
+
+**Validate Adaptive Card payload:**
+```bash
+# Validate the example payload
+python scripts/power-automate/validate_adaptive_card.py scripts/power-automate/example_payload.json
+
+# Validate custom payload
+python scripts/power-automate/validate_adaptive_card.py my-payload.json
+```
+
+**Diagnose Power Automate flow issues:**
+```bash
+# Export flow from Power Automate and analyze
+python scripts/power-automate/diagnose_flow.py path/to/definition.json
+```
+
+See [TEAMS_POWER_AUTOMATE.md](integrations/TEAMS_POWER_AUTOMATE.md) for detailed setup instructions.
+
 ## Useful Commands
 
 ### Environment Management

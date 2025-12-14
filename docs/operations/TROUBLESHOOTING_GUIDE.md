@@ -559,37 +559,57 @@ az monitor app-insights query \
 
 ### Teams Messages Not Appearing
 
-**Symptom:** Webhook receives 200 OK but no message in channel
+**Symptom:** Webhook receives 200/202 OK but no message in channel
 
 **Diagnosis:**
 ```bash
-# Test webhook with simple payload
+# Test webhook with Power Automate Adaptive Card format
 WEBHOOK=$(az functionapp config appsettings list \
   --name func-invoice-agent-prod \
   --query "[?name=='TEAMS_WEBHOOK_URL'].value" -o tsv)
 
+# Use utility script (recommended)
+python scripts/power-automate/test_webhook.py "$WEBHOOK" --message "Test notification"
+
+# Or with curl (Power Automate Adaptive Card envelope format)
 curl -X POST "$WEBHOOK" \
   -H 'Content-Type: application/json' \
-  -d '{"@type":"MessageCard","summary":"Test","themeColor":"0078D4"}'
-
-# If webhook returns 1 or other codes, it failed
+  -d '{
+    "type": "message",
+    "attachments": [{
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+      "content": {
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "body": [{"type": "TextBlock", "text": "Test message", "wrap": true}]
+      }
+    }]
+  }'
 ```
 
 **Solutions:**
 
-1. **Check Webhook Format**
-   - Teams only accepts MessageCard format (no Adaptive Cards on webhooks)
-   - Required fields: @type, summary
-   - Optional but recommended: themeColor, sections
+1. **Check Webhook Format (Power Automate)**
+   - System uses Adaptive Cards v1.4 wrapped in Power Automate message envelope
+   - Required: `type: "message"`, `attachments` array, `contentType`, `contentUrl: null`, `content`
+   - See `src/Notify/__init__.py` for exact format
 
-2. **Verify Channel Permissions**
-   - Webhook must post to a public or private channel where your app is installed
-   - Teams channel settings → Connectors → Check webhook is active
+2. **Check Power Automate Flow Configuration**
+   - In "Post card in a chat or channel" action, use Expression (not literal string):
+     ```
+     string(triggerBody()?['attachments']?[0]?['content'])
+     ```
+   - Common error: expression stored as literal string without `@` prefix
 
-3. **Validate Webhook URL**
+3. **Verify Channel Permissions**
+   - Flow must have access to the target Team/Channel
+   - Check Power Automate flow run history for errors
+
+4. **Validate Webhook URL**
    - Must be HTTPS
-   - Format: `https://outlook.webhook.office.com/...`
-   - URLs expire after ~6 months, regenerate if old
+   - Power Automate format: `https://prod-XX.westus.logic.azure.com:443/workflows/...`
+   - Check Key Vault secret `teams-webhook-url` has correct value
 
 ---
 

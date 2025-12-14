@@ -226,3 +226,122 @@ class TestNotify:
 
         # Execute function - should not raise exception (non-critical)
         main(msg)
+
+    @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
+    @patch("Notify.requests")
+    @patch("Notify.logger")
+    def test_notify_timeout_error(self, mock_logger, mock_requests):
+        """Test handling of timeout errors with specific logging."""
+        from requests.exceptions import Timeout
+
+        mock_requests.post.side_effect = Timeout("Connection timed out")
+
+        notification_json = """
+        {
+            "type": "success",
+            "message": "Test",
+            "details": {"transaction_id": "TEST123"}
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = notification_json.encode()
+
+        # Execute function - should not raise exception
+        main(msg)
+
+        # Verify timeout-specific warning logged
+        mock_logger.warning.assert_called()
+        log_call = mock_logger.warning.call_args[0][0]
+        assert "timeout" in log_call.lower()
+        assert "success" in log_call  # notification type included
+
+    @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
+    @patch("Notify.requests")
+    @patch("Notify.logger")
+    def test_notify_connection_error(self, mock_logger, mock_requests):
+        """Test handling of connection errors with specific logging."""
+        from requests.exceptions import ConnectionError
+
+        mock_requests.post.side_effect = ConnectionError("Failed to connect")
+
+        notification_json = """
+        {
+            "type": "error",
+            "message": "Test error",
+            "details": {"transaction_id": "TEST123"}
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = notification_json.encode()
+
+        # Execute function - should not raise exception
+        main(msg)
+
+        # Verify connection-specific warning logged
+        mock_logger.warning.assert_called()
+        log_call = mock_logger.warning.call_args[0][0]
+        assert "connection" in log_call.lower()
+        assert "error" in log_call  # notification type included
+
+    @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
+    @patch("Notify.requests")
+    @patch("Notify.logger")
+    def test_notify_http_error_logs_response_body(self, mock_logger, mock_requests):
+        """Test that HTTP errors log the response body for debugging."""
+        from requests.exceptions import HTTPError
+
+        # Create mock response with error details
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.ok = False
+        mock_response.text = "Bad Request: Invalid JSON schema"
+        mock_response.raise_for_status.side_effect = HTTPError("400 Client Error", response=mock_response)
+        mock_requests.post.return_value = mock_response
+
+        notification_json = """
+        {
+            "type": "success",
+            "message": "Test",
+            "details": {"transaction_id": "TEST123"}
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = notification_json.encode()
+
+        # Execute function - should not raise exception
+        main(msg)
+
+        # Verify response body was logged (critical for debugging)
+        warning_calls = [str(call) for call in mock_logger.warning.call_args_list]
+        combined_logs = " ".join(warning_calls)
+        assert "400" in combined_logs
+        assert "Bad Request" in combined_logs or "Invalid JSON" in combined_logs
+
+    @patch.dict("os.environ", {"TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/test"})
+    @patch("Notify.requests")
+    def test_notify_success_logs_status_code(self, mock_requests):
+        """Test that successful posts log the status code."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.ok = True
+        mock_requests.post.return_value = mock_response
+
+        notification_json = """
+        {
+            "type": "success",
+            "message": "Test",
+            "details": {"transaction_id": "TEST123"}
+        }
+        """
+        msg = Mock(spec=func.QueueMessage)
+        msg.get_body.return_value = notification_json.encode()
+
+        # Execute function
+        with patch("Notify.logger") as mock_logger:
+            main(msg)
+
+            # Verify success log includes status code
+            mock_logger.info.assert_called()
+            log_call = mock_logger.info.call_args[0][0]
+            assert "200" in log_call
+            assert "success" in log_call

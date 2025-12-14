@@ -1,0 +1,31 @@
+{
+  "type": "message",
+  "attachments": [
+    {
+      "contentType": "application/vnd.microsoft.card.adaptive",
+      "contentUrl": null,
+      "content": {
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "type": "AdaptiveCard",
+        "version": "1.4",
+        "body": [
+          {
+            "type": "TextBlock",
+            "text": "Test Invoice Notification",
+            "weight": "Bolder",
+            "size": "Medium",
+            "wrap": true
+          },
+          {
+            "type": "FactSet",
+            "facts": [
+              {"title": "Vendor", "value": "Test Vendor Inc"},
+              {"title": "Transaction Id", "value": "01TEST123456789ABCDEFGH"},
+              {"title": "Status", "value": "Test Message"}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

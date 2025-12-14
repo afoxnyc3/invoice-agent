@@ -3,6 +3,10 @@
 **Date:** 2024-11-09
 **Status:** Accepted
 
+> **Note (Dec 2024):** Implementation updated to use Power Automate with Adaptive Cards v1.4.
+> The decision to avoid Bot Framework remains valid. See `src/Notify/__init__.py` for current format
+> and `docs/integrations/TEAMS_POWER_AUTOMATE.md` for setup guide.
+
 ## Context
 
 Teams integration needed for notifications. Options were incoming webhooks (simple) vs Bot Framework (full interactive).

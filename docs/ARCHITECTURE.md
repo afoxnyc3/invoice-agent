@@ -565,66 +565,50 @@ All models require strict validation (no coercion, no extra fields allowed).
 
 ### Teams Notification Formats
 
-#### Success Message (Green)
+Notifications are sent as **Adaptive Cards v1.4** wrapped in a Power Automate message envelope.
+See `src/Notify/__init__.py` for the actual implementation.
+
+#### Payload Structure (Power Automate Format)
 ```json
 {
-  "@type": "MessageCard",
-  "@context": "http://schema.org/extensions",
-  "themeColor": "00FF00",
-  "summary": "Invoice Processed",
-  "sections": [{
-    "activityTitle": "✅ Invoice Processed",
-    "activitySubtitle": "2024-11-09 14:30:00",
-    "facts": [
-      {"name": "Vendor", "value": "Adobe Inc"},
-      {"name": "GL Code", "value": "6100"},
-      {"name": "Department", "value": "IT"},
-      {"name": "Transaction ID", "value": "01JCK3Q7H8ZVXN3BARC9GWAEZM"},
-      {"name": "Status", "value": "Sent to AP"}
-    ]
+  "type": "message",
+  "attachments": [{
+    "contentType": "application/vnd.microsoft.card.adaptive",
+    "contentUrl": null,
+    "content": {
+      "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+      "type": "AdaptiveCard",
+      "version": "1.4",
+      "body": [
+        {"type": "TextBlock", "text": "✅ Invoice Processed", "weight": "Bolder", "size": "Medium", "wrap": true},
+        {"type": "FactSet", "facts": [
+          {"title": "Vendor", "value": "Adobe Inc"},
+          {"title": "Gl Code", "value": "6100"},
+          {"title": "Transaction Id", "value": "01JCK3Q7H8ZVXN3BARC9GWAEZM"}
+        ]}
+      ]
+    }
   }]
 }
 ```
 
-#### Unknown Vendor Message (Orange)
-```json
-{
-  "@type": "MessageCard",
-  "@context": "http://schema.org/extensions",
-  "themeColor": "FFA500",
-  "summary": "Unknown Vendor",
-  "sections": [{
-    "activityTitle": "⚠️ Unknown Vendor Detected",
-    "activitySubtitle": "Manual review required",
-    "facts": [
-      {"name": "Sender", "value": "newvendor@example.com"},
-      {"name": "Subject", "value": "Invoice #12345"},
-      {"name": "Transaction ID", "value": "01JCK3Q7H8ZVXN3BARC9GWAEZM"},
-      {"name": "Action Required", "value": "Add vendor to master list"}
-    ]
-  }]
-}
+#### Notification Types
+
+| Type | Emoji | Use Case |
+|------|-------|----------|
+| `success` | ✅ | Invoice processed successfully |
+| `unknown` | ⚠️ | Unknown vendor detected |
+| `error` | ❌ | Processing failure |
+| `duplicate` | 🔄 | Duplicate invoice detected |
+
+#### Power Automate Flow Configuration
+
+The flow must extract the card content and serialize it:
+```
+string(triggerBody()?['attachments']?[0]?['content'])
 ```
 
-#### Error Message (Red)
-```json
-{
-  "@type": "MessageCard",
-  "@context": "http://schema.org/extensions",
-  "themeColor": "FF0000",
-  "summary": "Processing Error",
-  "sections": [{
-    "activityTitle": "❌ Processing Failed",
-    "activitySubtitle": "Immediate attention required",
-    "facts": [
-      {"name": "Error", "value": "Graph API authentication failed"},
-      {"name": "Transaction ID", "value": "01JCK3Q7H8ZVXN3BARC9GWAEZM"},
-      {"name": "Timestamp", "value": "2024-11-09 14:30:00"},
-      {"name": "Action Required", "value": "Check Application Insights logs"}
-    ]
-  }]
-}
-```
+See `docs/integrations/TEAMS_POWER_AUTOMATE.md` for detailed setup instructions.
 
 ---
 
@@ -1284,28 +1268,29 @@ See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 - Manual review and resubmit
 - Alerts on poison queue depth
 
-### Teams Webhooks
+### Teams Webhooks (Power Automate)
 
-**Purpose**: Post notifications to Teams channel
+**Purpose**: Post notifications to Teams channel via Power Automate flow
 
-**Format**: Simple Message Cards (not Adaptive Cards)
+**Format**: Adaptive Cards v1.4 wrapped in Power Automate message envelope
 
-**Authentication**: Webhook URL is the secret (no additional auth)
+**Authentication**: Power Automate webhook URL is the secret (no additional auth)
 
 **Message Types**:
-- Success (green): Invoice processed
-- Warning (orange): Unknown vendor
-- Error (red): Processing failure
+- Success (✅): Invoice processed
+- Warning (⚠️): Unknown vendor
+- Error (❌): Processing failure
+- Duplicate (🔄): Duplicate invoice detected
 
 **Non-Critical Path**:
 - Webhook failures don't block processing
-- No retry on failure
-- Logged for monitoring
+- Specific error handling for Timeout, ConnectionError, HTTPError
+- Full error details logged for debugging
 
-**Error Handling**:
-- Log failures but don't retry
-- Continue processing even if webhook down
-- Alert on sustained webhook failures
+**Power Automate Flow**:
+- Trigger: "When a Teams webhook request is received"
+- Action: "Post card in a chat or channel"
+- Expression: `string(triggerBody()?['attachments']?[0]?['content'])`
 
 ### Azure Key Vault
 

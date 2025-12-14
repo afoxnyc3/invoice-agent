@@ -8,8 +8,11 @@ for success, unknown vendor, and error notifications.
 import json
 import logging
 from typing import Any
+
 import requests
+from requests.exceptions import ConnectionError, HTTPError, Timeout
 import azure.functions as func
+
 from shared.models import NotificationMessage
 from shared.config import config
 
@@ -60,6 +63,7 @@ def _build_teams_payload(notification: NotificationMessage) -> dict[str, Any]:
 
 def main(msg: func.QueueMessage) -> None:
     """Post notification to Teams webhook."""
+    notification = None
     try:
         notification = NotificationMessage.model_validate_json(msg.get_body().decode())
         payload = _build_teams_payload(notification)
@@ -75,8 +79,34 @@ def main(msg: func.QueueMessage) -> None:
         json_data = json.dumps(payload)
         headers = {"Content-Type": "application/json; charset=utf-8"}
         response = requests.post(webhook_url, data=json_data, headers=headers, timeout=10)
+
+        # Log response body BEFORE raise_for_status (critical for debugging)
+        if not response.ok:
+            logger.warning(
+                f"Teams webhook error {response.status_code}: {response.text[:500]} | "
+                f"notification_type: {notification.type}"
+            )
         response.raise_for_status()
-        logger.info(f"Posted {notification.type} notification to Teams")
+        logger.info(f"Posted {notification.type} notification to Teams (status: {response.status_code})")
+
+    except Timeout as e:
+        # Non-critical: log but don't raise
+        notification_type = notification.type if notification else "unknown"
+        logger.warning(f"Teams webhook timeout (non-critical): {e} | type: {notification_type}")
+
+    except ConnectionError as e:
+        notification_type = notification.type if notification else "unknown"
+        logger.warning(f"Teams webhook connection failed (non-critical): {e} | type: {notification_type}")
+
+    except HTTPError as e:
+        response_body = e.response.text[:200] if e.response is not None else "none"
+        status = e.response.status_code if e.response is not None else "unknown"
+        logger.warning(f"Teams webhook HTTP {status} (non-critical): {e} | response: {response_body}")
+
     except Exception as e:
-        # Non-critical: log but don't raise (per CLAUDE.md)
-        logger.warning(f"Teams notification failed (non-critical): {str(e)}")
+        notification_type = notification.type if notification else "unknown"
+        logger.warning(
+            f"Teams notification failed (non-critical): {e} | "
+            f"type: {notification_type} | error_type: {type(e).__name__}",
+            exc_info=True,
+        )
