@@ -596,11 +596,12 @@ curl -X POST "$WEBHOOK" \
    - See `src/Notify/__init__.py` for exact format
 
 2. **Check Power Automate Flow Configuration**
-   - In "Post card in a chat or channel" action, use Expression (not literal string):
+   - In "Post card in a chat or channel" action, use Expression tab (not Dynamic content):
      ```
-     string(triggerBody()?['attachments']?[0]?['content'])
+     triggerBody()?['attachments']?[0]?['content']
      ```
-   - Common error: expression stored as literal string without `@` prefix
+   - Common error: expression stored as literal string (entered in Dynamic content tab instead of Expression tab)
+   - Key takeaway: The trigger auto-deserializes JSON—reference properties directly, no `json()` or `string()` wrappers needed
 
 3. **Verify Channel Permissions**
    - Flow must have access to the target Team/Channel

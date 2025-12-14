@@ -9,7 +9,7 @@ The Invoice Agent sends notifications to Microsoft Teams via Power Automate's "W
 ```
 Notify Function → HTTP POST → Power Automate Flow → Teams Channel
      │                              │
-     │ Adaptive Card v1.4           │ string() serialization
+     │ Adaptive Card v1.4           │ Auto-deserialized by trigger
      │ in message envelope          │
      └──────────────────────────────┘
 ```
@@ -79,23 +79,25 @@ The Notify function sends Adaptive Cards wrapped in a Power Automate message env
 
 ### Step 4: Configure the Adaptive Card Expression (CRITICAL)
 
-This is where most issues occur. The card content must be extracted and serialized.
+This is where most issues occur. The trigger auto-deserializes the JSON payload, so you reference nested properties directly.
 
 1. Click the **Adaptive Card** field
 2. Switch to the **Expression** tab (not Dynamic content)
 3. Enter exactly:
    ```
-   string(triggerBody()?['attachments']?[0]?['content'])
+   triggerBody()?['attachments']?[0]?['content']
    ```
 4. Click **OK**
 5. **Save** the flow
+
+**Key Takeaway:** The "When a Teams webhook request is received" trigger automatically deserializes the incoming JSON payload into objects. Reference nested properties directly—don't wrap in type conversion functions like `json()` or `string()`.
 
 ### Common Configuration Errors
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| Expression stored as literal string | Used Dynamic content tab | Switch to Expression tab |
-| "Card couldn't be displayed" | Raw object instead of string | Use `string()` wrapper |
+| Expression stored as literal string | Used Dynamic content tab | Switch to Expression tab, enter expression directly |
+| "Card couldn't be displayed" | Unsupported card version/elements | Use version "1.4", check element compatibility |
 | No flow run history | Wrong auth setting or bad URL | Check trigger authentication |
 | 400 Bad Request | Malformed JSON or missing fields | Validate with utility script |
 
@@ -178,10 +180,11 @@ python scripts/power-automate/diagnose_flow.py definition.json
 **Cause**: Card not displayed in Teams
 
 **Check**:
-1. Verify Expression uses `string()` wrapper
-2. Verify card content uses version "1.4"
-3. Check for unsupported Adaptive Card elements
-4. Look at flow run history → Post card action outputs
+1. Verify Expression tab was used (not Dynamic content)
+2. Verify expression is `triggerBody()?['attachments']?[0]?['content']`
+3. Verify card content uses version "1.4"
+4. Check for unsupported Adaptive Card elements
+5. Look at flow run history → Post card action outputs
 
 ### HTTP 400 Bad Request
 

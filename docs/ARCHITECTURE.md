@@ -603,9 +603,9 @@ See `src/Notify/__init__.py` for the actual implementation.
 
 #### Power Automate Flow Configuration
 
-The flow must extract the card content and serialize it:
+The flow must extract the card content using an expression (the trigger auto-deserializes JSON):
 ```
-string(triggerBody()?['attachments']?[0]?['content'])
+triggerBody()?['attachments']?[0]?['content']
 ```
 
 See `docs/integrations/TEAMS_POWER_AUTOMATE.md` for detailed setup instructions.
@@ -1288,9 +1288,9 @@ See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 - Full error details logged for debugging
 
 **Power Automate Flow**:
-- Trigger: "When a Teams webhook request is received"
+- Trigger: "When a Teams webhook request is received" (auto-deserializes JSON)
 - Action: "Post card in a chat or channel"
-- Expression: `string(triggerBody()?['attachments']?[0]?['content'])`
+- Expression: `triggerBody()?['attachments']?[0]?['content']`
 
 ### Azure Key Vault
 

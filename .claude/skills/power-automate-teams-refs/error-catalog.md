@@ -72,28 +72,26 @@ Error details: 'Required properties are missing from object: contentType, conten
 
 **Symptom:** Flow runs successfully but no card appears in Teams, OR card shows literal text like `triggerBody()?['attachments']?[0]?['content']`
 
-**Cause:** The expression was entered in the Dynamic Content tab instead of Expression tab, storing it as a literal string.
+**Root Cause:** The expression was entered in the Dynamic Content tab instead of Expression tab, storing it as a literal string instead of an evaluated reference.
 
 **Solution:**
 1. Click the Adaptive Card field in "Post card" action
 2. Switch to **Expression** tab (not Dynamic content)
-3. Enter: `string(triggerBody()?['attachments']?[0]?['content'])`
+3. Enter: `triggerBody()?['attachments']?[0]?['content']`
 4. Click OK, then Save
-
-**Why `string()` is Required:**
-- `PostCardToConversation` expects the card as a **JSON string**, not an object
-- The trigger body contains the card as a parsed object
-- `string()` serializes the object back to JSON string format
 
 **Correct Expression:**
 ```
-string(triggerBody()?['attachments']?[0]?['content'])
+triggerBody()?['attachments']?[0]?['content']
 ```
 
 **Incorrect (literal string, not evaluated):**
 ```
-triggerBody()?['attachments']?[0]?['content']
+"triggerBody()?['attachments']?[0]?['content']"  ← stored as text, not expression
 ```
+
+**Key Takeaway:**
+The "When a Teams webhook request is received" trigger automatically deserializes the incoming JSON payload into objects. Reference nested properties directly—don't wrap in type conversion functions like `json()` or `string()`.
 
 ---
 
