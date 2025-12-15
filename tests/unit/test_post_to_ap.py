@@ -73,8 +73,9 @@ class TestPostToAP:
         call_args = mock_graph.send_email.call_args
         assert call_args.kwargs["to_address"] == "ap@example.com"
         assert call_args.kwargs["from_address"] == "invoices@example.com"
-        assert "Adobe Inc" in call_args.kwargs["subject"]
-        assert "6100" in call_args.kwargs["subject"]
+        # Subject format: expense_dept / schedule allocation_schedule
+        assert call_args.kwargs["subject"] == "IT / schedule MONTHLY"
+        assert call_args.kwargs["is_html"] is True
         assert len(call_args.kwargs["attachments"]) == 1
 
         # Assertions - Transaction logged
@@ -127,8 +128,11 @@ class TestPostToAP:
         # Execute function
         main(msg, mock_queue)
 
-        # Verify email body content
+        # Verify email content
         call_args = mock_graph.send_email.call_args
+        # Subject format: expense_dept / schedule allocation_schedule
+        assert call_args.kwargs["subject"] == "SALES / schedule QUARTERLY"
+        # Body contains all metadata in HTML
         body = call_args.kwargs["body"]
         assert "TESTID123" in body
         assert "Test Vendor" in body
@@ -136,6 +140,7 @@ class TestPostToAP:
         assert "SALES" in body
         assert "QUARTERLY" in body
         assert "Test Entity" in body
+        assert call_args.kwargs["is_html"] is True
 
     @patch.dict(
         "os.environ",
@@ -241,10 +246,12 @@ class TestPostToAP:
         call_args = mock_graph.send_email.call_args
         assert call_args.kwargs["attachments"] == []  # No attachment
 
-        # Verify email body contains error message
+        # Verify email has correct subject format and body contains error message
+        assert call_args.kwargs["subject"] == "IT / schedule MONTHLY"
         body = call_args.kwargs["body"]
         assert "Failed to download invoice blob" in body
         assert "missing.pdf" in body  # Original blob URL shown
+        assert call_args.kwargs["is_html"] is True
 
         # Verify transaction was still logged
         mock_table_client.upsert_entity.assert_called_once()

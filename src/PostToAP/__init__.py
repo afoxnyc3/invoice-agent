@@ -60,9 +60,9 @@ def _download_invoice_blob(blob_url: str) -> tuple[bytes | None, str | None]:
 
 
 def _compose_ap_email(enriched: EnrichedInvoice, attachment_error: str | None = None) -> tuple[str, str]:
-    """Compose email body for AP with invoice metadata."""
-    subject = f"Invoice: {enriched.vendor_name} - GL {enriched.gl_code}"
-    alloc_label = "Allocation Schedule"
+    """Compose email for AP with expense department and GL code."""
+    # Subject: expense_dept / schedule allocation_schedule
+    subject = f"{enriched.expense_dept} / schedule {enriched.allocation_schedule}"
 
     # Format invoice amount if available
     amount_display = "N/A"
@@ -92,8 +92,7 @@ def _compose_ap_email(enriched: EnrichedInvoice, attachment_error: str | None = 
         <tr><td><strong>Payment Terms</strong></td><td>{enriched.payment_terms or 'Net 30'}</td></tr>
         <tr><td><strong>GL Code</strong></td><td>{enriched.gl_code}</td></tr>
         <tr><td><strong>Department</strong></td><td>{enriched.expense_dept}</td></tr>
-        <tr><td><strong>{alloc_label}</strong></td><td>{enriched.allocation_schedule}\
-</td></tr>
+        <tr><td><strong>Allocation Schedule</strong></td><td>{enriched.allocation_schedule}</td></tr>
         <tr><td><strong>Billing Party</strong></td><td>{enriched.billing_party}</td></tr>
     </table>
     {attachment_msg}
