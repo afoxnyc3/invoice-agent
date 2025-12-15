@@ -109,23 +109,25 @@ class TestShouldSkipEmail:
 
         assert should_skip is True
 
-    def test_skips_system_generated_invoice_pattern(self):
-        """Skips system-generated invoice email patterns."""
+    def test_skips_system_generated_ap_email_pattern(self):
+        """Skips system-generated AP email patterns (expense_dept / schedule allocation)."""
         email = {
             "sender": {"emailAddress": {"address": "vendor@external.com"}},
-            "subject": "Invoice: Adobe Inc - GL 5010",
+            "subject": "IT / schedule MONTHLY",
         }
         should_skip, reason = should_skip_email(email, "invoices@company.com")
 
         assert should_skip is True
         assert "system-generated" in reason.lower()
 
-    def test_skips_system_generated_with_various_vendors(self):
-        """Skips various system-generated invoice patterns."""
+    def test_skips_system_generated_with_various_formats(self):
+        """Skips various system-generated AP email patterns."""
         test_subjects = [
-            "Invoice: Microsoft Corp - GL 5020",
-            "Invoice: Amazon Web Services - GL 6000",
-            "Invoice: Acme Inc - GL 1234",
+            "IT / schedule MONTHLY",
+            "SALES / schedule QUARTERLY",
+            "cybersecurity / schedule 3",
+            "HR / schedule ANNUAL",
+            "Finance/schedule Weekly",  # No spaces around slash
         ]
         for subject in test_subjects:
             email = {
