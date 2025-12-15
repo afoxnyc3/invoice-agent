@@ -136,7 +136,7 @@ def should_skip_email(email: Dict[str, Any], invoice_mailbox: str) -> tuple[bool
 
     Skips:
     - Emails from the system mailbox (INVOICE_MAILBOX)
-    - System-generated invoice emails (Invoice: ... - GL ... pattern)
+    - System-generated AP emails (expense_dept / schedule allocation pattern)
     - Replies to vendor registration emails
 
     Args:
@@ -155,9 +155,9 @@ def should_skip_email(email: Dict[str, Any], invoice_mailbox: str) -> tuple[bool
     if sender == invoice_mailbox.lower():
         return True, f"sender is system mailbox ({sender})"
 
-    # Skip system-generated invoice email patterns
-    if re.match(r"^Invoice:\s+.+\s+-\s+GL\s+\d{4}$", subject):
-        return True, f"system-generated invoice pattern ({subject})"
+    # Skip system-generated AP email patterns (expense_dept / schedule allocation)
+    if re.match(r"^.+\s*/\s*schedule\s+.+$", subject, re.IGNORECASE):
+        return True, f"system-generated AP email pattern ({subject})"
 
     # Skip replies to vendor registration emails
     if subject.lower().startswith("re:") and "vendor registration" in subject.lower():
