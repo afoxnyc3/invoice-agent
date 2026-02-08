@@ -770,6 +770,6 @@ Create an ADR when making decisions about:
 
 ---
 
-**Version:** 3.2 (Integration Tests Complete)
-**Last Updated:** 2025-12-10
+**Version:** 3.3
+**Last Updated:** 2026-02-07
 **Maintained By:** Engineering Team
