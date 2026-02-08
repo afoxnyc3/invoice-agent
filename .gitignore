@@ -89,6 +89,7 @@ Screenshot*.png
 .session-summary*.md
 *.session-*
 *-plan.md
+!docs/adr/*.md
 
 # Archived directories (keep tracked archived content)
 !docs/archive/

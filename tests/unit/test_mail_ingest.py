@@ -34,10 +34,12 @@ class TestMailIngest:
             "GRAPH_CLIENT_SECRET": "secret",
         },
     )
+    @patch("shared.email_processor.extract_vendor_from_pdf")
     @patch("MailIngest.GraphAPIClient")
     @patch("MailIngest.config")
-    def test_mail_ingest_with_attachment(self, mock_config, mock_graph_class):
+    def test_mail_ingest_with_attachment(self, mock_config, mock_graph_class, mock_pdf_extract):
         """Test successful email processing with attachment."""
+        mock_pdf_extract.return_value = None
         mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API client
@@ -130,10 +132,12 @@ class TestMailIngest:
             "GRAPH_CLIENT_SECRET": "secret",
         },
     )
+    @patch("shared.email_processor.extract_vendor_from_pdf")
     @patch("MailIngest.GraphAPIClient")
     @patch("MailIngest.config")
-    def test_mail_ingest_multiple_emails(self, mock_config, mock_graph_class):
+    def test_mail_ingest_multiple_emails(self, mock_config, mock_graph_class, mock_pdf_extract):
         """Test processing multiple emails."""
+        mock_pdf_extract.return_value = None
         mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API client
@@ -257,10 +261,12 @@ class TestMailIngest:
             "GRAPH_CLIENT_SECRET": "secret",
         },
     )
+    @patch("shared.email_processor.extract_vendor_from_pdf")
     @patch("MailIngest.GraphAPIClient")
     @patch("MailIngest.config")
-    def test_mail_ingest_multiple_attachments(self, mock_config, mock_graph_class):
+    def test_mail_ingest_multiple_attachments(self, mock_config, mock_graph_class, mock_pdf_extract):
         """Test email with multiple attachments."""
+        mock_pdf_extract.return_value = None
         mock_blob_container, mock_blob_client = _setup_config_mock(mock_config)
 
         # Mock Graph API client
