@@ -123,6 +123,23 @@ jobs:
           path: pytest.xml
           retention-days: 30
 
+  # Job 1b: Validate documentation references
+  validate-docs:
+    name: Validate Security Doc References
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate security controls references
+        run: python scripts/validate_security_refs.py
+
   # Job 2: Build and package Azure Functions
   build:
     name: Build Azure Functions Package
