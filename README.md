@@ -9,6 +9,10 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 **Current State:** Manual processing takes 5+ minutes per invoice
 **Achieved:** Automated processing in <10 seconds via event-driven webhooks
 
+## 📐 Architecture Diagram
+
+[View the reference architecture in FigJam](https://www.figma.com/online-whiteboard/create-diagram/fa18b305-8aed-4eec-82e3-e5611a5afe08)
+
 ## 📚 Documentation
 
 | Document | Purpose |
@@ -18,6 +22,7 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 | **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** | Local setup and development guide |
 | **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** | Deployment procedures and checklists |
 | **[docs/ROADMAP.md](docs/ROADMAP.md)** | Product roadmap and future enhancements |
+| **[CHANGELOG.md](CHANGELOG.md)** | Version history and release notes |
 | **[docs/CROSS_PROJECT_REFERENCE.md](docs/CROSS_PROJECT_REFERENCE.md)** | How patterns were adopted by sibling TS projects |
 
 ## 🚀 Quick Start
@@ -32,7 +37,7 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 **One-command setup:**
 ```bash
 # Clone and setup
-git clone https://github.com/your-org/invoice-agent.git
+git clone https://github.com/afoxnyc3/invoice-agent.git
 cd invoice-agent
 ./scripts/setup-local.sh
 
@@ -76,13 +81,13 @@ invoice-agent/
 ├── .claude/             # AI automation tools
 │   ├── agents/         # Code generation agents
 │   └── commands/       # Slash commands
+├── CHANGELOG.md         # Version history and release notes
 ├── docs/                # Documentation
 │   ├── ARCHITECTURE.md  # Technical architecture (comprehensive)
 │   ├── adr/             # Architecture Decision Records (34 ADRs)
 │   ├── LOCAL_DEVELOPMENT.md  # Local setup guide
 │   ├── DEPLOYMENT_GUIDE.md   # Deployment procedures
 │   ├── ROADMAP.md       # Product roadmap
-│   ├── CHANGE-LOG.md    # Version history
 │   ├── api/            # API documentation
 │   ├── monitoring/     # Monitoring and logging guides
 │   └── operations/     # Operational runbooks
@@ -316,19 +321,6 @@ All sensitive configuration is stored in Azure Key Vault and accessed via Manage
 - SLO tracking (>80% automation)
 - Daily summary reports
 
-## 📖 Documentation
-
-### Core Documentation
-- **[CLAUDE.md](CLAUDE.md)** - Development workflow, coding standards, quality gates
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Complete technical architecture and system design
-- **[docs/adr/README.md](docs/adr/README.md)** - Architecture Decision Records (34 ADRs)
-- **[docs/ROADMAP.md](docs/ROADMAP.md)** - Product roadmap and future enhancements
-
-### Operational Guides
-- **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** - Local setup and development
-- **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** - Deployment procedures
-- **[docs/operations/](docs/operations/)** - Runbooks, troubleshooting, disaster recovery
-
 ## 🤝 Contributing
 
 1. Create feature branch from `main`
@@ -350,4 +342,4 @@ For issues or questions:
 
 ---
 
-**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.2 | **Last Updated:** 2025-12-10
+**Status:** 🟢 Production Ready (All P0/P1 Issues Resolved) | **Version:** 3.3 | **Last Updated:** 2026-02-07

@@ -1632,11 +1632,12 @@ az functionapp restart --name func-invoice-agent-prod
 
 ---
 
-**Version:** 3.2 (Integration Tests Complete)
-**Last Updated:** 2025-12-10
+**Version:** 3.3
+**Last Updated:** 2026-02-07
 **Maintained By:** Engineering Team
 **Related Documents**:
 - [Development Workflow](../CLAUDE.md)
 - [Local Development](LOCAL_DEVELOPMENT.md)
 - [Deployment Guide](DEPLOYMENT_GUIDE.md)
-- [Decision Log](DECISIONS.md)
+- [Architecture Decision Records](adr/README.md)
+- [Architecture Diagram (FigJam)](https://www.figma.com/online-whiteboard/create-diagram/fa18b305-8aed-4eec-82e3-e5611a5afe08)
