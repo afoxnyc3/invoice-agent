@@ -112,7 +112,7 @@ az functionapp restart --name func-invoice-agent-prod
 
 ## Related ADRs
 
-- ADR-0012: Deployment Slots for Zero-Downtime (superseded by this ADR)
+- ADR-0020: Blue-Green Deployments (superseded by this ADR)
 - ADR-0023: CI/CD Pipeline Structure
 
 ## References

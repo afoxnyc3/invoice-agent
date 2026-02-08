@@ -7,6 +7,14 @@ import azure.functions as func
 from ExtractEnrich import main
 from shared.models import EnrichedInvoice
 
+_EMPTY_PDF_FIELDS = {
+    "invoice_amount": None,
+    "currency": "USD",
+    "due_date": None,
+    "payment_terms": "Net 30",
+    "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
+}
+
 
 class TestExtractEnrich:
     """Test suite for ExtractEnrich function."""
@@ -23,10 +31,7 @@ class TestExtractEnrich:
     @patch("ExtractEnrich.config")
     def test_extract_enrich_known_vendor(self, mock_config, mock_extract_fields):
         """Test successful enrichment with known vendor."""
-        mock_extract_fields.return_value = {
-            "invoice_amount": None, "currency": "USD", "due_date": None,
-            "payment_terms": "Net 30", "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
-        }
+        mock_extract_fields.return_value = _EMPTY_PDF_FIELDS.copy()
         # Mock table client with query_entities for vendor lookup
         mock_table_client = MagicMock()
         mock_config.get_table_client.return_value = mock_table_client
@@ -91,10 +96,7 @@ class TestExtractEnrich:
     @patch("ExtractEnrich.config")
     def test_extract_enrich_unknown_vendor(self, mock_config, mock_graph_class, mock_extract_fields):
         """Test unknown vendor triggers registration email."""
-        mock_extract_fields.return_value = {
-            "invoice_amount": None, "currency": "USD", "due_date": None,
-            "payment_terms": "Net 30", "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
-        }
+        mock_extract_fields.return_value = _EMPTY_PDF_FIELDS.copy()
         # Mock table client to return empty list (vendor not found)
         mock_table_client = MagicMock()
         mock_config.get_table_client.return_value = mock_table_client
@@ -156,10 +158,7 @@ class TestExtractEnrich:
     @patch("ExtractEnrich.config")
     def test_extract_enrich_reseller_vendor(self, mock_config, mock_graph_class, mock_extract_fields):
         """Test reseller vendor is flagged for manual review."""
-        mock_extract_fields.return_value = {
-            "invoice_amount": None, "currency": "USD", "due_date": None,
-            "payment_terms": "Net 30", "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
-        }
+        mock_extract_fields.return_value = _EMPTY_PDF_FIELDS.copy()
         # Mock GraphAPIClient
         mock_graph = MagicMock()
         mock_graph_class.return_value = mock_graph
@@ -247,10 +246,7 @@ class TestExtractEnrich:
     @patch("ExtractEnrich.config")
     def test_extract_enrich_case_insensitive_matching(self, mock_config, mock_extract_fields):
         """Test vendor name matching is case-insensitive."""
-        mock_extract_fields.return_value = {
-            "invoice_amount": None, "currency": "USD", "due_date": None,
-            "payment_terms": "Net 30", "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
-        }
+        mock_extract_fields.return_value = _EMPTY_PDF_FIELDS.copy()
         # Mock table client
         mock_table_client = MagicMock()
         mock_config.get_table_client.return_value = mock_table_client
@@ -351,10 +347,7 @@ class TestExtractEnrich:
     def test_processes_new_message(self, mock_config, mock_graph_class, mock_dedup, mock_extract_fields):
         """Test new messages are processed normally."""
         mock_dedup.return_value = False  # Message NOT already processed
-        mock_extract_fields.return_value = {
-            "invoice_amount": None, "currency": "USD", "due_date": None,
-            "payment_terms": "Net 30", "confidence": {"amount": 0.0, "due_date": 0.0, "payment_terms": 0.0},
-        }
+        mock_extract_fields.return_value = _EMPTY_PDF_FIELDS.copy()
 
         # Mock table client to return empty (unknown vendor)
         mock_table_client = MagicMock()

@@ -32,4 +32,4 @@ Use the Consumption plan for all Azure Functions.
 
 - [ADR-0001: Serverless Azure Functions](0001-serverless-azure-functions.md)
 - [ADR-0014: Single Region Deployment](0014-single-region-deployment.md)
-- [ADR-0020: Blue-Green Deployments](0020-blue-green-deployments.md) (Superseded by ADR-0034)
+- [ADR-0020: Blue-Green Deployments](0020-blue-green-deployments.md)
