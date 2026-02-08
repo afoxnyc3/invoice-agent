@@ -9,7 +9,6 @@ This module defines all data models used throughout the invoice processing pipel
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 from typing import Optional, Dict, Literal, Self
 
-
 # =============================================================================
 # QUEUE MESSAGE MODELS
 # =============================================================================
