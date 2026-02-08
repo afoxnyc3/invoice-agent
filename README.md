@@ -18,6 +18,7 @@ The Invoice Agent automates the tedious manual process of routing invoices from 
 | **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** | Local setup and development guide |
 | **[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)** | Deployment procedures and checklists |
 | **[docs/ROADMAP.md](docs/ROADMAP.md)** | Product roadmap and future enhancements |
+| **[docs/CROSS_PROJECT_REFERENCE.md](docs/CROSS_PROJECT_REFERENCE.md)** | How patterns were adopted by sibling TS projects |
 
 ## 🚀 Quick Start
 
