@@ -100,3 +100,14 @@ The following ADRs have been replaced:
 
 ### Monitoring & Resilience
 0019, 0032
+
+## Cross-Project Adoption
+
+Several ADRs from this project have been adopted by sibling TypeScript projects (email-agent, phishing-agent) via their RFC processes. Key adopted patterns:
+
+- **ADR-0021** (Webhooks) — Adopted by phishing-agent
+- **ADR-0026** (Cyclomatic Complexity) — Adopted by both TS projects via ESLint
+- **ADR-0032** (Circuit Breaker) — Adopted by both TS projects via cockatiel
+- **ADR-0033** (Schema Versioning) — Adopted by both TS projects via Zod
+
+See [Cross-Project Reference](../CROSS_PROJECT_REFERENCE.md) for full details.
