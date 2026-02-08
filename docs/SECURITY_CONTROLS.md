@@ -1,6 +1,14 @@
 # Invoice Agent — Security Controls Assessment
 
-**Date:** February 7, 2026 | **Branch:** `docs/issue-122-architecture-diagram` | **Tests:** 472 passing, 93% coverage
+> **Maintenance:** This document references source code by symbol, property name, and
+> section identifier rather than line numbers. References should be verified quarterly
+> or after major refactors. Run `python scripts/validate_security_refs.py` (also
+> executed in CI) to check that all referenced symbols still exist. Update this
+> document and the validation script together when controls change.
+
+**Version:** 2.0
+**Last Updated:** 2026-02-08
+**Maintained By:** Engineering Team
 
 ---
 
@@ -16,10 +24,10 @@ The Invoice Agent implements **defense-in-depth** across 7 security layers: iden
 
 Both the production Function App and staging slot use **system-assigned Managed Identity**, meaning Azure automatically provisions and rotates credentials with zero operator involvement.
 
-| Resource | File | Lines |
+| Resource | File | Section |
 |---|---|---|
-| Production slot identity | `infrastructure/bicep/modules/functionapp.bicep` | 48-50 |
-| Staging slot identity | `infrastructure/bicep/modules/functionapp.bicep` | 203-205 |
+| Production slot identity | `infrastructure/bicep/modules/functionapp.bicep` | `functionApp` resource: `identity { type: 'SystemAssigned' }` block |
+| Staging slot identity | `infrastructure/bicep/modules/functionapp.bicep` | `stagingSlot` resource: `identity { type: 'SystemAssigned' }` block |
 
 The Function App authenticates to Storage via identity-based connection settings — no connection string needed:
 
@@ -31,11 +39,11 @@ AzureWebJobsStorage__queueServiceUri = 'https://...'
 AzureWebJobsStorage__tableServiceUri = 'https://...'
 ```
 
-*(functionapp.bicep lines 59-78)*
+*(functionapp.bicep: `AzureWebJobsStorage__credential` app settings block)*
 
 ### RBAC Role Assignments (8 total)
 
-All defined in `infrastructure/bicep/modules/rbac.bicep`:
+All defined in `infrastructure/bicep/modules/rbac.bicep`, `roles` variable block:
 
 | Role | GUID | Scope | Slots |
 |---|---|---|---|
@@ -57,7 +65,7 @@ self._blob_service = BlobServiceClient(blob_uri, credential=credential)
 self._queue_service = QueueServiceClient(queue_uri, credential=credential)
 ```
 
-*(config.py lines 85, 102, 119)*
+*(config.py: `DefaultAzureCredential()` client initializations in `table_service`, `blob_service`, `queue_service` properties)*
 
 Falls back to connection string only for local development with Azurite.
 
@@ -73,9 +81,9 @@ self.app = ConfidentialClientApplication(
 )
 ```
 
-*(graph_client.py lines 62-66)*
+*(graph_client.py: `ConfidentialClientApplication` initialization in `__init__`)*
 
-Token management includes caching with a **5-minute refresh buffer** before expiry (line 87) and Bearer token injection on all requests (line 130). Documented in **ADR-0010**.
+Token management includes caching with a **5-minute refresh buffer** before expiry (`_get_access_token` method) and Bearer token injection on all requests (`_make_request_internal` method). Documented in **ADR-0010**.
 
 ---
 
@@ -83,17 +91,17 @@ Token management includes caching with a **5-minute refresh buffer** before expi
 
 ### Key Vault Configuration
 
-Defined in `infrastructure/bicep/modules/keyvault.bicep`:
+Defined in `infrastructure/bicep/modules/keyvault.bicep`, `keyVault` resource `properties` block:
 
-| Setting | Value | Line |
+| Setting | Value | Section |
 |---|---|---|
-| SKU | Standard | 26-28 |
-| Soft Delete | Enabled, 90-day retention | 35-36 |
-| Purge Protection | Enabled | 37 |
-| RBAC Authorization | false (uses access policies) | 34 |
-| Template Deployment | Enabled | 32 |
-| VM Deployment | Disabled | 31 |
-| Disk Encryption | Disabled | 33 |
+| SKU | Standard | `sku { name: 'standard' }` |
+| Soft Delete | Enabled, 90-day retention | `enableSoftDelete: true` / `softDeleteRetentionInDays: 90` |
+| Purge Protection | Enabled | `enablePurgeProtection: true` |
+| RBAC Authorization | false (uses access policies) | `enableRbacAuthorization: false` |
+| Template Deployment | Enabled | `enabledForTemplateDeployment: true` |
+| VM Deployment | Disabled | `enabledForDeployment: false` |
+| Disk Encryption | Disabled | `enabledForDiskEncryption: false` |
 
 ### Access Policies (Least Privilege)
 
@@ -105,13 +113,13 @@ permissions: {
 }
 ```
 
-*(keyvault.bicep lines 44-52, 55-63)*
+*(keyvault.bicep: `accessPolicies` array — `permissions { secrets: ['get', 'list'] }` blocks)*
 
 No set, delete, backup, restore, or purge permissions granted.
 
 ### Secrets Inventory (9 secrets)
 
-All Function App settings reference Key Vault via `@Microsoft.KeyVault()` syntax (functionapp.bicep lines 108-151):
+All Function App settings reference Key Vault via `@Microsoft.KeyVault()` syntax (functionapp.bicep: Key Vault reference app settings block):
 
 | Secret | App Setting | Purpose |
 |---|---|---|
@@ -127,7 +135,7 @@ All Function App settings reference Key Vault via `@Microsoft.KeyVault()` syntax
 
 ### Key Vault Audit Logging
 
-Diagnostic settings send all access events to Log Analytics (keyvault.bicep lines 74-92):
+Diagnostic settings send all access events to Log Analytics (keyvault.bicep: `keyVaultDiagnostics` resource):
 
 - **AuditEvent** category: All data plane operations logged
 - **AllMetrics**: Performance monitoring
@@ -137,14 +145,14 @@ Diagnostic settings send all access events to Log Analytics (keyvault.bicep line
 
 Verified across entire codebase:
 
-- All Python code reads secrets from `os.environ` only (config.py lines 154-227)
-- Test fixtures use clearly-marked `"test-"` prefixed values (tests/conftest.py lines 195-244)
+- All Python code reads secrets from `os.environ` only (config.py: property accessors such as `graph_tenant_id`, `graph_client_id`, etc.)
+- Test fixtures use clearly-marked `"test-"` prefixed values (tests/conftest.py: `mock_environment` fixture)
 - `local.settings.json.template` uses `"your-*"` placeholders
-- Gitleaks runs on every commit in CI/CD (ci-cd.yml lines 36-40)
+- Gitleaks runs on every commit in CI/CD (ci-cd.yml: `Scan for secrets with Gitleaks` step)
 
 ### Rotation Procedures
 
-Documented in `docs/operations/KEY_ROTATION.md` (500 lines) and `docs/operations/SECURITY_PROCEDURES.md`:
+Documented in `docs/operations/KEY_ROTATION.md` and `docs/operations/SECURITY_PROCEDURES.md`:
 
 | Secret | Rotation Frequency | Procedure |
 |---|---|---|
@@ -161,35 +169,35 @@ Each procedure includes rollback steps and 24-48 hour grace periods before old s
 
 ### Function App
 
-Defined in `infrastructure/bicep/modules/functionapp.bicep`:
+Defined in `infrastructure/bicep/modules/functionapp.bicep`, `functionApp` resource `siteConfig` block:
 
-| Setting | Value | Line |
+| Setting | Value | Section |
 |---|---|---|
-| `httpsOnly` | `true` | 192 |
-| `minTlsVersion` | `'1.2'` | 164 |
-| `scmMinTlsVersion` | `'1.2'` | 165 |
-| `http20Enabled` | `true` | 166 |
-| `ftpsState` | `'Disabled'` | 163 |
+| `httpsOnly` | `true` | `functionApp` resource: `properties { httpsOnly: true }` |
+| `minTlsVersion` | `'1.2'` | `siteConfig { minTlsVersion: '1.2' }` |
+| `scmMinTlsVersion` | `'1.2'` | `siteConfig { scmMinTlsVersion: '1.2' }` |
+| `http20Enabled` | `true` | `siteConfig { http20Enabled: true }` |
+| `ftpsState` | `'Disabled'` | `siteConfig { ftpsState: 'Disabled' }` |
 
 All HTTP requests are **redirected to HTTPS**. FTP/FTPS deployment is completely disabled — deployments use blob URL only (ADR-0034).
 
 ### Storage Account
 
-Defined in `infrastructure/bicep/modules/storage.bicep`:
+Defined in `infrastructure/bicep/modules/storage.bicep`, `storageAccount` resource `properties` block:
 
-| Setting | Value | Line |
+| Setting | Value | Section |
 |---|---|---|
-| `supportsHttpsTrafficOnly` | `true` | 26 |
-| `minimumTlsVersion` | `'TLS1_2'` | 27 |
-| `allowBlobPublicAccess` | `false` | 28 |
+| `supportsHttpsTrafficOnly` | `true` | `properties { supportsHttpsTrafficOnly: true }` |
+| `minimumTlsVersion` | `'TLS1_2'` | `properties { minimumTlsVersion: 'TLS1_2' }` |
+| `allowBlobPublicAccess` | `false` | `properties { allowBlobPublicAccess: false }` |
 
-All storage service URIs in function app settings use `https://` explicitly (functionapp.bicep lines 65, 69, 73).
+All storage service URIs in function app settings use `https://` explicitly (functionapp.bicep: `AzureWebJobsStorage__*ServiceUri` app settings).
 
 ### All External API Calls
 
-- Graph API: `https://graph.microsoft.com/v1.0` (graph_client.py line 59)
-- MSAL Authority: `https://login.microsoftonline.com/{tenant}` (graph_client.py line 57)
-- Key Vault: `https://{name}.vault.azure.net/` (functionapp.bicep line 106)
+- Graph API: `https://graph.microsoft.com/v1.0` (graph_client.py: `self.graph_url` assignment)
+- MSAL Authority: `https://login.microsoftonline.com/{tenant}` (graph_client.py: `self.authority` assignment)
+- Key Vault: `https://{name}.vault.azure.net/` (functionapp.bicep: `KEY_VAULT_URI` app setting)
 - Azure OpenAI: HTTPS endpoint from Key Vault
 - Teams Webhook: HTTPS URL from Key Vault
 
@@ -197,12 +205,12 @@ All storage service URIs in function app settings use `https://` explicitly (fun
 
 Locked down to empty origins on all services:
 
-| Service | Config | Lines |
+| Service | Config | Section |
 |---|---|---|
-| Function App | `allowedOrigins: []` | functionapp.bicep 160-162 |
-| Blob Service | `corsRules: []` | storage.bicep 41-43 |
-| Queue Service | `corsRules: []` | storage.bicep 71-73 |
-| Table Service | `corsRules: []` | storage.bicep 98-102 |
+| Function App | `allowedOrigins: []` | functionapp.bicep: `siteConfig { cors { allowedOrigins: [] } }` |
+| Blob Service | `corsRules: []` | storage.bicep: `blobServices` resource `cors { corsRules: [] }` |
+| Queue Service | `corsRules: []` | storage.bicep: `queueServices` resource `cors { corsRules: [] }` |
+| Table Service | `corsRules: []` | storage.bicep: `tableServices` resource `cors { corsRules: [] }` |
 
 ---
 
@@ -210,19 +218,19 @@ Locked down to empty origins on all services:
 
 ### Storage Data Protection
 
-| Control | Prod | Dev | File |
+| Control | Prod | Dev | Section |
 |---|---|---|---|
-| Blob soft delete | 30 days | 7 days | storage.bicep 45-48 |
-| Container soft delete | 30 days | 7 days | storage.bicep 50-53 |
-| Public blob access | Disabled | Disabled | storage.bicep 28 |
-| Container public access | `'None'` | `'None'` | storage.bicep 62 |
+| Blob soft delete | 30 days | 7 days | storage.bicep: `blobServices` resource `deleteRetentionPolicy` |
+| Container soft delete | 30 days | 7 days | storage.bicep: `blobServices` resource `containerDeleteRetentionPolicy` |
+| Public blob access | Disabled | Disabled | storage.bicep: `allowBlobPublicAccess: false` property |
+| Container public access | `'None'` | `'None'` | storage.bicep: `invoicesContainer` resource `publicAccess: 'None'` |
 
 Container soft delete was added per AZQR Phase 1 recommendations (ADR-0031).
 
 ### Key Vault Data Protection
 
-- **Soft delete**: 90-day retention (keyvault.bicep line 35-36)
-- **Purge protection**: Enabled — secrets cannot be permanently deleted during retention (line 37)
+- **Soft delete**: 90-day retention (keyvault.bicep: `enableSoftDelete` / `softDeleteRetentionInDays` properties)
+- **Purge protection**: Enabled — secrets cannot be permanently deleted during retention (keyvault.bicep: `enablePurgeProtection: true`)
 
 ### Pydantic Model Validation
 
@@ -236,18 +244,18 @@ All queue messages and table entities are validated through strict Pydantic mode
 | `InvoiceTransaction` | YYYYMM partition key (2020-2100 range), ErrorMessage required when Status='error' |
 | `NotificationMessage` | Strict field validation |
 
-*(models.py lines 17-266, 100+ unit test cases in test_models.py)*
+*(models.py: `RawMail`, `EnrichedInvoice`, `VendorMaster`, `InvoiceTransaction`, `NotificationMessage` class definitions)*
 
 ### OData Injection Prevention
 
-`src/shared/deduplication.py` (lines 23-39) escapes single quotes before building Table Storage OData filters:
+`src/shared/deduplication.py` defines `_sanitize_odata_string()` to escape single quotes before building Table Storage OData filters:
 
 ```python
 def _sanitize_odata_string(value: str) -> str:
     return value.replace("'", "''")  # OData escaping
 ```
 
-Applied to all deduplication queries (lines 68, 143).
+Applied to all deduplication queries via the `is_duplicate_message` and `is_duplicate_invoice` functions.
 
 ---
 
@@ -255,17 +263,17 @@ Applied to all deduplication queries (lines 68, 143).
 
 ### Webhook Security (MailWebhook)
 
-**Client state validation** (MailWebhook/\_\_init\_\_.py lines 67-88):
+**Client state validation** (MailWebhook/\_\_init\_\_.py: `clientState` comparison in notification processing loop):
 
 - Every Graph API notification must include the correct `clientState` secret
 - Invalid notifications are logged (with truncated secret) and skipped
 - Returns 500 if `GRAPH_CLIENT_STATE` is not configured
 
-**Validation handshake** (lines 52-57): URL-decodes and returns the Graph API validation token during subscription creation.
+**Validation handshake** (MailWebhook/\_\_init\_\_.py: `validationToken` handling block): URL-decodes and returns the Graph API validation token during subscription creation.
 
 ### Rate Limiting
 
-IP-based rate limiting via Table Storage (`src/shared/rate_limiter.py`):
+IP-based rate limiting via Table Storage (`src/shared/rate_limiter.py`: `check_rate_limit()` and `get_client_ip()` functions):
 
 | Endpoint | Limit | Auth Level |
 |---|---|---|
@@ -281,13 +289,13 @@ Three breakers protect against cascade failures (`src/shared/circuit_breaker.py`
 
 | Breaker | Failure Threshold | Reset Timeout | Excluded Exceptions |
 |---|---|---|---|
-| Graph API | 5 failures | 60 seconds | ValueError, KeyError |
-| Azure OpenAI | 3 failures | 30 seconds | — |
-| Blob Storage | 5 failures | 45 seconds | — |
+| `graph_breaker` | 5 failures | 60 seconds | ValueError, KeyError |
+| `openai_breaker` | 3 failures | 30 seconds | — |
+| `storage_breaker` | 5 failures | 45 seconds | — |
 
 ### Email Loop Prevention
 
-Four layers in `src/shared/email_processor.py` (lines 133-167) and `src/PostToAP/__init__.py` (lines 25-42):
+Four layers in `src/shared/email_processor.py` (filter functions) and `src/PostToAP/__init__.py` (recipient validation):
 
 1. Skips emails FROM the system mailbox (self-sent)
 2. Detects AP email format pattern (`DEPT / schedule SCHEDULE`)
@@ -296,16 +304,16 @@ Four layers in `src/shared/email_processor.py` (lines 133-167) and `src/PostToAP
 
 ### Deduplication
 
-- **Message-level**: Checks Graph API message ID against InvoiceTransactions table (deduplication.py lines 42-86)
-- **Invoice-level**: SHA-256 hash of (vendor + sender + date), 90-day lookback window (lines 89-169)
+- **Message-level**: Checks Graph API message ID against InvoiceTransactions table (deduplication.py: `is_message_already_processed()` function)
+- **Invoice-level**: SHA-256 hash of (vendor + sender + date), 90-day lookback window (deduplication.py: `check_duplicate_invoice()` function)
 - Both are **fail-open** — if the dedup check fails, processing continues
 
 ### Error Handling & Information Leakage
 
-- **Health endpoint**: Returns minimal response by default; detailed info only with `?detailed=true` (Health/\_\_init\_\_.py)
-- **Webhook errors**: Logged server-side with full traceback at DEBUG level only (MailWebhookProcessor lines 79-96)
-- **Teams failures**: Non-critical, logged as warnings, don't affect main pipeline (Notify lines 92-112)
-- **Credential truncation**: Client state logged as first 8 chars only (MailWebhook line 86)
+- **Health endpoint**: Returns minimal response by default; detailed info only with `?detailed=true` (Health/\_\_init\_\_.py: response builder)
+- **Webhook errors**: Logged server-side with full traceback at DEBUG level only (MailWebhookProcessor/\_\_init\_\_.py: exception handler)
+- **Teams failures**: Non-critical, logged as warnings, don't affect main pipeline (Notify/\_\_init\_\_.py: webhook error handling)
+- **Credential truncation**: Client state logged as first 8 chars only (MailWebhook/\_\_init\_\_.py: `clientState` logging)
 
 ### Poison Queue Handling
 
@@ -317,17 +325,17 @@ Azure Storage Queues retry failed messages up to **5 times**, then route to the 
 
 From `.github/workflows/ci-cd.yml`:
 
-| Control | Lines | Description |
+| Control | Section | Description |
 |---|---|---|
-| **Gitleaks** | 36-40 | Secret scanning on every commit |
-| **Flake8** | 71-78 | Linting with max cyclomatic complexity 10 |
-| **Black** | 65-69 | Code formatting enforcement |
-| **Test suite** | — | 472 tests, 93% coverage, 85% minimum gate |
-| **Prod dependency stripping** | 160-165 | Removes pytest, mypy, bandit from production package |
-| **SAS URL masking** | 296, 309 | `::add-mask::` on account keys and SAS URLs in logs |
-| **GitHub Secrets** | 244, 454 | Azure credentials stored as repository secrets only |
-| **Bicep linting** | 246-255 | Infrastructure-as-code validation |
-| **Health check** | 341-374 | Post-deployment verification (200 status + 9 functions loaded) |
+| **Gitleaks** | `Scan for secrets with Gitleaks` step | Secret scanning on every commit |
+| **Flake8** | `Lint with Flake8` step | Linting with max cyclomatic complexity 10 |
+| **Black** | `Check code formatting with Black` step | Code formatting enforcement |
+| **Test suite** | `Run unit and integration tests with coverage` step | 472 tests, 93% coverage, 85% minimum gate |
+| **Prod dependency stripping** | `build` job: package assembly steps | Removes pytest, mypy, bandit from production package |
+| **SAS URL masking** | `deploy-prod` job: `::add-mask::` commands | Account keys and SAS URLs masked in logs |
+| **GitHub Secrets** | `deploy-prod` / `deploy-dev` jobs: `secrets.AZURE_CREDENTIALS_*` | Azure credentials stored as repository secrets only |
+| **Bicep linting** | `deploy-prod` job: Bicep validation step | Infrastructure-as-code validation |
+| **Health check** | `deploy-prod` job: post-deployment health verification | Verifies 200 status + 9 functions loaded |
 
 ### Security Scanning Tools
 
@@ -340,7 +348,7 @@ From `.github/workflows/ci-cd.yml`:
 
 ## 7. Operational Security Procedures
 
-From `docs/operations/SECURITY_PROCEDURES.md` (734 lines):
+From `docs/operations/SECURITY_PROCEDURES.md`:
 
 ### Quarterly Access Reviews
 
@@ -434,9 +442,3 @@ From `docs/operations/SECURITY_PROCEDURES.md` (734 lines):
 - [Key Rotation](operations/KEY_ROTATION.md) — Secret rotation procedures
 - [Security Procedures](operations/SECURITY_PROCEDURES.md) — Operational security runbook
 - [Mail Permissions Guide](MAIL_PERMISSIONS_GUIDE.md) — Graph API permission model
-
----
-
-**Version:** 1.0
-**Last Updated:** 2026-02-07
-**Maintained By:** Engineering Team
