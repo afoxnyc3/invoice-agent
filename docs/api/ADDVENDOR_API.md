@@ -1,6 +1,6 @@
 # AddVendor API Reference
 
-**Last Updated:** November 13, 2025
+**Last Updated:** February 17, 2026
 
 Complete API documentation for the AddVendor HTTP endpoint. This endpoint manages vendor records in the VendorMaster table.
 
@@ -10,7 +10,7 @@ Complete API documentation for the AddVendor HTTP endpoint. This endpoint manage
 |----------|-------|
 | **URL** | `https://{function-app}.azurewebsites.net/api/AddVendor` |
 | **Method** | `POST` |
-| **Authentication** | None (open endpoint - secure via network policies) |
+| **Authentication** | Function key required (`authLevel: function`) |
 | **Content-Type** | `application/json` |
 | **Response Format** | JSON |
 
@@ -23,11 +23,11 @@ Complete API documentation for the AddVendor HTTP endpoint. This endpoint manage
 ```json
 {
   "vendor_name": "string (required)",
-  "vendor_domain": "string (required)",
   "expense_dept": "string (required)",
   "gl_code": "string (required)",
   "allocation_schedule": "string (required)",
-  "billing_party": "string (required)"
+  "product_category": "string (optional, default: Direct)",
+  "venue_required": "boolean (optional, default: false)"
 }
 ```
 
@@ -35,12 +35,12 @@ Complete API documentation for the AddVendor HTTP endpoint. This endpoint manage
 
 | Field | Type | Required | Description | Constraints |
 |-------|------|----------|-------------|-------------|
-| `vendor_name` | string | Yes | Display name of vendor | 1-100 characters |
-| `vendor_domain` | string | Yes | Email domain for matching | Valid domain format, lowercase (dots OK) |
+| `vendor_name` | string | Yes | Display name of vendor (also used as lookup key) | 1-100 characters |
 | `expense_dept` | string | Yes | Department code | IT, SALES, HR, FINANCE, LEGAL, MARKETING, OPERATIONS, FACILITIES |
 | `gl_code` | string | Yes | General ledger code | Exactly 4 digits (0-9) |
-| `allocation_schedule` | string | Yes | Billing frequency | MONTHLY, ANNUAL, QUARTERLY, WEEKLY |
-| `billing_party` | string | Yes | Payment entity | 1-100 characters |
+| `allocation_schedule` | string | Yes | Allocation schedule code | Numeric string (1, 3, 14, etc.) |
+| `product_category` | string | No | Vendor type classification | "Direct" (default) or "Reseller" |
+| `venue_required` | boolean | No | Whether venue extraction is needed | Default: false |
 
 ### Field Details
 
@@ -390,33 +390,14 @@ def test_add_vendor_invalid_gl_code():
 
 ## Important Notes
 
-### Idempotency
+### Duplicate Prevention
 
-The endpoint uses **upsert** semantics:
-- Same vendor_domain = update existing record
-- New vendor_domain = create new record
+The endpoint uses **create** semantics (not upsert):
+- New vendor name = creates record (HTTP 201)
+- Existing vendor name = returns error (HTTP 400 "Vendor already exists")
 
-**Example:** Posting the same vendor twice with updated GL code will update it:
-
-```bash
-# First call: Creates vendor
-POST /api/AddVendor
-{
-  "vendor_domain": "adobe.com",
-  "gl_code": "6100",
-  ...
-}
-# Result: Vendor added
-
-# Second call: Updates same vendor
-POST /api/AddVendor
-{
-  "vendor_domain": "adobe.com",
-  "gl_code": "6150",  # Changed GL code
-  ...
-}
-# Result: Vendor updated with new GL code
-```
+The RowKey is derived from `vendor_name` (lowercased, spaces/hyphens to underscores).
+To update an existing vendor, use Azure Table Storage directly or the seed script.
 
 ### Data Storage
 
@@ -424,12 +405,12 @@ All vendor data is stored in Azure Table Storage:
 
 **Table:** `VendorMaster`
 **Partition Key:** Always "Vendor"
-**Row Key:** vendor_domain normalized (lowercase, dots → underscores)
+**Row Key:** vendor_name normalized (lowercase, spaces/hyphens → underscores)
 
 Example storage:
 ```
-PartitionKey=Vendor, RowKey=adobe_com, VendorName=Adobe Inc, GLCode=6100
-PartitionKey=Vendor, RowKey=aws_amazon_com, VendorName=Amazon Web Services, GLCode=6110
+PartitionKey=Vendor, RowKey=adobe_inc, VendorName=Adobe Inc, GLCode=6100
+PartitionKey=Vendor, RowKey=amazon_web_services, VendorName=Amazon Web Services, GLCode=6110
 ```
 
 ### Timestamp
@@ -443,7 +424,7 @@ PartitionKey=Vendor, RowKey=aws_amazon_com, VendorName=Amazon Web Services, GLCo
 ### Performance
 
 - **Latency:** Typically 200-500ms
-- **Throughput:** No rate limiting (enforced at network layer)
+- **Throughput:** Rate limited to 10 requests/minute per IP
 - **Scale:** Can handle 1000s of vendors without performance degradation
 
 ---
@@ -452,15 +433,14 @@ PartitionKey=Vendor, RowKey=aws_amazon_com, VendorName=Amazon Web Services, GLCo
 
 ### Authentication
 
-The endpoint is **open to any HTTP client** (no API key required).
+The endpoint requires a **function key** (`authLevel: function`).
 
-**Security is enforced at:**
+Include the key as a query parameter `?code=<function-key>` or in the `x-functions-key` header.
+
+**Additional security:**
 - Network level (Azure firewall rules)
+- Rate limiting (10 requests/minute per IP)
 - Application level (Function App access control)
-- For production, consider:
-  - API Management with API keys
-  - Azure AD authentication
-  - IP whitelisting
 
 ### Data Privacy
 
@@ -518,4 +498,4 @@ for vendor in vendors:
 
 ---
 
-**Last Updated:** November 13, 2025
+**Last Updated:** February 17, 2026

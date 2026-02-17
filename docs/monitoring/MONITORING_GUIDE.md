@@ -98,7 +98,7 @@ For custom queries and investigations:
 
 #### 5. Poison Queue Messages (P0)
 - **Condition:** Any messages in poison queue
-- **Impact:** Invoices failed after 5 retry attempts
+- **Impact:** Invoices failed after 3 dequeue attempts
 - **Action:** Manual intervention required, investigate root cause
 
 #### 6. High Unknown Vendor Rate (P2)

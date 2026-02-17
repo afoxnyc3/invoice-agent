@@ -1,33 +1,64 @@
 {
   "IsEncrypted": false,
   "Values": {
+    // ── Azure Functions Runtime ──────────────────────────────────────
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "FUNCTIONS_WORKER_RUNTIME_VERSION": "3.11",
 
+    // ── Microsoft Graph API (Required) ──────────────────────────────
+    // App registration credentials for Graph API access
     "GRAPH_TENANT_ID": "your-tenant-id",
     "GRAPH_CLIENT_ID": "your-client-id",
     "GRAPH_CLIENT_SECRET": "your-client-secret",
 
+    // ── Azure OpenAI (Required for PDF extraction) ──────────────────
     "AZURE_OPENAI_ENDPOINT": "https://your-openai-resource.openai.azure.com/",
     "AZURE_OPENAI_API_KEY": "your-azure-openai-api-key",
+    // Optional: defaults to "gpt-4o-mini"
     "AZURE_OPENAI_DEPLOYMENT": "gpt-4o-mini",
+    // Optional: defaults to "2024-02-01"
     "AZURE_OPENAI_API_VERSION": "2024-02-01",
 
+    // ── Email Configuration (Required) ──────────────────────────────
+    // Shared mailbox monitored for incoming invoices
     "INVOICE_MAILBOX": "dev-invoices@yourcompany.com",
+    // AP mailbox where enriched invoices are sent
     "AP_EMAIL_ADDRESS": "dev-ap@yourcompany.com",
-    "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
-    "DEFAULT_BILLING_PARTY": "Your Company",
+    // Optional: comma-separated list of allowed AP recipients for loop prevention
+    "ALLOWED_AP_EMAILS": "",
 
+    // ── Notifications (Optional) ─────────────────────────────────────
+    "TEAMS_WEBHOOK_URL": "https://outlook.office.com/webhook/your-webhook-url",
+
+    // ── Business Configuration (Optional) ────────────────────────────
+    "DEFAULT_BILLING_PARTY": "Your Company",
+    // Optional: base URL for the Function App (used in registration emails)
+    "FUNCTION_APP_URL": "http://localhost:7071",
+
+    // ── Webhook Configuration (Required for real-time processing) ────
+    // Public URL for Graph API webhook endpoint
     "MAIL_WEBHOOK_URL": "",
+    // Secret string for webhook validation (must match Graph subscription)
     "GRAPH_CLIENT_STATE": "",
 
-    "STORAGE_ACCOUNT_NAME": "stinvoiceagentdev",
-    "STORAGE_ACCOUNT_KEY": "your-storage-key",
+    // ── Vendor Matching (Optional) ───────────────────────────────────
+    // Fuzzy match confidence threshold 0-100 (default: 75)
+    "VENDOR_FUZZY_THRESHOLD": "75",
 
+    // ── Rate Limiting (Optional) ─────────────────────────────────────
+    // Set to "true" to disable rate limiting (local dev/testing only)
+    "RATE_LIMIT_DISABLED": "true",
+
+    // ── Fallback Polling (Optional) ──────────────────────────────────
+    // Set to "false" or "0" to disable hourly MailIngest fallback
+    "MAIL_INGEST_ENABLED": "true",
+
+    // ── Environment & Logging ────────────────────────────────────────
     "KEY_VAULT_URL": "https://kv-invoice-agent-dev.vault.azure.net/",
-
+    // One of: local, dev, staging, prod
     "ENVIRONMENT": "local",
+    // One of: DEBUG, INFO, WARNING, ERROR
     "LOG_LEVEL": "DEBUG"
   },
   "Host": {

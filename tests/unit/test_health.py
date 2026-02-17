@@ -263,13 +263,16 @@ class TestHealthNoInformationDisclosure:
 class TestHealthDetailedEndpoint:
     """Test Health endpoint with ?detailed=true parameter."""
 
-    @patch.dict("os.environ", {
-        "GRAPH_TENANT_ID": "test-tenant",
-        "GRAPH_CLIENT_ID": "test-client",
-        "GRAPH_CLIENT_SECRET": "test-secret",
-        "GIT_SHA": "abc123",
-        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+            "GIT_SHA": "abc123",
+            "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+        },
+    )
     @patch("Health.get_all_circuit_states")
     @patch("Health.config")
     def test_detailed_returns_all_checks(self, mock_config, mock_circuits):
@@ -304,13 +307,16 @@ class TestHealthDetailedEndpoint:
         assert body["checks"]["graph_credentials"]["healthy"] is True
         assert body["checks"]["circuits"]["healthy"] is True
 
-    @patch.dict("os.environ", {
-        "GRAPH_TENANT_ID": "test-tenant",
-        "GRAPH_CLIENT_ID": "test-client",
-        "GRAPH_CLIENT_SECRET": "test-secret",
-        "GIT_SHA": "abc123",
-        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+            "GIT_SHA": "abc123",
+            "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+        },
+    )
     @patch("Health.get_all_circuit_states")
     @patch("Health.config")
     def test_detailed_includes_circuit_states(self, mock_config, mock_circuits):
@@ -344,13 +350,16 @@ class TestHealthDetailedEndpoint:
         assert "azure_storage" in states
         assert states["graph_api"]["state"] == "closed"
 
-    @patch.dict("os.environ", {
-        "GRAPH_TENANT_ID": "test-tenant",
-        "GRAPH_CLIENT_ID": "test-client",
-        "GRAPH_CLIENT_SECRET": "test-secret",
-        "GIT_SHA": "abc123",
-        "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+            "GIT_SHA": "abc123",
+            "DEPLOYMENT_TIMESTAMP": "2025-12-08T10:00:00Z",
+        },
+    )
     @patch("Health.get_all_circuit_states")
     @patch("Health.config")
     def test_detailed_includes_deployment_info(self, mock_config, mock_circuits):
@@ -382,11 +391,14 @@ class TestHealthDetailedEndpoint:
         assert body["deployment"]["environment"] == "prod"
         assert body["deployment"]["function_count"] == 9
 
-    @patch.dict("os.environ", {
-        "GRAPH_TENANT_ID": "test-tenant",
-        "GRAPH_CLIENT_ID": "test-client",
-        "GRAPH_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GRAPH_TENANT_ID": "test-tenant",
+            "GRAPH_CLIENT_ID": "test-client",
+            "GRAPH_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("Health.get_all_circuit_states")
     @patch("Health.config")
     def test_detailed_circuit_open_shows_degraded(self, mock_config, mock_circuits):

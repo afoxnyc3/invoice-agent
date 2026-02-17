@@ -12,7 +12,7 @@ from functools import wraps
 from typing import Any, Callable, ParamSpec, TypeVar
 import azure.functions as func
 from azure.core.exceptions import ResourceNotFoundError
-from azure.data.tables import TableClient, TableServiceClient, UpdateMode
+from azure.data.tables import TableClient, UpdateMode
 
 logger = logging.getLogger(__name__)
 
@@ -159,17 +159,3 @@ def rate_limit(
         return wrapper
 
     return decorator
-
-
-def create_rate_limit_table(table_service: TableServiceClient) -> None:
-    """
-    Create RateLimits table if it doesn't exist.
-
-    Call this during deployment/initialization.
-    """
-    try:
-        table_service.create_table_if_not_exists("RateLimits")
-        logger.info("RateLimits table created or already exists")
-    except Exception as e:
-        logger.error(f"Failed to create RateLimits table: {e}")
-        raise
