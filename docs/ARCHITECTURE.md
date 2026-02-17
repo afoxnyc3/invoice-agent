@@ -133,7 +133,7 @@ Automated Azure serverless system that extracts vendor information from email, a
 
 ┌────────────────────────── UTILITIES ─────────────────────────────┐
 │  AddVendor Function (HTTP) - POST /api/AddVendor                 │
-│  Health Function (HTTP) - GET /api/Health                        │
+│  Health Function (HTTP) - GET /api/health                        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1264,7 +1264,7 @@ See [ADR-0028](adr/0028-message-id-deduplication.md) for design rationale.
 - Auto-extended if processing continues
 
 **Poison Queue**:
-- After 5 failed attempts
+- After 3 failed attempts (maxDequeueCount in host.json)
 - Manual review and resubmit
 - Alerts on poison queue depth
 

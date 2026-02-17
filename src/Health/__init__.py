@@ -93,9 +93,7 @@ def _get_detailed_health() -> dict[str, Any]:
     graph_ok, graph_error = _check_graph_credentials()
     circuit_states = get_all_circuit_states()
 
-    circuits_healthy = all(
-        state["state"] == "closed" for state in circuit_states.values()
-    )
+    circuits_healthy = all(state["state"] == "closed" for state in circuit_states.values())
 
     return {
         "checks": {

@@ -13,12 +13,11 @@ Subscription lifecycle:
 
 import os
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 import azure.functions as func
-from azure.data.tables import TableServiceClient, TableClient
+from azure.data.tables import TableClient
 from shared.graph_client import GraphAPIClient
-from shared.ulid_generator import generate_ulid
 from shared.config import config
 
 logger = logging.getLogger(__name__)

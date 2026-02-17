@@ -221,9 +221,7 @@ class TestProcessEmailAttachments:
         """Create a mock queue output binding."""
         return MagicMock()
 
-    def test_processes_pdf_attachment(
-        self, mock_email, mock_graph_client, mock_blob_container, mock_queue_output
-    ):
+    def test_processes_pdf_attachment(self, mock_email, mock_graph_client, mock_blob_container, mock_queue_output):
         """Successfully processes email with PDF attachment."""
         # Setup attachment data
         pdf_content = b"%PDF-1.4 mock pdf content"
@@ -250,9 +248,7 @@ class TestProcessEmailAttachments:
         # Verify blob was uploaded
         mock_blob_container.get_blob_client.assert_called_once()
 
-    def test_skips_non_pdf_attachments(
-        self, mock_email, mock_graph_client, mock_blob_container, mock_queue_output
-    ):
+    def test_skips_non_pdf_attachments(self, mock_email, mock_graph_client, mock_blob_container, mock_queue_output):
         """Skips non-PDF attachments like images."""
         mock_graph_client.get_attachments.return_value = [
             {
@@ -412,6 +408,7 @@ class TestProcessEmailAttachments:
         assert "id" in queued_json
         # ULID is 26 characters
         import json
+
         msg = json.loads(queued_json)
         assert len(msg["id"]) == 26
 
@@ -439,6 +436,7 @@ class TestProcessEmailAttachments:
             )
 
         import json
+
         queued_json = mock_queue_output.set.call_args[0][0]
         msg = json.loads(queued_json)
         assert msg["vendor_name"] == "Adobe Inc"

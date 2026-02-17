@@ -9,12 +9,10 @@ Also provides invoice-level duplicate detection to prevent duplicate
 payments for the same invoice (same vendor, same day).
 """
 
-import os
 import logging
 import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from azure.data.tables import TableServiceClient
 from shared.config import config
 
 logger = logging.getLogger(__name__)
@@ -119,7 +117,7 @@ def check_duplicate_invoice(invoice_hash: str, lookback_days: int = 90) -> dict[
     InvoiceHash in the specified lookback period.
 
     Args:
-        invoice_hash: MD5 hash from generate_invoice_hash()
+        invoice_hash: SHA-256 hash from generate_invoice_hash()
         lookback_days: Number of days to look back (default 90)
 
     Returns:

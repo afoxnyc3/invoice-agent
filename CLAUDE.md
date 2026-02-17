@@ -334,7 +334,7 @@ Closes #XX
 - `raw-mail`: Email metadata + blob URL (fallback timer path)
 - `to-post`: Enriched vendor data with GL codes
 - `notify`: Formatted notification messages
-- Poison queue after 5 retry attempts
+- Poison queue after 3 dequeue attempts (maxDequeueCount in host.json)
 
 ### Data Models (Pydantic)
 - `RawMail`: Email ingestion schema

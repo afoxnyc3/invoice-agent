@@ -299,16 +299,30 @@ E2E Framework:           ✅ Complete (automated + manual validation)
 ## 📝 Configuration
 
 ### Environment Variables
-- `GRAPH_TENANT_ID` - Azure AD tenant
-- `GRAPH_CLIENT_ID` - App registration ID
-- `GRAPH_CLIENT_SECRET` - App secret
-- `GRAPH_CLIENT_STATE` - Webhook validation secret (security)
+
+**Required:**
+- `GRAPH_TENANT_ID` - Azure AD tenant ID
+- `GRAPH_CLIENT_ID` - App registration client ID
+- `GRAPH_CLIENT_SECRET` - App registration client secret
 - `INVOICE_MAILBOX` - Shared mailbox to monitor for invoices
 - `AP_EMAIL_ADDRESS` - Accounts payable mailbox
-- `TEAMS_WEBHOOK_URL` - Teams channel webhook
-- `MAIL_WEBHOOK_URL` - Graph API webhook endpoint (auto-configured in IaC)
 - `AZURE_OPENAI_ENDPOINT` - Azure OpenAI endpoint URL
 - `AZURE_OPENAI_API_KEY` - Azure OpenAI API key
+
+**Required for webhooks:**
+- `MAIL_WEBHOOK_URL` - Public URL for Graph API webhook endpoint
+- `GRAPH_CLIENT_STATE` - Webhook validation secret
+
+**Optional:**
+- `TEAMS_WEBHOOK_URL` - Teams channel webhook for notifications
+- `ALLOWED_AP_EMAILS` - Comma-separated list of allowed AP recipients (loop prevention)
+- `VENDOR_FUZZY_THRESHOLD` - Fuzzy match confidence 0-100 (default: 75)
+- `RATE_LIMIT_DISABLED` - Set to "true" to disable rate limiting (dev only)
+- `MAIL_INGEST_ENABLED` - Set to "false" to disable hourly fallback polling
+- `DEFAULT_BILLING_PARTY` - Default billing party name
+- `FUNCTION_APP_URL` - Function App base URL (used in registration emails)
+
+See `src/local.settings.json.template` for the complete reference with defaults.
 
 ### Key Vault Secrets
 All sensitive configuration is stored in Azure Key Vault and accessed via Managed Identity. See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for setup instructions.
